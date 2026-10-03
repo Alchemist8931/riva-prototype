@@ -44,7 +44,7 @@ const App = {
   /* ---------- боковая колонка: стеклянные иконки страниц, подписи всплывают ---------- */
   companyPanel() {
     return `<div class="ph"><span class="t">${COMPANY.name}</span><span class="mute small">структура предприятия</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
-      <div class="pb" style="display:grid;gap:8px;width:360px">
+      <div class="pb" style="display:grid;gap:7px;width:310px">
         ${DIRS.map(d => {
           const n = STAFF.filter(p => Array.isArray(p.dirs) && p.dirs.includes(d.id)).length;
           return `<div class="tile"><div class="row between"><span class="t">${d.name}</span><span class="mute xsmall">${n} чел.</span></div>
@@ -60,8 +60,8 @@ const App = {
       <a class="logo-tile" href="#logistics" data-tip="RIVA · прототип для ПК">R</a>
       <nav class="dock">${PAGES.map(pg => `<a href="#${pg.id}" class="dk-item ${pg.id === s.page ? 'active' : ''}" data-tip="${pg.name}${pg.ready ? '' : ' · эскиз'}">${glassIcon(pg.icon, pg.id === s.page ? 'n' : 'i')}${pg.unread ? `<span class="n">${pg.unread}</span>` : ''}</a>`).join('')}</nav>
       <div class="side-foot">
-        <button class="rail-btn" data-theme-toggle data-tip="${dark ? 'Светлая тема' : 'Тёмная тема'}">${ic(dark ? 'sun' : 'moon')}</button>
-        <div class="rail-me" data-tip="${ME.name} · ${ME.pos}">${av(ME)}</div>
+        <button class="rail-btn" data-theme-toggle data-tip="${dark ? 'Светлая тема' : 'Тёмная тема'}">${glassIcon(dark ? 'sun' : 'moon', 'i')}</button>
+        <div class="rail-me" data-tip="${ME.name} · ${ME.pos}">${glassIcon('user', 'i')}<i class="on"></i></div>
       </div>`;
   },
 
@@ -70,7 +70,7 @@ const App = {
     const s = this.state, pg = this.page();
     const dirLabel = s.dir === 'all' ? 'Все направления' : DIR[s.dir].name;
     const dirBtn = `<button class="btn" title="Направление деятельности">${s.dir === 'all' ? ic('layers', 'sm') : `<span class="chip dir" style="height:18px;padding:0;border:0;background:none"><span class="dk">${DIR[s.dir].k}</span></span>`}${dirLabel}${ic('down', 'sm')}</button>`;
-    const dirPanel = `<div class="menu" style="width:300px">
+    const dirPanel = `<div class="menu" style="width:260px">
       <div class="lbl">Направление деятельности</div>
       ${['all', ...DIRS.map(d => d.id)].map(id => `<button class="${id === s.dir ? 'on' : ''}" data-dir="${id}">${id === 'all' ? ic('layers', 'sm') : `<span class="chip dir" style="height:18px;padding:0;border:0;background:none"><span class="dk">${DIR[id].k}</span></span>`}${id === 'all' ? 'Все направления' : DIR[id].name}${id === s.dir ? `<span class="chk">${ic('check', 'sm')}</span>` : ''}</button>`).join('')}
       <div class="sep"></div>
@@ -86,9 +86,9 @@ const App = {
       ${xp({ id: 'dir', head: dirBtn, panel: dirPanel, place: 'below' })}
       <div class="grow"></div>
       <label class="search">${ic('search', 'sm')}<input placeholder="${ph}" data-search value="${esc(s.q)}"><kbd>/</kbd></label>
-      <button class="btn primary">${ic('plus', 'sm')}${primary}</button>
-      <button class="btn icon" title="Уведомления">${ic('bell')}<i class="dot-n"></i></button>
-      <button class="btn icon" title="Чат страницы" data-chat-toggle>${ic('chat')}${pg.unread ? '<i class="dot-n"></i>' : ''}</button>`;
+      <button class="btn primary">${glassIcon('plus', themeInv(), 'sm')}${primary}</button>
+      <button class="btn icon" title="Уведомления">${ic('bell', 'sm')}<i class="dot-n"></i></button>
+      <button class="btn" title="Чат страницы: открывается поверх контента справа" data-chat-toggle>${ic('chat', 'sm')}Чат${pg.unread ? `<span class="badge-n">${pg.unread}</span>` : ''}</button>`;
   },
 
   renderGrid() {
@@ -96,17 +96,10 @@ const App = {
     this.el.grid.innerHTML = pg.id === 'logistics' ? this.logistics() : pg.id === 'staff' ? this.staff() : this.stub(pg);
   },
 
-  /* чат по умолчанию — полоса 24px во всю высоту; по клику раскрывается поверх контента с блюр-фокусом */
+  /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом */
   renderChat() {
-    const pg = this.page(), online = CHAT.members(pg.id).filter(m => m.on).length;
-    this.el.chatcol.innerHTML = `
-      <div class="xp-head chat-rail" data-xp-toggle title="Открыть чат страницы">
-        ${ic('chat', 'sm')}${pg.unread ? `<span class="n">${pg.unread}</span>` : ''}
-        <span class="vtxt">Чат · ${pg.name}</span>
-        <span class="grow"></span>
-        <span class="dot ok" title="${online} онлайн"></span>
-      </div>
-      <div class="xp-panel chat-pop">${CHAT.render(pg.id)}</div>`;
+    const pg = this.page();
+    this.el.chatcol.innerHTML = `<div class="xp-panel chat-pop">${CHAT.render(pg.id)}</div>`;
     const m = document.getElementById('chat-msgs'); if (m) m.scrollTop = m.scrollHeight;
   },
 
@@ -120,7 +113,7 @@ const App = {
     const cnt = f => all.filter(f).length;
 
     /* рейсы — строки раскрываются поверх следующих */
-    const cols = '84px 110px minmax(0,1.8fr) minmax(0,1.2fr) minmax(0,1fr) 110px 84px';
+    const cols = '72px 96px minmax(0,1.8fr) minmax(0,1.2fr) minmax(0,1fr) 96px 72px';
     const rows = trips.map(t => {
       const [stName, stCls] = tripStatus(t), last = t.times.filter(Boolean).pop() || '';
       const head = `<div class="tr clickable ${t.id === s.trip ? 'sel' : ''}" style="grid-template-columns:${cols}" data-trip="${t.id}">
@@ -145,21 +138,21 @@ const App = {
     const tripsBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${cols}"><div>Рейс</div><div>Направление</div><div>Маршрут</div><div>Транспорт · водитель</div><div>Груз</div><div>Этап</div><div>Время</div></div>${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div>`;
 
     /* заявки на доставку от разных направлений */
-    const rcols = '56px 100px minmax(0,1fr) 116px';
+    const rcols = '48px 88px minmax(0,1fr) 100px';
     const reqRows = reqs.map(r => {
       const t = TRIPS.find(x => x.id === r.trip);
-      const assign = xp({ id: 'assign-' + r.id, head: `<button class="btn sm primary">Назначить${ic('down', 'xs')}</button>`, place: 'below-r', panel: `<div class="menu" style="width:290px"><div class="lbl">Назначить на рейс</div><button data-assign="${r.id}:new">${ic('plus', 'sm')}Новый рейс</button>${TRIPS.filter(x => x.stage <= 1 && x.dir === r.dir).map(x => `<button data-assign="${r.id}:${x.id}">${ic('truck', 'sm')}<span class="grow ellip">${x.id} · ${x.from} → ${x.to}</span></button>`).join('')}</div>` });
+      const assign = xp({ id: 'assign-' + r.id, head: `<button class="btn sm primary">Назначить${icRaw('down', 'xs')}</button>`, place: 'below-r', panel: `<div class="menu" style="width:290px"><div class="lbl">Назначить на рейс</div><button data-assign="${r.id}:new">${ic('plus', 'sm')}Новый рейс</button>${TRIPS.filter(x => x.stage <= 1 && x.dir === r.dir).map(x => `<button data-assign="${r.id}:${x.id}">${ic('truck', 'sm')}<span class="grow ellip">${x.id} · ${x.from} → ${x.to}</span></button>`).join('')}</div>` });
       const prio = r.prio === 'high' ? `<span style="color:var(--bad);font-weight:500">срочно</span>` : r.prio === 'low' ? 'не срочно' : 'обычно';
       return `<div class="tr" style="grid-template-columns:${rcols};min-height:46px">
           <div class="t num">${r.id}</div><div>${chipDir(r.dir)}</div>
           <div><div class="ellip">${r.what}</div><div class="s ellip">${r.from} · ${shortName(BY_ID[r.who].name)} · ${r.due} · ${prio}</div></div>
-          <div>${t ? `<span class="chip ${tripStatus(t)[1]}">${ic('truck', 'xs')}${t.id}</span>` : assign}</div>
+          <div>${t ? `<span class="chip ${tripStatus(t)[1]}">${glassIcon('truck', tripStatus(t)[1] === 'solid' ? themeInv() : themeVar(), 'xs')}${t.id}</span>` : assign}</div>
         </div>`;
     }).join('');
     const reqBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${rcols}"><div>№</div><div>Направление</div><div>Что и куда · от кого · срок</div><div>Рейс</div></div>${reqRows || '<div class="mute small" style="padding:14px 10px">Заявок нет</div>'}</div>`;
 
     /* транспорт */
-    const fcols = 'minmax(0,1fr) 92px auto';
+    const fcols = 'minmax(0,1fr) 80px auto';
     const fleetRows = FLEET.map(f => `<div class="tr" style="grid-template-columns:${fcols};min-height:46px">
         <div><div class="t ellip">${f.name} <span class="mute num" style="font-weight:400">· ${f.plate}</span></div><div class="s ellip">${f.driver ? shortName(BY_ID[f.driver].name) : 'без водителя'}${f.to ? ' · ' + f.to : ''}</div></div>
         <div class="row" style="gap:6px" title="Загрузка">${ticks(f.load, 10, 'fg')}<span class="mute xsmall num">${f.load * 10}%</span></div>
@@ -203,7 +196,7 @@ const App = {
         <div class="kpi"><b>${c('trip')}</b><span>${dot('fg')}в рейсе</span></div>
         <div class="kpi"><b>${absent.length}</b><span>${dot('warn')}отсутствуют</span></div>
       </div>
-      <div class="dirbar" style="margin-top:12px;grid-template-columns:120px 1fr auto"><span class="small mute">На связи сейчас</span>${ticks(pct16(STAFF.filter(p => p.on).length, STAFF.length), 16)}<span class="n">${STAFF.filter(p => p.on).length} из ${STAFF.length}</span></div>
+      <div class="dirbar" style="margin-top:10px;grid-template-columns:104px 1fr auto"><span class="small mute">На связи сейчас</span>${ticks(pct16(STAFF.filter(p => p.on).length, STAFF.length), 16)}<span class="n">${STAFF.filter(p => p.on).length} из ${STAFF.length}</span></div>
       <div class="sec-t" style="margin-top:12px">Отсутствуют</div>
       <div class="tbl">${absent.map(p => `<div class="tr" style="grid-template-columns:minmax(0,1fr) auto;min-height:36px;padding:0 4px">
         <div class="row" style="gap:8px">${av(p)}<div class="grow"><div class="ellip small" style="font-weight:500">${p.name}</div><div class="s">${deptName(p)}</div></div></div>
@@ -213,7 +206,7 @@ const App = {
         <div class="row" style="gap:8px">${av(BY_ID[id])}<div class="grow ellip small"><span style="font-weight:500">${shortName(BY_ID[id].name)}</span> <span class="mute">· ${what}</span></div></div><span class="small mute num">${when}</span></div>`).join('')}</div>`;
 
     /* таблица сотрудников — строки раскрываются поверх списка */
-    const cols = 'minmax(0,1.6fr) minmax(0,1fr) 150px 164px 104px';
+    const cols = 'minmax(0,1.6fr) minmax(0,1fr) 130px 150px 92px';
     const filtered = q || s.dept || s.dir !== 'all';
     const shown = filtered || s.all ? people : people.slice(0, 12);
     const rows = shown.map(p => {
@@ -254,7 +247,7 @@ const App = {
       <div class="matrix" style="grid-template-columns:150px repeat(7,1fr)"><div></div>${PAGES.map(pg => `<div class="mh">${pg.name}</div>`).join('')}
       ${Object.values(ROLES).map(r => `<div class="mr small">${r.name}</div>${PAGES.map(pg => { const a = r.pages[pg.id]; return `<div class="mc ${a === 'full' ? '' : a === 'view' ? 'view' : 'no'}">${a === 'full' ? ic('check', 'xs') : a === 'view' ? 'просм.' : '—'}</div>`; }).join('')}`).join('')}</div>
       <div class="mute small" style="margin-top:8px">Доступ к странице открывает и её чат. Доступ по направлению ограничивает склад, цех и продажи своим направлением; общие службы видят все.</div></div>`;
-    const roles = `${xp({ id: 'roles', head: rolesHead(false), panel: `<div style="width:min(760px, 80vw)">${rolesPanel}</div>`, place: 'over-wide roles-panel', cls: 'roles-xp' })}
+    const roles = `${xp({ id: 'roles', head: rolesHead(false), panel: `<div style="width:min(640px, 80vw)">${rolesPanel}</div>`, place: 'over-wide roles-panel', cls: 'roles-xp' })}
       <div class="tiles" style="grid-template-columns:1fr 1fr;padding:6px 4px 0;border-top:1px solid var(--line);margin-top:6px">${Object.values(ROLES).slice(0, 4).map(r => `<div class="tile" style="padding:7px 10px"><div class="t">${r.name}</div><div class="s">${Object.values(r.pages).filter(a => a === 'full').length} страниц · ${STAFF.filter(p => ROLES[p.role] === r).length} чел.</div></div>`).join('')}</div>`;
 
     return mod({ span: 7, title: 'Карта подразделений', sub: 'общие службы работают на все направления, учёт склада, цеха и продаж — по каждому отдельно', body: dmap, tight: true })
@@ -278,7 +271,7 @@ const App = {
   onClick(e) {
     const t = e.target;
     const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');
-    if (themeBtn) { this.state.theme = themeBtn.dataset.themeSet || (this.state.theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('riva.theme', this.state.theme); document.documentElement.dataset.theme = this.state.theme; this.renderSide(); return; }
+    if (themeBtn) { this.state.theme = themeBtn.dataset.themeSet || (this.state.theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('riva.theme', this.state.theme); document.documentElement.dataset.theme = this.state.theme; XP.closeAll(); this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat(); return; }
     if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); return; }
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');

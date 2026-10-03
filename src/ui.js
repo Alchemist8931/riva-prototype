@@ -44,7 +44,11 @@ const ICONS = {
   edit: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
   wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
 };
-const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+const icRaw = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+const ic = (n, cls = '') => {
+  if (typeof GLASS !== 'undefined' && GLASS[n] && !GLYPHS.has(n)) return glassIcon(n, themeVar(), /\bxs\b/.test(cls) ? 'xs' : /\bsm\b/.test(cls) ? 'sm' : 'md', cls.replace(/\b(xs|sm)\b/g, ''));
+  return icRaw(n, cls);
+};
 
 /* «Стеклянные» иконки (приём из образцов -51/-52/X-2): сзади фигура с тёмным
    градиентом, спереди вторая фигура из матового стекла — под ней задняя фигура
@@ -86,20 +90,61 @@ const GLASS = {
   },
 };
 /* Два варианта: n — тёмная фигура и белое стекло (на белой плитке), i — светлая фигура и дымчатое стекло (на тёмной рамке) */
+/* шестерёнка: многоугольник с зубьями и отверстием */
+const gearPath = (cx, cy, ro, ri, n, hole) => {
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * Math.PI * 2, st = Math.PI * 2 / n;
+    [[ri, a0 - st * .24], [ro, a0 - st * .13], [ro, a0 + st * .13], [ri, a0 + st * .24]].forEach(([r, t], k) => {
+      d += (i === 0 && k === 0 ? 'M' : 'L') + (cx + r * Math.cos(t)).toFixed(2) + ' ' + (cy + r * Math.sin(t)).toFixed(2) + ' ';
+    });
+  }
+  return `<path fill-rule="evenodd" d="${d}Z M${cx + hole} ${cy} a${hole} ${hole} 0 1 0 ${-2 * hole} 0 a${hole} ${hole} 0 1 0 ${2 * hole} 0 Z"/>`;
+};
+Object.assign(GLASS, {
+  search: { back: '<path fill-rule="evenodd" d="M20 5a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 6a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/><rect x="32" y="27" width="8" height="19" rx="4" transform="rotate(-45 36 36.5)"/>', front: '<circle cx="20" cy="20" r="9.5"/>' },
+  bell: { back: '<path d="M24 4a13 13 0 0 1 13 13v8l4.2 6.3A2.5 2.5 0 0 1 39 35H9a2.5 2.5 0 0 1-2.2-3.7L11 25v-8A13 13 0 0 1 24 4z"/><circle cx="24" cy="40.5" r="4.5"/>', front: '<rect x="11" y="26" width="26" height="12" rx="6"/>' },
+  chat: { back: '<path d="M5 14a8 8 0 0 1 8-8h16a8 8 0 0 1 8 8v7a8 8 0 0 1-8 8H16l-7.3 5.9A1.5 1.5 0 0 1 6.3 33.7L7 29.2A8 8 0 0 1 5 23z"/>', front: '<path d="M18 25a6 6 0 0 1 6-6h13a6 6 0 0 1 6 6v6a6 6 0 0 1-6 6h-2.5v4.3a1.2 1.2 0 0 1-2 .9L27 37h-3a6 6 0 0 1-6-6z"/>' },
+  plus: { back: '<rect x="18.5" y="5" width="11" height="38" rx="5.5"/>', front: '<rect x="5" y="18.5" width="38" height="11" rx="5.5"/>' },
+  building: { back: '<path fill-rule="evenodd" d="M12 4h18a4 4 0 0 1 4 4v34H8V8a4 4 0 0 1 4-4zm3 7v4h4v-4zm8 0v4h4v-4zm-8 8v4h4v-4zm8 0v4h4v-4z"/>', front: '<rect x="24" y="19" width="19" height="25" rx="4"/>', extra: '<path d="M29 25h3M35 25h3M29 31h3M35 31h3" fill="none" stroke="var(--ico-edge)" stroke-width="1.6" stroke-linecap="round"/>' },
+  layers: { back: '<rect x="12" y="16" width="24" height="24" rx="6" transform="rotate(45 24 28)"/>', front: '<rect x="13" y="7" width="22" height="22" rx="6" transform="rotate(45 24 18)"/>' },
+  filter: { back: '<rect x="5" y="10" width="38" height="6" rx="3"/><rect x="5" y="21" width="38" height="6" rx="3"/><rect x="5" y="32" width="38" height="6" rx="3"/>', front: '<circle cx="17" cy="13" r="5.5"/><circle cx="31" cy="24" r="5.5"/><circle cx="21" cy="35" r="5.5"/>' },
+  cal: { back: '<rect x="5" y="8" width="38" height="36" rx="7"/><rect x="13" y="3" width="5" height="10" rx="2.5"/><rect x="30" y="3" width="5" height="10" rx="2.5"/>', front: '<path d="M5 20h38v17a7 7 0 0 1-7 7H12a7 7 0 0 1-7-7z"/>', extra: '<path d="M14 29h6M24 29h6M34 29h4M14 36h6M24 36h6" fill="none" stroke="var(--ico-edge)" stroke-width="1.6" stroke-linecap="round"/>' },
+  gear: { back: gearPath(24, 24, 20, 15, 8, 7), front: '<circle cx="24" cy="24" r="8.5"/>' },
+  file: { back: '<path d="M10 4h14l10 10v22a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4z"/>', front: '<rect x="19" y="18" width="23" height="26" rx="5"/>', extra: '<path d="M24 27h12M24 33h9" fill="none" stroke="var(--ico-edge)" stroke-width="1.6" stroke-linecap="round"/>' },
+  pin: { back: '<path d="M24 3a15 15 0 0 1 15 15c0 9-10 19.6-13.6 23.1a2 2 0 0 1-2.8 0C19 37.6 9 27 9 18A15 15 0 0 1 24 3z"/>', front: '<circle cx="24" cy="18" r="8"/>' },
+  phone: { back: '<path fill-rule="evenodd" d="M18 3h12a6 6 0 0 1 6 6v30a6 6 0 0 1-6 6H18a6 6 0 0 1-6-6V9a6 6 0 0 1 6-6zm3 4a1.5 1.5 0 1 0 0 3h6a1.5 1.5 0 1 0 0-3z"/>', front: '<rect x="20" y="20" width="22" height="22" rx="6"/>', extra: '<path d="M26 31h10M31 26v10" fill="none" stroke="var(--ico-edge)" stroke-width="1.8" stroke-linecap="round"/>' },
+  mail: { back: '<rect x="4" y="9" width="40" height="30" rx="6"/>', front: '<path d="M6 13.5 24 27l18-13.5v5L25.2 31a2 2 0 0 1-2.4 0L6 18.5z"/>' },
+  edit: { back: '<path d="M31 5a4 4 0 0 1 5.7 0l6.3 6.3a4 4 0 0 1 0 5.7L21 39l-11 3 3-11z"/>', front: '<rect x="4" y="22" width="22" height="22" rx="6"/>' },
+  shield: { back: '<path d="M24 4l16 6v12c0 10-6.5 17.5-16 22C14.5 39.5 8 32 8 22V10z"/>', front: '<rect x="15" y="17" width="18" height="16" rx="5"/>', extra: '<path d="M20 25l3 3 6-6" fill="none" stroke="var(--ico-edge)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
+  clip: { back: '<rect x="9" y="5" width="26" height="34" rx="6"/>', front: '<rect x="25" y="12" width="12" height="32" rx="6"/>' },
+  send: { back: '<path d="M7 20.5 40.5 5.5a2 2 0 0 1 2.7 2.4L33 41a2 2 0 0 1-3.6.6L22 31 7.6 24.2a2 2 0 0 1-.6-3.7z"/>', front: '<path d="M22 31 42 7.5 33 41a2 2 0 0 1-3.6.6z"/>' },
+  sun: { back: '<g><rect x="21.5" y="3" width="5" height="9" rx="2.5"/><rect x="21.5" y="36" width="5" height="9" rx="2.5"/><rect x="3" y="21.5" width="9" height="5" rx="2.5"/><rect x="36" y="21.5" width="9" height="5" rx="2.5"/></g><g transform="rotate(45 24 24)"><rect x="21.5" y="3" width="5" height="9" rx="2.5"/><rect x="21.5" y="36" width="5" height="9" rx="2.5"/><rect x="3" y="21.5" width="9" height="5" rx="2.5"/><rect x="36" y="21.5" width="9" height="5" rx="2.5"/></g><circle cx="24" cy="24" r="9"/>', front: '<circle cx="24" cy="24" r="10"/>' },
+  moon: { back: '<path fill-rule="evenodd" d="M27 4a20 20 0 1 0 17 30A16 16 0 0 1 27 4z"/>', front: '<circle cx="31" cy="15" r="6.5"/>' },
+  clock: { back: '<circle cx="24" cy="24" r="19"/>', front: '<circle cx="24" cy="24" r="11"/>', extra: '<path d="M24 18v6.5l4.5 3" fill="none" stroke="var(--ico-edge)" stroke-width="2" stroke-linecap="round"/>' },
+  alert: { back: '<path d="M21.4 6.5a3 3 0 0 1 5.2 0l16.4 28A3 3 0 0 1 40.4 39H7.6A3 3 0 0 1 5 34.5z"/>', front: '<rect x="20.5" y="14" width="7" height="13" rx="3.5"/><circle cx="24" cy="33" r="3.5"/>' },
+  user: { back: '<circle cx="24" cy="14" r="9"/><path d="M6 42a18 18 0 0 1 36 0 3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z"/>', front: '<path d="M14 45a10 10 0 0 1 20 0z"/><circle cx="33" cy="20" r="6"/>' },
+});
+GLASS.wrench = GLASS.gear;
+const GLYPHS = new Set(['down', 'up', 'right', 'check', 'x', 'more', 'loader', 'arrow', 'panel']);
+const themeVar = () => document.documentElement.dataset.theme === 'dark' ? 'i' : 'n';
+const themeInv = () => themeVar() === 'n' ? 'i' : 'n';
+
 const GLASS_VAR = {
   n: { back: 'gi-back', glass: 'gi-glass', edge: 'rgba(255,255,255,.9)', shadow: 'rgba(0,0,0,.22)' },
   i: { back: 'gi-back-i', glass: 'gi-glass-i', edge: 'rgba(255,255,255,.42)', shadow: 'rgba(0,0,0,.6)' },
 };
-const glassIcon = (name, variant = 'n') => {
-  const g = GLASS[name]; if (!g) return ic(name);
+const glassIcon = (name, variant = 'n', size = '', cls = '') => {
+  const g = GLASS[name]; if (!g) return ic(name, cls);
   const v = GLASS_VAR[variant] || GLASS_VAR.n, back = g.back.replace(/url\(#gi-back\)/g, `url(#${v.back})`);
-  return `<svg class="gi" viewBox="0 0 48 48" aria-hidden="true" style="--ico-edge:${v.edge}">
+  const lite = size === 'xs';   // мелкие — без размытия и тени, иначе сотни фильтров на странице
+  return `<svg class="gi ${size} ${cls}" viewBox="0 0 48 48" aria-hidden="true" style="--ico-edge:${v.edge}">
     <defs><clipPath id="gc-${name}-${variant}">${g.front}</clipPath></defs>
     <g fill="url(#${v.back})">${back}</g>
-    <g fill="${v.shadow}" filter="url(#gi-soft)" transform="translate(0 2.2)">${g.front}</g>
+    ${lite ? '' : `<g fill="${v.shadow}" filter="url(#gi-soft)" transform="translate(0 2.2)">${g.front}</g>`}
     <g clip-path="url(#gc-${name}-${variant})">
       <rect width="48" height="48" fill="currentColor"/>
-      <g fill="url(#${v.back})" filter="url(#gi-blur)">${back}</g>
+      <g fill="url(#${v.back})" ${lite ? '' : 'filter="url(#gi-blur)"'}>${back}</g>
       <rect width="48" height="48" fill="url(#${v.glass})"/>
       <g fill="none" stroke="var(--ico-edge)" stroke-width="2">${g.front}</g>
     </g>
@@ -213,7 +258,7 @@ const CHAT = {
       <form class="chat-form" data-chat-form="${pageId}">
         <button type="button" class="btn ghost icon" title="Прикрепить файл">${ic('clip')}</button>
         <input class="chat-in" placeholder="Сообщение участникам…" autocomplete="off">
-        <button class="btn primary icon" title="Отправить">${ic('send')}</button>
+        <button class="btn primary icon" title="Отправить">${glassIcon('send', themeInv(), 'md')}</button>
       </form>
     </div>`;
     return mod({ title: `Чат · ${page.name}`, sub: `${members.length} участников · видят все, кому открыта страница`, body, cls: 'chat-mod' });
