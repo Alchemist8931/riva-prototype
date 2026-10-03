@@ -85,16 +85,22 @@ const GLASS = {
     extra: '<circle cx="27" cy="31.5" r="3" fill="none" stroke="var(--ico-edge)" stroke-width="1.6"/><path d="M33 30h6M33 34h5" fill="none" stroke="var(--ico-edge)" stroke-width="1.6" stroke-linecap="round"/><path d="M22 39h18" fill="none" stroke="var(--ico-edge)" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>',
   },
 };
-const glassIcon = name => {
+/* Два варианта: n — тёмная фигура и белое стекло (на белой плитке), i — светлая фигура и дымчатое стекло (на тёмной рамке) */
+const GLASS_VAR = {
+  n: { back: 'gi-back', glass: 'gi-glass', edge: 'rgba(255,255,255,.9)', shadow: 'rgba(0,0,0,.22)' },
+  i: { back: 'gi-back-i', glass: 'gi-glass-i', edge: 'rgba(255,255,255,.42)', shadow: 'rgba(0,0,0,.6)' },
+};
+const glassIcon = (name, variant = 'n') => {
   const g = GLASS[name]; if (!g) return ic(name);
-  return `<svg class="gi" viewBox="0 0 48 48" aria-hidden="true">
-    <defs><clipPath id="gc-${name}">${g.front}</clipPath></defs>
-    <g fill="url(#gi-back)">${g.back}</g>
-    <g fill="var(--ico-shadow)" filter="url(#gi-soft)" transform="translate(0 2.2)">${g.front}</g>
-    <g clip-path="url(#gc-${name})">
+  const v = GLASS_VAR[variant] || GLASS_VAR.n, back = g.back.replace(/url\(#gi-back\)/g, `url(#${v.back})`);
+  return `<svg class="gi" viewBox="0 0 48 48" aria-hidden="true" style="--ico-edge:${v.edge}">
+    <defs><clipPath id="gc-${name}-${variant}">${g.front}</clipPath></defs>
+    <g fill="url(#${v.back})">${back}</g>
+    <g fill="${v.shadow}" filter="url(#gi-soft)" transform="translate(0 2.2)">${g.front}</g>
+    <g clip-path="url(#gc-${name}-${variant})">
       <rect width="48" height="48" fill="currentColor"/>
-      <g fill="url(#gi-back)" filter="url(#gi-blur)">${g.back}</g>
-      <rect width="48" height="48" fill="url(#gi-glass)"/>
+      <g fill="url(#${v.back})" filter="url(#gi-blur)">${back}</g>
+      <rect width="48" height="48" fill="url(#${v.glass})"/>
       <g fill="none" stroke="var(--ico-edge)" stroke-width="2">${g.front}</g>
     </g>
     ${g.extra || ''}
@@ -138,8 +144,9 @@ const xp = ({ id, head, panel, place = 'over', cls = '', headCls = '', data = ''
 
 /* ---------- раскрытие поверх соседей и блюр-фокус ---------- */
 const XP = {
-  open: null,
+  stack: [],   // раскрытые элементы, вложенные — выше в стеке (чат → список участников)
   frame: null, veil: null,
+  get open() { return this.stack[this.stack.length - 1] || null; },
   init() {
     this.frame = document.querySelector('.frame');
     this.veil = document.querySelector('.veil');
@@ -148,18 +155,21 @@ const XP = {
     document.addEventListener('scroll', () => { if (this.open) this.focus(); }, true);
     window.addEventListener('resize', () => { if (this.open) this.focus(); });
   },
-  toggle(el) { this.open === el ? this.close() : this.show(el); },
+  toggle(el) { this.stack.includes(el) ? this.closeTo(el) : this.show(el); },
   show(el) {
-    if (this.open && this.open !== el) this.open.classList.remove('open');
-    this.open = el; el.classList.add('open');
+    if (this.open && !this.open.contains(el)) this.closeAll();
+    this.stack.push(el); el.classList.add('open');
     el.querySelector('.xp-panel').scrollIntoView({ block: 'nearest' });
     this.focus();
   },
+  /* закрывает верхний раскрытый элемент; вуаль переходит к нижележащему или гаснет */
   close() {
-    if (!this.open) return;
-    this.open.classList.remove('open'); this.open = null;
-    this.veil.classList.remove('on');
+    const el = this.stack.pop(); if (!el) return;
+    el.classList.remove('open');
+    if (this.open) this.focus(); else this.veil.classList.remove('on');
   },
+  closeAll() { while (this.stack.length) this.close(); },
+  closeTo(el) { while (this.stack.length && this.open !== el) this.close(); this.close(); },
   /* маска: полный блюр у границ раскрытой панели, затухание с удалением */
   focus() {
     const panel = this.open.querySelector('.xp-panel');
@@ -193,7 +203,7 @@ const CHAT = {
       <div class="chat-head">
         ${xp({ id: 'members', head: avs(members, 4), panel: membersPanel, place: 'below', cls: '', headCls: '' })}
         <div class="grow"><div class="b small">Чат · ${page.name}</div><div class="mute xsmall">${online.length} онлайн из ${members.length}</div></div>
-        <button class="btn ghost sm icon" title="Свернуть чат" data-chat-toggle>${ic('panel', 'sm')}</button>
+        <button class="btn ghost sm icon" title="Свернуть чат" data-chat-toggle>${ic('x', 'sm')}</button>
       </div>
       <div class="chat-msgs" id="chat-msgs">
         <div class="msg sys"><div class="msg-t">Сегодня, ${todayStr()}</div></div>

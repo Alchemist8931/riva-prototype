@@ -35,16 +35,6 @@
   --frame-shadow: 0 30px 80px rgba(0, 0, 0, .28);
   --logo-bg: #ffffff;
   --logo-fg: #111111;
-  /* стеклянные иконки боковой колонки: тёмная фигура сзади, матовое стекло спереди */
-  --dock: #ededed;
-  --dock-active: #ffffff;
-  --dock-ring: rgba(0, 0, 0, .05);
-  --ico-b1: #4b4b4b;
-  --ico-b2: #0d0d0d;
-  --ico-g1: rgba(255, 255, 255, .38);
-  --ico-g2: rgba(255, 255, 255, .94);
-  --ico-edge: rgba(255, 255, 255, .9);
-  --ico-shadow: rgba(0, 0, 0, .22);
 }
 
 :root[data-theme="dark"] {
@@ -80,15 +70,6 @@
   --frame-shadow: 0 30px 80px rgba(0, 0, 0, .8), 0 0 0 1px #262626;
   --logo-bg: #ffffff;
   --logo-fg: #111111;
-  --dock: #1e1e1e;
-  --dock-active: #303030;
-  --dock-ring: rgba(255, 255, 255, .06);
-  --ico-b1: #f4f4f4;
-  --ico-b2: #9a9a9a;
-  --ico-g1: rgba(16, 16, 16, .32);
-  --ico-g2: rgba(16, 16, 16, .86);
-  --ico-edge: rgba(255, 255, 255, .38);
-  --ico-shadow: rgba(0, 0, 0, .55);
 }
 
 * { box-sizing: border-box; }
@@ -149,13 +130,13 @@ svg.i.xs { width: 12px; height: 12px; }
 /* боковая колонка: только стеклянные иконки, подписи всплывают справа */
 .side { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 0 12px; min-height: 0; }
 .logo-tile { width: 44px; height: 44px; border-radius: 13px; background: var(--logo-bg); color: var(--logo-fg); display: grid; place-items: center; font-weight: 800; font-size: 20px; letter-spacing: -.03em; text-decoration: none; }
-.dock { display: flex; flex-direction: column; gap: 4px; padding: 6px; background: var(--dock); border-radius: 19px; margin-top: 6px; }
-.dk-item { position: relative; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: var(--dock); opacity: .5; text-decoration: none; transition: opacity .15s, background .15s; }
+.dock { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.dk-item { position: relative; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: var(--frame); opacity: .55; text-decoration: none; transition: opacity .15s, background .15s; }
 .dk-item:hover { opacity: 1; }
-.dk-item.active { opacity: 1; background: var(--dock-active); color: var(--dock-active); box-shadow: 0 2px 8px rgba(0, 0, 0, .14), inset 0 0 0 1px var(--dock-ring); }
+.dk-item.active { opacity: 1; background: #fff; color: #fff; box-shadow: 0 3px 10px rgba(0, 0, 0, .35); }
 .gi { width: 30px; height: 30px; display: block; overflow: visible; }
-.dk-item .n { position: absolute; top: 4px; right: 4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: var(--fg); color: var(--panel); font-size: 10.5px; font-weight: 600; display: grid; place-items: center; border: 2px solid var(--dock); font-variant-numeric: tabular-nums; }
-.dk-item.active .n { border-color: var(--dock-active); }
+.dk-item .n { position: absolute; top: 2px; right: 2px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: #fff; color: #111; font-size: 10.5px; font-weight: 600; display: grid; place-items: center; border: 2px solid var(--frame); font-variant-numeric: tabular-nums; }
+.dk-item.active .n { background: #111; color: #fff; border-color: #fff; }
 .rail-btn { width: 44px; height: 44px; border-radius: 13px; border: 0; background: transparent; color: var(--frame-mute); display: grid; place-items: center; cursor: pointer; }
 .rail-btn:hover { background: var(--frame-2); color: var(--frame-fg); }
 .rail-btn .i { width: 20px; height: 20px; }
@@ -180,14 +161,15 @@ svg.i.xs { width: 12px; height: 12px; }
 .body { flex: 1; min-height: 0; display: flex; }
 .grid { flex: 1; min-width: 0; overflow: auto; padding: 12px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; align-content: start; grid-auto-rows: min-content; }
 .grid > * { min-width: 0; }
-.chatcol { width: 416px; flex: none; padding: 12px 12px 12px 0; display: flex; min-height: 0; }
-.chatcol .mod { flex: 1; }
-.chatcol.collapsed { width: 56px; }
-.chatcol.collapsed .mod { display: none; }
-.chat-rail { display: none; }
-.chatcol.collapsed .chat-rail { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1; background: var(--shell); border-radius: 18px; padding: 10px 0; }
-.chat-rail .badge-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--primary); color: var(--primary-fg); font-size: 11px; font-weight: 600; display: grid; place-items: center; }
-.chat-rail .vtxt { writing-mode: vertical-rl; transform: rotate(180deg); color: var(--mute); font-size: 11.5px; letter-spacing: .04em; margin-top: 6px; }
+/* чат: по умолчанию полоса 24px во всю высоту, раскрывается поверх контента (та же механика .xp) */
+.chatcol { width: 36px; flex: none; padding: 12px 12px 12px 0; position: relative; min-height: 0; }
+.chat-rail { width: 24px; height: 100%; border-radius: 12px; background: var(--shell); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 9px 0 10px; color: var(--fg-2); cursor: pointer; }
+.chat-rail:hover { background: var(--surface-3); }
+.chat-rail .n { min-width: 16px; height: 16px; padding: 0 3px; border-radius: 999px; background: var(--primary); color: var(--primary-fg); font-size: 10px; font-weight: 600; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.chat-rail .vtxt { writing-mode: vertical-rl; transform: rotate(180deg); color: var(--mute); font-size: 11.5px; letter-spacing: .04em; white-space: nowrap; }
+.chat-rail .grow { flex: 1; }
+.chat-pop { top: 12px; bottom: 12px; right: 12px; width: 416px; padding: 0; background: transparent; border: 0; box-shadow: var(--shadow); border-radius: 18px; }
+.chat-pop .mod { flex: 1; min-height: 0; }
 
 /* ---------- модуль: поверхность + подпись снизу (образец -48) ---------- */
 .mod { background: var(--shell); border-radius: 18px; padding: 6px; display: flex; flex-direction: column; min-width: 0; }
@@ -335,7 +317,8 @@ svg.i.xs { width: 12px; height: 12px; }
 .xp-head { cursor: pointer; }
 .xp-panel { display: none; position: absolute; z-index: 5; background: var(--surface); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow); }
 .xp.open { z-index: 60; }
-.xp.open .xp-panel { display: block; animation: xp-in .16s ease-out; }
+.xp.open > .xp-panel { display: block; animation: xp-in .16s ease-out; }
+.xp.open > .xp-panel.chat-pop { display: flex; }
 .xp-panel.over { top: -1px; left: -1px; right: -1px; }
 .xp-panel.over-wide { top: -7px; left: -7px; right: -7px; }
 .xp-panel.below { top: calc(100% + 6px); left: 0; min-width: 100%; }

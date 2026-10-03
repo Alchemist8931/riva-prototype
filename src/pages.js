@@ -13,7 +13,6 @@ const App = {
   state: {
     page: 'logistics', dir: 'all', trip: 'Р-1042', dept: null, q: '',
     theme: localStorage.getItem('riva.theme') || 'light',
-    chat: localStorage.getItem('riva.chat') !== 'off',
   },
   el: {},
 
@@ -37,7 +36,7 @@ const App = {
     const id = location.hash.replace('#', '') || 'logistics';
     this.state.page = PAGES.some(p => p.id === id) ? id : 'logistics';
     this.state.q = ''; this.state.dept = null; this.state.all = false;
-    XP.close();
+    XP.closeAll();
     this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
     this.el.grid.scrollTop = 0;
   },
@@ -59,7 +58,7 @@ const App = {
     const s = this.state, dark = s.theme === 'dark';
     this.el.side.innerHTML = `
       <a class="logo-tile" href="#logistics" data-tip="RIVA · прототип для ПК">R</a>
-      <nav class="dock">${PAGES.map(pg => `<a href="#${pg.id}" class="dk-item ${pg.id === s.page ? 'active' : ''}" data-tip="${pg.name}${pg.ready ? '' : ' · эскиз'}">${glassIcon(pg.icon)}${pg.unread ? `<span class="n">${pg.unread}</span>` : ''}</a>`).join('')}</nav>
+      <nav class="dock">${PAGES.map(pg => `<a href="#${pg.id}" class="dk-item ${pg.id === s.page ? 'active' : ''}" data-tip="${pg.name}${pg.ready ? '' : ' · эскиз'}">${glassIcon(pg.icon, pg.id === s.page ? 'n' : 'i')}${pg.unread ? `<span class="n">${pg.unread}</span>` : ''}</a>`).join('')}</nav>
       <div class="side-foot">
         <button class="rail-btn" data-theme-toggle data-tip="${dark ? 'Светлая тема' : 'Тёмная тема'}">${ic(dark ? 'sun' : 'moon')}</button>
         <div class="rail-me" data-tip="${ME.name} · ${ME.pos}">${av(ME)}</div>
@@ -89,7 +88,7 @@ const App = {
       <label class="search">${ic('search', 'sm')}<input placeholder="${ph}" data-search value="${esc(s.q)}"><kbd>/</kbd></label>
       <button class="btn primary">${ic('plus', 'sm')}${primary}</button>
       <button class="btn icon" title="Уведомления">${ic('bell')}<i class="dot-n"></i></button>
-      ${s.chat ? '' : `<button class="btn icon" title="Открыть чат страницы" data-chat-toggle>${ic('chat')}</button>`}`;
+      <button class="btn icon" title="Чат страницы" data-chat-toggle>${ic('chat')}${pg.unread ? '<i class="dot-n"></i>' : ''}</button>`;
   },
 
   renderGrid() {
@@ -97,12 +96,17 @@ const App = {
     this.el.grid.innerHTML = pg.id === 'logistics' ? this.logistics() : pg.id === 'staff' ? this.staff() : this.stub(pg);
   },
 
+  /* чат по умолчанию — полоса 24px во всю высоту; по клику раскрывается поверх контента с блюр-фокусом */
   renderChat() {
-    const s = this.state, pg = this.page();
-    this.el.chatcol.classList.toggle('collapsed', !s.chat);
-    const unread = pg.unread || 0;
-    this.el.chatcol.innerHTML = s.chat ? CHAT.render(pg.id)
-      : `<div class="chat-rail"><button class="btn ghost icon" title="Развернуть чат" data-chat-toggle>${ic('chat')}</button>${unread ? `<span class="badge-n">${unread}</span>` : ''}<span class="vtxt">Чат · ${pg.name}</span></div>`;
+    const pg = this.page(), online = CHAT.members(pg.id).filter(m => m.on).length;
+    this.el.chatcol.innerHTML = `
+      <div class="xp-head chat-rail" data-xp-toggle title="Открыть чат страницы">
+        ${ic('chat', 'sm')}${pg.unread ? `<span class="n">${pg.unread}</span>` : ''}
+        <span class="vtxt">Чат · ${pg.name}</span>
+        <span class="grow"></span>
+        <span class="dot ok" title="${online} онлайн"></span>
+      </div>
+      <div class="xp-panel chat-pop">${CHAT.render(pg.id)}</div>`;
     const m = document.getElementById('chat-msgs'); if (m) m.scrollTop = m.scrollHeight;
   },
 
@@ -115,37 +119,8 @@ const App = {
     const all = TRIPS.filter(inDir);
     const cnt = f => all.filter(f).length;
 
-    /* сводка дня */
-    const summary = `<div class="kpis">
-        <div class="kpi"><b>${all.length}</b><span>рейсов сегодня</span></div>
-        <div class="kpi"><b>${cnt(t => t.stage === 3)}</b><span>${dot('fg')}в пути</span></div>
-        <div class="kpi"><b>${cnt(t => t.stage <= 2 && !t.bad)}</b><span>${dot('')}сборка и погрузка</span></div>
-        <div class="kpi ${cnt(t => t.bad) ? 'bad' : ''}"><b>${cnt(t => t.bad)}</b><span>${dot('bad')}требуют внимания</span></div>
-      </div>
-      <div class="sec-t" style="margin-top:14px">Выполнение по направлениям</div>
-      <div class="dirbars">${DIRS.filter(d => s.dir === 'all' || d.id === s.dir).map(d => {
-        const dt = TRIPS.filter(t => t.dir === d.id), done = dt.filter(t => t.stage >= 3).length;
-        return `<div class="dirbar">${chipDir(d.id)}${ticks(pct16(done, dt.length), 16)}<span class="n">${done} из ${dt.length} · ${dt.length ? Math.round(100 * done / dt.length) : 0}%</span></div>`;
-      }).join('')}</div>`;
-
-    /* задачи смены — раскрывается поверх соседей (образец -49) */
-    const tdone = SHIFT_TASKS.filter(t => t.done).length;
-    const tasksHead = n => `<div class="row wrap" style="min-height:36px;padding:4px 4px;gap:2px 6px">${ic(n ? 'up' : 'down', 'sm')}<span class="b">Задачи смены</span><span class="grow"></span><span class="row" style="gap:6px;margin-left:auto">${ticks(pct16(tdone, SHIFT_TASKS.length), 16, 'sm')}<span class="num mute small">${tdone}/${SHIFT_TASKS.length}</span></span></div>`;
-    const tasksPanel = `<div style="padding:4px 8px 8px">${tasksHead(true)}<div class="steps">${SHIFT_TASKS.map((t, i) => {
-      const cur = !t.done && SHIFT_TASKS.findIndex(x => !x.done) === i;
-      return `<div class="st ${t.done ? 'done' : cur ? 'cur' : ''}" data-task="${i}"><span class="ic">${t.done ? ic('check', 'xs') : i + 1}</span><span class="n">${t.n}</span>${t.done ? '' : `<span class="chev">${ic('right', 'sm')}</span>`}</div>`;
-    }).join('')}</div></div>`;
-    const tasks = `${xp({ id: 'tasks', head: tasksHead(false), panel: tasksPanel, place: 'over-wide tasks-panel' })}
-      <div class="mute small" style="padding:8px 4px 0;border-top:1px solid var(--line);margin-top:6px">Следующая: ${SHIFT_TASKS.find(t => !t.done)?.n || 'всё сделано'}</div>
-      <div class="row small" style="padding:8px 4px 0;gap:6px">${ic('clock', 'xs')}<span class="mute">Смена 08:00–17:00 · диспетчер</span><span class="grow"></span>${av(BY_ID[3])}</div>
-      <div class="sec-t" style="padding:12px 4px 0">На смене</div>
-      <div class="tiles" style="padding:0 4px;grid-template-columns:1fr">
-        <div class="tile row" style="padding:7px 10px"><div class="grow"><div class="t">Логисты</div><div class="s">${STAFF.filter(p => p.role === 'logist' && p.on).length} на связи из ${STAFF.filter(p => p.role === 'logist').length}</div></div>${avs(STAFF.filter(p => p.role === 'logist'), 3)}</div>
-        <div class="tile row" style="padding:7px 10px"><div class="grow"><div class="t">Водители</div><div class="s">${STAFF.filter(p => p.role === 'driver' && p.st === 'trip').length} в рейсе из ${STAFF.filter(p => p.role === 'driver').length}</div></div>${avs(STAFF.filter(p => p.role === 'driver'), 3)}</div>
-      </div>`;
-
     /* рейсы — строки раскрываются поверх следующих */
-    const cols = '80px 100px minmax(0,1.8fr) minmax(0,1.2fr) minmax(0,1fr) 96px 64px';
+    const cols = '84px 110px minmax(0,1.8fr) minmax(0,1.2fr) minmax(0,1fr) 110px 84px';
     const rows = trips.map(t => {
       const [stName, stCls] = tripStatus(t), last = t.times.filter(Boolean).pop() || '';
       const head = `<div class="tr clickable ${t.id === s.trip ? 'sel' : ''}" style="grid-template-columns:${cols}" data-trip="${t.id}">
@@ -192,26 +167,9 @@ const App = {
       </div>`).join('');
     const fleetBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${fcols}"><div>Машина · водитель · обслуживание</div><div>Загрузка</div><div>Состояние</div></div>${fleetRows}</div>`;
 
-    return mod({ span: 5, title: 'Сводка дня', sub: `${todayStr()} · ${s.dir === 'all' ? 'все направления' : DIR[s.dir].name}`, body: summary, acts: `<button class="btn ghost sm icon" title="Период">${ic('cal', 'sm')}</button>` })
-      + `<section class="mod span-4" id="rm-mod">${this.roadmap()}</section>`
-      + mod({ span: 3, title: 'Задачи смены', sub: 'раскрываются поверх соседей', body: tasks, tight: true })
-      + mod({ span: 12, title: 'Рейсы сегодня', sub: `${trips.length} из ${TRIPS.length} · строка раскрывается поверх списка, не сдвигая его`, body: tripsBody, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${ic('more', 'sm')}</button>` })
+    return mod({ span: 12, title: 'Рейсы сегодня', sub: `${trips.length} из ${TRIPS.length} · строка раскрывается поверх списка, не сдвигая его`, body: tripsBody, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${ic('more', 'sm')}</button>` })
       + mod({ span: 7, title: 'Заявки на доставку', sub: 'от отделов продаж и складов всех направлений', body: reqBody, tight: true, acts: `<button class="btn ghost sm icon">${ic('more', 'sm')}</button>` })
       + mod({ span: 5, title: 'Транспорт', sub: `${FLEET.length} единиц · ${FLEET.filter(f => f.cls === 'solid').length} в рейсе`, body: fleetBody, tight: true, acts: `<button class="btn ghost sm">${ic('wrench', 'sm')}ТО</button>` });
-  },
-
-  /* дорожная карта выбранного рейса (образец -50) */
-  roadmap() {
-    const t = TRIPS.find(x => x.id === this.state.trip) || TRIPS[0];
-    const done = t.stage === 4 ? 5 : t.stage;
-    const steps = STAGES.map((n, i) => { const st = stageState(t, i); return `<div class="rm-step ${st}"><span class="rm-ic">${rmIcon(st, i)}</span><span class="rm-name">${n}</span><span class="rm-time">${t.times[i] || (st === 'cur' ? 'сейчас' : '—')}</span></div>`; }).join('');
-    const [stName] = tripStatus(t);
-    return `<div class="mod-surface"><div class="rm">
-        <div class="rm-head"><span class="t num">${t.id}</span>${chipDir(t.dir)}<span class="grow"></span><span class="n num">${done}/${STAGES.length}</span></div>
-        ${steps}
-        <div class="rm-foot"><span class="ic">${ic(t.bad ? 'alert' : t.stage === 4 ? 'check' : t.stage === 3 ? 'pin' : 'clock')}</span><div><div class="t">${stName}${t.stage === 3 ? ` · прибытие ${t.eta}` : ''}</div><div class="s">${t.prog}${t.driver ? ' · ' + driverName(t.driver) : ''}</div></div></div>
-      </div></div>
-      <div class="mod-cap"><div><div class="t">Дорожная карта рейса</div><div class="s">этапы и статус · выберите рейс в списке</div></div><div class="acts"><button class="btn ghost sm icon" title="История">${ic('clock', 'sm')}</button></div></div>`;
   },
 
   /* ---------- Сотрудники ---------- */
@@ -321,7 +279,7 @@ const App = {
     const t = e.target;
     const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');
     if (themeBtn) { this.state.theme = themeBtn.dataset.themeSet || (this.state.theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('riva.theme', this.state.theme); document.documentElement.dataset.theme = this.state.theme; this.renderSide(); return; }
-    if (t.closest('[data-chat-toggle]')) { this.state.chat = !this.state.chat; localStorage.setItem('riva.chat', this.state.chat ? 'on' : 'off'); XP.close(); this.renderTopbar(); this.renderChat(); return; }
+    if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); return; }
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');
     if (dirBtn) { this.state.dir = dirBtn.dataset.dir; XP.close(); this.renderTopbar(); this.renderGrid(); return; }
@@ -342,11 +300,10 @@ const App = {
     if (trip && trip.dataset.trip !== this.state.trip) {
       this.state.trip = trip.dataset.trip;
       document.querySelectorAll('[data-trip]').forEach(el => el.classList.toggle('sel', el.dataset.trip === this.state.trip));
-      document.getElementById('rm-mod').innerHTML = this.roadmap();
     }
     const tg = t.closest('[data-xp-toggle]');
     if (tg) { if (t.closest('a,button') && !t.closest('.xp-head > .company, .xp-head > .btn, .xp-head > .avs')) return; XP.toggle(tg.closest('.xp')); return; }
-    if (!t.closest('.xp-panel')) XP.close();
+    if (!t.closest('.xp-panel')) XP.closeAll();
   },
 
   onSubmit(e) {
