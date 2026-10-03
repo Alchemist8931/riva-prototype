@@ -46,6 +46,61 @@ const ICONS = {
 };
 const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
+/* «Стеклянные» иконки (приём из образцов -51/-52/X-2): сзади фигура с тёмным
+   градиентом, спереди вторая фигура из матового стекла — под ней задняя фигура
+   размыта и подсвечена, по краю тонкий блик, снизу мягкая тень. Сетка 48×48.
+   Общие градиенты и фильтр лежат в скрытом svg в теле страницы (#gi-back, #gi-glass, #gi-blur). */
+const GLASS = {
+  truck: {
+    back: '<rect x="3" y="10" width="27" height="22" rx="5"/><circle cx="13" cy="38" r="4.5"/><circle cx="35" cy="38" r="4.5"/>',
+    front: '<path d="M25 19h9.5a4 4 0 0 1 3.4 1.9l4.5 7.3a3 3 0 0 1 .4 1.6V35a3 3 0 0 1-3 3H25a3 3 0 0 1-3-3V22a3 3 0 0 1 3-3z"/>',
+    extra: '<path d="M28 24h6l3 5h-9z" fill="var(--ico-edge)" opacity=".55"/>',
+  },
+  wh: {
+    back: '<path d="M22.5 5.4a3 3 0 0 1 3 0l16 9.2A3 3 0 0 1 43 17.2V38a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V17.2a3 3 0 0 1 1.5-2.6z"/>',
+    front: '<rect x="17" y="30" width="24" height="14" rx="4"/><rect x="21" y="18" width="16" height="12" rx="4"/>',
+  },
+  factory: {
+    back: '<path d="M7 42a3 3 0 0 1-3-3V16a3 3 0 0 1 4.7-2.5L18 19.5V16a3 3 0 0 1 4.7-2.5L32 19.5V9a3 3 0 0 1 3-3h5a3 3 0 0 1 3 3v30a3 3 0 0 1-3 3z"/>',
+    front: '<rect x="19" y="24" width="24" height="20" rx="5"/>',
+    extra: '<path d="M25 31h5M25 36h9" fill="none" stroke="var(--ico-edge)" stroke-width="1.6" stroke-linecap="round"/>',
+  },
+  tag: {
+    back: '<path d="M9 17h22a3 3 0 0 1 3 3l-1.4 18.3a4 4 0 0 1-4 3.7H11.4a4 4 0 0 1-4-3.7L6 20a3 3 0 0 1 3-3z"/><path d="M14 17v-4.5a6 6 0 0 1 12 0V17" fill="none" stroke="url(#gi-back)" stroke-width="3" stroke-linecap="round"/>',
+    front: '<path d="M22 25h17a3 3 0 0 1 3 3l-1 12.3a4 4 0 0 1-4 3.7H24a4 4 0 0 1-4-3.7L19 28a3 3 0 0 1 3-3z"/>',
+    extra: '<path d="M26 25v-2.5a4.5 4.5 0 0 1 9 0V25" fill="none" stroke="var(--ico-edge)" stroke-width="2.2" stroke-linecap="round"/>',
+  },
+  users: {
+    back: '<circle cx="18" cy="14" r="8"/><path d="M4 40a14 14 0 0 1 28 0 3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"/>',
+    front: '<circle cx="33" cy="21" r="6.5"/><path d="M21 43.5a12 12 0 0 1 24 0 2.5 2.5 0 0 1-2.5 2.5h-19a2.5 2.5 0 0 1-2.5-2.5z"/>',
+  },
+  money: {
+    back: '<path fill-rule="evenodd" d="M7 11h25a4 4 0 0 1 4 4v13a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V15a4 4 0 0 1 4-4zm12.5 5.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/>',
+    front: '<circle cx="33" cy="32" r="11"/>',
+    extra: '<circle cx="33" cy="32" r="6" fill="none" stroke="var(--ico-edge)" stroke-width="1.6"/>',
+  },
+  idcard: {
+    back: '<path fill-rule="evenodd" d="M8 8h27a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4zm7 6a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm9 2h9.5v3H24zm0 6h9.5v3H24z"/>',
+    front: '<rect x="19" y="24" width="24" height="19" rx="5"/>',
+    extra: '<circle cx="27" cy="31.5" r="3" fill="none" stroke="var(--ico-edge)" stroke-width="1.6"/><path d="M33 30h6M33 34h5" fill="none" stroke="var(--ico-edge)" stroke-width="1.6" stroke-linecap="round"/><path d="M22 39h18" fill="none" stroke="var(--ico-edge)" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>',
+  },
+};
+const glassIcon = name => {
+  const g = GLASS[name]; if (!g) return ic(name);
+  return `<svg class="gi" viewBox="0 0 48 48" aria-hidden="true">
+    <defs><clipPath id="gc-${name}">${g.front}</clipPath></defs>
+    <g fill="url(#gi-back)">${g.back}</g>
+    <g fill="var(--ico-shadow)" filter="url(#gi-soft)" transform="translate(0 2.2)">${g.front}</g>
+    <g clip-path="url(#gc-${name})">
+      <rect width="48" height="48" fill="currentColor"/>
+      <g fill="url(#gi-back)" filter="url(#gi-blur)">${g.back}</g>
+      <rect width="48" height="48" fill="url(#gi-glass)"/>
+      <g fill="none" stroke="var(--ico-edge)" stroke-width="2">${g.front}</g>
+    </g>
+    ${g.extra || ''}
+  </svg>`;
+};
+
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const initials = name => name.split(' ').slice(0, 2).map(w => w[0]).join('');
 const shortName = name => { const [f, n] = name.split(' '); return n ? `${f} ${n[0]}.` : f; };

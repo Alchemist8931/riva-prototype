@@ -42,11 +42,10 @@ const App = {
     this.el.grid.scrollTop = 0;
   },
 
-  /* ---------- боковая панель в тёмной рамке ---------- */
-  renderSide() {
-    const s = this.state;
-    const companyPanel = `<div class="ph"><span class="t">${COMPANY.name}</span><span class="mute small">структура предприятия</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
-      <div class="pb" style="display:grid;gap:8px">
+  /* ---------- боковая колонка: стеклянные иконки страниц, подписи всплывают ---------- */
+  companyPanel() {
+    return `<div class="ph"><span class="t">${COMPANY.name}</span><span class="mute small">структура предприятия</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
+      <div class="pb" style="display:grid;gap:8px;width:360px">
         ${DIRS.map(d => {
           const n = STAFF.filter(p => Array.isArray(p.dirs) && p.dirs.includes(d.id)).length;
           return `<div class="tile"><div class="row between"><span class="t">${d.name}</span><span class="mute xsmall">${n} чел.</span></div>
@@ -54,16 +53,16 @@ const App = {
         }).join('')}
         <div class="tile" style="background:repeating-linear-gradient(135deg,var(--surface-2) 0 10px,var(--surface-3) 10px 11px)"><div class="t">Общие службы на все направления</div><div class="small mute" style="margin-top:3px">Руководство · Логистика · Финансы · Клиентский сервис · Кадры · ${STAFF.filter(p => p.dirs === 'all').length} чел.</div></div>
       </div>`;
+  },
+
+  renderSide() {
+    const s = this.state, dark = s.theme === 'dark';
     this.el.side.innerHTML = `
-      <div class="brand"><div class="logo">R</div><div class="brand-name">RIVA</div><span class="brand-tag">прототип · ПК</span></div>
-      ${xp({ id: 'company', head: `<div class="company">${ic('building')}<div><div class="cmp-name">${COMPANY.name}</div><div class="cmp-sub">${COMPANY.sub}</div></div><span class="chev">${ic('down', 'sm')}</span></div>`, panel: companyPanel, place: 'below', cls: 'company-xp' })}
-      <div class="side-sec">Страницы</div>
-      <nav class="nav">${PAGES.map(pg => `<a href="#${pg.id}" class="${pg.id === s.page ? 'active' : ''}">${ic(pg.icon)}<span>${pg.name}</span>${pg.unread ? `<span class="badge">${pg.unread}</span>` : pg.ready ? '' : '<span class="soon">эскиз</span>'}</a>`).join('')}</nav>
-      <div class="side-sec">Направления</div>
-      <div class="dirs">${DIRS.map(d => `<div><span class="dk">${d.k}</span>${d.name}</div>`).join('')}</div>
+      <a class="logo-tile" href="#logistics" data-tip="RIVA · прототип для ПК">R</a>
+      <nav class="dock">${PAGES.map(pg => `<a href="#${pg.id}" class="dk-item ${pg.id === s.page ? 'active' : ''}" data-tip="${pg.name}${pg.ready ? '' : ' · эскиз'}">${glassIcon(pg.icon)}${pg.unread ? `<span class="n">${pg.unread}</span>` : ''}</a>`).join('')}</nav>
       <div class="side-foot">
-        <div class="theme-sw"><button class="${s.theme === 'light' ? 'on' : ''}" data-theme-set="light">${ic('sun', 'sm')}Светлая</button><button class="${s.theme === 'dark' ? 'on' : ''}" data-theme-set="dark">${ic('moon', 'sm')}Тёмная</button></div>
-        <div class="me">${av(ME)}<div><div class="me-n">${ME.name}</div><div class="me-r">${ME.pos}</div></div><button class="btn ghost sm icon" style="margin-left:auto;color:var(--frame-mute)" title="Профиль">${ic('more', 'sm')}</button></div>
+        <button class="rail-btn" data-theme-toggle data-tip="${dark ? 'Светлая тема' : 'Тёмная тема'}">${ic(dark ? 'sun' : 'moon')}</button>
+        <div class="rail-me" data-tip="${ME.name} · ${ME.pos}">${av(ME)}</div>
       </div>`;
   },
 
@@ -84,6 +83,7 @@ const App = {
       <div class="tb-ic">${ic(pg.icon)}</div>
       <div><div class="tb-title">${pg.name}</div><div class="tb-sub">${pg.sub}</div></div>
       <div style="width:6px"></div>
+      ${xp({ id: 'company', head: `<button class="btn ghost" title="Предприятие">${ic('building', 'sm')}${COMPANY.name}${ic('down', 'sm')}</button>`, panel: this.companyPanel(), place: 'below' })}
       ${xp({ id: 'dir', head: dirBtn, panel: dirPanel, place: 'below' })}
       <div class="grow"></div>
       <label class="search">${ic('search', 'sm')}<input placeholder="${ph}" data-search value="${esc(s.q)}"><kbd>/</kbd></label>
@@ -319,8 +319,8 @@ const App = {
 
   onClick(e) {
     const t = e.target;
-    const themeBtn = t.closest('[data-theme-set]');
-    if (themeBtn) { this.state.theme = themeBtn.dataset.themeSet; localStorage.setItem('riva.theme', this.state.theme); document.documentElement.dataset.theme = this.state.theme; this.renderSide(); return; }
+    const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');
+    if (themeBtn) { this.state.theme = themeBtn.dataset.themeSet || (this.state.theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('riva.theme', this.state.theme); document.documentElement.dataset.theme = this.state.theme; this.renderSide(); return; }
     if (t.closest('[data-chat-toggle]')) { this.state.chat = !this.state.chat; localStorage.setItem('riva.chat', this.state.chat ? 'on' : 'off'); XP.close(); this.renderTopbar(); this.renderChat(); return; }
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');

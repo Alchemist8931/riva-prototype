@@ -17,6 +17,13 @@ ${r('style.css')}
 </style>
 </head>
 <body>
+<script>document.documentElement.dataset.theme = localStorage.getItem('riva.theme') || 'light';</script>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="gi-back" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--ico-b1)"/><stop offset="1" style="stop-color:var(--ico-b2)"/></linearGradient>
+  <linearGradient id="gi-glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--ico-g1)"/><stop offset="1" style="stop-color:var(--ico-g2)"/></linearGradient>
+  <filter id="gi-blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4"/></filter>
+  <filter id="gi-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
+</defs></svg>
 <div class="frame">
   <aside class="side" id="side"></aside>
   <main class="content">
