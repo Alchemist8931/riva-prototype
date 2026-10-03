@@ -3,15 +3,15 @@
    ============================================================ */
 
 const pct16 = (a, b) => b ? Math.round(16 * a / b) : 0;
-const tripStatus = t => t.bad ? ['Проблема', 'bad'] : t.stage === 4 ? ['Доставлено', 'ok'] : t.stage === 3 ? ['В пути', 'solid'] : t.stage === 2 ? ['Погрузка', 'line'] : t.stage === 1 ? ['Сборка', 'line'] : ['Заявка', 'dashed'];
-const stageState = (t, i) => t.stage === 4 || i < t.stage ? 'done' : i === t.stage ? (t.bad ? 'bad' : 'cur') : 'pend';
 const rmIcon = (st, i) => st === 'done' ? ic('check', 'xs') : st === 'cur' ? ic('loader', 'sm spin') : st === 'bad' ? ic('alert', 'xs') : (i + 1);
 const hit = (q, ...fields) => !q || fields.join(' ').toLowerCase().includes(q);
-const driverName = id => id ? shortName(BY_ID[id].name) : '—';
+const fmtMoney = n => n.toLocaleString('ru-RU');
+const fmtSize = b => b < 1024 * 1024 ? Math.max(1, Math.round(b / 1024)) + ' КБ' : (b / 1024 / 1024).toFixed(1).replace('.', ',') + ' МБ';
+const todayShort = () => new Date().toLocaleDateString('ru-RU');
 
 const App = {
   state: {
-    page: 'logistics', dir: 'all', trip: 'Р-1042', dept: null, q: '',
+    page: 'supply', dir: 'all', dept: null, q: '',
     theme: localStorage.getItem('riva.theme') || 'light',
   },
   el: {},
@@ -24,6 +24,7 @@ const App = {
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));
     document.addEventListener('input', e => this.onInput(e));
+    document.addEventListener('change', e => this.onChange(e));
     document.addEventListener('keydown', e => {
       if (e.key === '/' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); document.querySelector('[data-search]')?.focus(); }
     });
@@ -33,8 +34,8 @@ const App = {
   page() { return PAGES.find(p => p.id === this.state.page); },
 
   route() {
-    const id = location.hash.replace('#', '') || 'logistics';
-    this.state.page = PAGES.some(p => p.id === id) ? id : 'logistics';
+    const id = (location.hash.replace('#', '') || 'supply').replace('logistics', 'supply');
+    this.state.page = PAGES.some(p => p.id === id) ? id : 'supply';
     this.state.q = ''; this.state.dept = null; this.state.all = false;
     XP.closeAll();
     this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
@@ -57,7 +58,7 @@ const App = {
   renderSide() {
     const s = this.state, dark = s.theme === 'dark';
     this.el.side.innerHTML = `
-      <a class="logo-tile" href="#logistics" data-tip="RIVA · прототип для ПК">R</a>
+      <a class="logo-tile" href="#supply" data-tip="RIVA · прототип для ПК">R</a>
       <nav class="dock">${PAGES.map(pg => `<a href="#${pg.id}" class="dk-item ${pg.id === s.page ? 'active' : ''}" data-tip="${pg.name}${pg.ready ? '' : ' · эскиз'}">${glassIcon(pg.icon, pg.id === s.page ? 'n' : 'i')}${pg.unread ? `<span class="n">${pg.unread}</span>` : ''}</a>`).join('')}</nav>
       <div class="side-foot">
         <button class="rail-btn" data-theme-toggle data-tip="${dark ? 'Светлая тема' : 'Тёмная тема'}">${glassIcon(dark ? 'sun' : 'moon', 'i')}</button>
@@ -76,8 +77,8 @@ const App = {
       <div class="sep"></div>
       <div class="mute small" style="padding:4px 9px 6px">Общие службы (логистика, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
     </div>`;
-    const primary = { logistics: 'Рейс', staff: 'Сотрудник' }[pg.id] || 'Запись';
-    const ph = { logistics: 'Рейсы, водители, заявки…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
+    const primary = { supply: 'Заявка', staff: 'Сотрудник' }[pg.id] || 'Запись';
+    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
     this.el.topbar.innerHTML = `
       <div class="tb-ic">${ic(pg.icon)}</div>
       <div><div class="tb-title">${pg.name}</div><div class="tb-sub">${pg.sub}</div></div>
@@ -93,7 +94,8 @@ const App = {
 
   renderGrid() {
     const pg = this.page();
-    this.el.grid.innerHTML = pg.id === 'logistics' ? this.logistics() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+    this.el.grid.classList.toggle('single', pg.id === 'supply');
+    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'staff' ? this.staff() : this.stub(pg);
   },
 
   /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом */
@@ -103,66 +105,48 @@ const App = {
     const m = document.getElementById('chat-msgs'); if (m) m.scrollTop = m.scrollHeight;
   },
 
-  /* ---------- Логистика ---------- */
-  logistics() {
+  /* ---------- Снабжение: один список с прокруткой, карточка заказа раскрывается под строкой ---------- */
+  supply() {
     const s = this.state, q = s.q.trim().toLowerCase();
-    const inDir = t => s.dir === 'all' || t.dir === s.dir;
-    const trips = TRIPS.filter(t => inDir(t) && hit(q, t.id, t.from, t.to, t.veh, t.cargo, t.driver ? BY_ID[t.driver].name : ''));
-    const reqs = REQUESTS.filter(r => inDir(r) && hit(q, r.id, r.what, r.from));
-    const all = TRIPS.filter(inDir);
-    const cnt = f => all.filter(f).length;
-
-    /* рейсы — строки раскрываются поверх следующих */
-    const cols = '72px 96px minmax(0,1.8fr) minmax(0,1.2fr) minmax(0,1fr) 96px 72px';
-    const rows = trips.map(t => {
-      const [stName, stCls] = tripStatus(t), last = t.times.filter(Boolean).pop() || '';
-      const head = `<div class="tr clickable ${t.id === s.trip ? 'sel' : ''}" style="grid-template-columns:${cols}" data-trip="${t.id}">
-          <div><div class="t num">${t.id}</div><div class="s">${t.km ? t.km + ' км' : 'внутр.'}</div></div>
-          <div>${chipDir(t.dir)}</div>
-          <div class="ellip"><span class="t">${t.from}</span> <span class="mute">→</span> ${t.to}</div>
-          <div><div class="ellip">${t.veh}</div><div class="s">${driverName(t.driver)}</div></div>
-          <div class="ellip">${t.cargo}</div>
+    const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
+    const cols = '78px 76px 104px 114px minmax(0,1.3fr) 34px 90px minmax(0,1.7fr)';
+    const head = `<div class="tr th" style="grid-template-columns:${cols}"><div>Заказ клиента</div><div>Заявка</div><div>Статус</div><div>Изменён</div><div>Поставщик · ИНН</div><div></div><div>Срок доставки</div><div>Комментарий</div></div>`;
+    const rows = list.map((r, i) => {
+      const [stName, stCls] = SUP_ST[r.st], last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
+      const hist = `<span class="hp"><span class="num hp-trg">${last[1]}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px"><span class="chip ${SUP_ST[st][1]}">${SUP_ST[st][0]}</span><span class="num mute small">${at}</span></div>`).join('')}</div></span>`;
+      const contact = `<span class="hp"><span class="ic-btn">${ic('user', 'sm')}</span><div class="hp-pop ${up}"><div class="b">${r.contact.name}</div><div class="num" style="margin-top:3px">${r.contact.tel}</div><div class="mute small">${r.contact.mail}</div></div></span>`;
+      const headRow = `<div class="tr clickable" style="grid-template-columns:${cols}">
+          <div class="t num">${r.order}</div>
+          <div class="num">${r.id}</div>
           <div><span class="chip ${stCls}">${stName}</span></div>
-          <div class="num small">${t.stage === 3 ? `<span class="mute">до</span> ${t.eta}` : last}</div>
+          <div>${hist}</div>
+          <div><div class="t ellip">${r.supplier}</div><div class="s num">ИНН ${r.inn}</div></div>
+          <div>${contact}</div>
+          <div class="num">${r.eta}</div>
+          <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
         </div>`;
-      const req = REQUESTS.find(r => r.trip === t.id);
-      const panel = `<div class="ph">${chipDir(t.dir)}<span class="t num">Рейс ${t.id}</span><span class="mute small ellip">${t.from} → ${t.to}</span><span class="chip ${stCls}">${stName}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
-        <div class="pb cols-3">
-          <div><div class="sec-t">Маршрут</div><dl class="kv"><dt>Откуда</dt><dd>${t.from}</dd><dt>Куда</dt><dd>${t.to}</dd><dt>Расстояние</dt><dd>${t.km ? t.km + ' км' : 'внутреннее'}</dd><dt>Прибытие</dt><dd>${t.eta}</dd><dt>Контакт</dt><dd>${t.contact}</dd></dl></div>
-          <div><div class="sec-t">Транспорт и груз</div><dl class="kv"><dt>Машина</dt><dd>${t.veh}</dd><dt>Водитель</dt><dd>${t.driver ? `<span class="row" style="gap:6px">${av(BY_ID[t.driver])}${BY_ID[t.driver].name}</span>` : 'не назначен'}</dd><dt>Груз</dt><dd>${t.cargo}</dd><dt>Заявка</dt><dd>${req ? `${req.id} · ${req.from}` : '—'}</dd><dt>Сейчас</dt><dd>${t.prog}</dd></dl></div>
-          <div><div class="sec-t">Документы</div><div class="docs">${t.docs.length ? t.docs.map(d => `<div class="doc">${ic('file', 'xs')}<span class="grow ellip">${d}</span>${ic('right', 'xs')}</div>`).join('') : '<span class="mute small">пока нет</span>'}</div><div class="sec-t" style="margin-top:10px">Примечание</div><div class="small">${t.note}</div></div>
+      return xp({ id: 'sup-' + r.id, head: headRow, panel: this.orderCard(r), place: 'under', cls: 'trw' });
+    }).join('');
+    const body = `<div class="sup-list">${head}${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div>`;
+    return mod({ span: 12, cls: 'fill', title: 'Заявки на снабжение', sub: `${list.length} из ${SUPPLY.length} · по клику под строкой раскрывается карточка заказа`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
+  },
+
+  /* карточка заказа: файлы (счёт, договор, УПД и прочее) и позиции */
+  orderCard(r) {
+    const [stName, stCls] = SUP_ST[r.st], icols = '104px minmax(0,2fr) minmax(0,1fr) 112px 104px 112px';
+    const total = r.items.reduce((a, it) => a + it[4] * it[5], 0);
+    const files = r.files.map(([name, kind, size, at]) => `<div class="file"><span class="fi">${ic('file', 'sm')}</span><span class="grow ellip">${esc(name)}</span><span class="chip ${kind === 'прочее' ? 'line' : ''}">${kind}</span><span class="mute small num">${size}</span><span class="mute small num">${at}</span><button class="btn ghost sm icon" title="Скачать">${icRaw('down', 'xs')}</button></div>`).join('');
+    return `<div class="ph">${chipDir(r.dir)}<span class="t num">Заказ клиента ${r.order}</span><span class="mute small ellip">заявка ${r.id} · ${r.supplier}</span><span class="chip ${stCls}">${stName}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
+      <div class="pb">
+        <div class="row between" style="margin-bottom:6px"><div class="sec-t" style="margin:0">Файлы заказа · ${r.files.length}</div><label class="btn sm">${ic('clip', 'xs')}Загрузить файл<input type="file" multiple hidden data-upload="${r.id}"></label></div>
+        <div class="files">${files || '<div class="mute small" style="padding:4px 2px">Файлов пока нет: счёт, договор, УПД и прочее появятся здесь списком</div>'}</div>
+        <div class="sec-t" style="margin-top:12px">Позиции заказа · ${r.items.length}</div>
+        <div class="tbl items">
+          <div class="tr th" style="grid-template-columns:${icols}"><div>Артикул</div><div>Наименование</div><div>Категория</div><div>Кол-во, ед. изм.</div><div style="text-align:right">Цена за ед.</div><div style="text-align:right">Сумма</div></div>
+          ${r.items.map(([sku, name, cat, unit, qty, price]) => `<div class="tr" style="grid-template-columns:${icols};min-height:30px"><div class="num mute">${sku}</div><div class="ellip">${name}</div><div class="small">${cat}</div><div class="num">${fmtMoney(qty)} ${unit}</div><div class="num" style="text-align:right">${fmtMoney(price)} ₽</div><div class="num b" style="text-align:right">${fmtMoney(qty * price)} ₽</div></div>`).join('')}
+          <div class="tr" style="grid-template-columns:${icols};min-height:30px"><div></div><div class="b">Итого</div><div></div><div></div><div></div><div class="num b" style="text-align:right">${fmtMoney(total)} ₽</div></div>
         </div>
-        <div class="pf"><button class="btn sm">${ic('pin', 'xs')}На карте</button><button class="btn sm">${ic('chat', 'xs')}Сообщить заказчику</button><button class="btn sm ghost">Изменить этап</button><span class="grow"></span><button class="btn sm ghost">${ic('edit', 'xs')}Редактировать</button></div>`;
-      return xp({ id: 'trip-' + t.id, head, panel, place: 'over-wide', cls: 'trw' });
-    }).join('');
-    const tripsBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${cols}"><div>Рейс</div><div>Направление</div><div>Маршрут</div><div>Транспорт · водитель</div><div>Груз</div><div>Этап</div><div>Время</div></div>${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div>`;
-
-    /* заявки на доставку от разных направлений */
-    const rcols = '48px 88px minmax(0,1fr) 100px';
-    const reqRows = reqs.map(r => {
-      const t = TRIPS.find(x => x.id === r.trip);
-      const assign = xp({ id: 'assign-' + r.id, head: `<button class="btn sm primary">Назначить${icRaw('down', 'xs')}</button>`, place: 'below-r', panel: `<div class="menu" style="width:290px"><div class="lbl">Назначить на рейс</div><button data-assign="${r.id}:new">${ic('plus', 'sm')}Новый рейс</button>${TRIPS.filter(x => x.stage <= 1 && x.dir === r.dir).map(x => `<button data-assign="${r.id}:${x.id}">${ic('truck', 'sm')}<span class="grow ellip">${x.id} · ${x.from} → ${x.to}</span></button>`).join('')}</div>` });
-      const prio = r.prio === 'high' ? `<span style="color:var(--bad);font-weight:500">срочно</span>` : r.prio === 'low' ? 'не срочно' : 'обычно';
-      return `<div class="tr" style="grid-template-columns:${rcols};min-height:46px">
-          <div class="t num">${r.id}</div><div>${chipDir(r.dir)}</div>
-          <div><div class="ellip">${r.what}</div><div class="s ellip">${r.from} · ${shortName(BY_ID[r.who].name)} · ${r.due} · ${prio}</div></div>
-          <div>${t ? `<span class="chip ${tripStatus(t)[1]}">${glassIcon('truck', tripStatus(t)[1] === 'solid' ? themeInv() : themeVar(), 'xs')}${t.id}</span>` : assign}</div>
-        </div>`;
-    }).join('');
-    const reqBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${rcols}"><div>№</div><div>Направление</div><div>Что и куда · от кого · срок</div><div>Рейс</div></div>${reqRows || '<div class="mute small" style="padding:14px 10px">Заявок нет</div>'}</div>`;
-
-    /* транспорт */
-    const fcols = 'minmax(0,1fr) 80px auto';
-    const fleetRows = FLEET.map(f => `<div class="tr" style="grid-template-columns:${fcols};min-height:46px">
-        <div><div class="t ellip">${f.name} <span class="mute num" style="font-weight:400">· ${f.plate}</span></div><div class="s ellip">${f.driver ? shortName(BY_ID[f.driver].name) : 'без водителя'}${f.to ? ' · ' + f.to : ''}</div></div>
-        <div class="row" style="gap:6px" title="Загрузка">${ticks(f.load, 10, 'fg')}<span class="mute xsmall num">${f.load * 10}%</span></div>
-        <div><span class="chip ${f.cls}">${f.state}</span></div>
-      </div>`).join('');
-    const fleetBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${fcols}"><div>Машина · водитель · обслуживание</div><div>Загрузка</div><div>Состояние</div></div>${fleetRows}</div>`;
-
-    return mod({ span: 12, title: 'Рейсы сегодня', sub: `${trips.length} из ${TRIPS.length} · строка раскрывается поверх списка, не сдвигая его`, body: tripsBody, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${ic('more', 'sm')}</button>` })
-      + mod({ span: 7, title: 'Заявки на доставку', sub: 'от отделов продаж и складов всех направлений', body: reqBody, tight: true, acts: `<button class="btn ghost sm icon">${ic('more', 'sm')}</button>` })
-      + mod({ span: 5, title: 'Транспорт', sub: `${FLEET.length} единиц · ${FLEET.filter(f => f.cls === 'solid').length} в рейсе`, body: fleetBody, tight: true, acts: `<button class="btn ghost sm">${ic('wrench', 'sm')}ТО</button>` });
+      </div>`;
   },
 
   /* ---------- Сотрудники ---------- */
@@ -276,24 +260,10 @@ const App = {
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');
     if (dirBtn) { this.state.dir = dirBtn.dataset.dir; XP.close(); this.renderTopbar(); this.renderGrid(); return; }
-    const task = t.closest('[data-task]');
-    if (task) { const i = +task.dataset.task; SHIFT_TASKS[i].done = !SHIFT_TASKS[i].done; this.renderGrid(); this.reopen('tasks'); return; }
-    const assign = t.closest('[data-assign]');
-    if (assign) {
-      const [rid, tid] = assign.dataset.assign.split(':'); const r = REQUESTS.find(x => x.id === rid);
-      if (tid === 'new') { const id = 'Р-' + (1050 + TRIPS.filter(x => x.id >= 'Р-1050').length); TRIPS.push({ id, dir: r.dir, from: 'Склад ' + { metal: 'А', furn: 'Б', poly: 'В' }[r.dir], to: r.what.split('→')[1]?.trim() || '—', veh: 'не назначен', driver: null, cargo: r.what.split('→')[0].trim(), stage: 0, times: [nowTime(), '', '', '', ''], eta: '—', km: 0, prog: 'создан из заявки ' + r.id, docs: [], contact: '—', note: 'Создан из заявки ' + r.id + '.' }); r.trip = id; }
-      else r.trip = tid;
-      XP.close(); this.renderGrid(); return;
-    }
     const cell = t.closest('[data-dcell]');
     if (cell) { const d = { id: cell.dataset.dcell, dir: cell.dataset.ddir || null }; this.state.dept = this.state.dept && this.state.dept.id === d.id && this.state.dept.dir === d.dir ? null : d; XP.close(); this.renderGrid(); return; }
     if (t.closest('[data-clear-dept]')) { this.state.dept = null; XP.close(); this.renderGrid(); return; }
     if (t.closest('[data-show-all]')) { this.state.all = true; this.renderGrid(); return; }
-    const trip = t.closest('[data-trip]');
-    if (trip && trip.dataset.trip !== this.state.trip) {
-      this.state.trip = trip.dataset.trip;
-      document.querySelectorAll('[data-trip]').forEach(el => el.classList.toggle('sel', el.dataset.trip === this.state.trip));
-    }
     const tg = t.closest('[data-xp-toggle]');
     if (tg) { if (t.closest('a,button') && !t.closest('.xp-head > .company, .xp-head > .btn, .xp-head > .avs')) return; XP.toggle(tg.closest('.xp')); return; }
     if (!t.closest('.xp-panel')) XP.closeAll();
@@ -305,6 +275,14 @@ const App = {
     const inp = f.querySelector('input'), text = inp.value.trim(); if (!text) return;
     CHAT.send(f.dataset.chatForm, text);
     document.querySelector('.chat-in')?.focus();
+  },
+
+  /* загрузка файлов в карточку заказа: имена добавляются в список заявки */
+  onChange(e) {
+    const inp = e.target.closest('[data-upload]'); if (!inp || !inp.files.length) return;
+    const r = SUPPLY.find(x => x.id === inp.dataset.upload);
+    [...inp.files].forEach(f => r.files.push([f.name.replace(/\.[^.]+$/, ''), /счет|счёт|invoice/i.test(f.name) ? 'счёт' : /договор|contract/i.test(f.name) ? 'договор' : /упд/i.test(f.name) ? 'УПД' : 'прочее', fmtSize(f.size), todayShort()]));
+    this.renderGrid(); this.reopen('sup-' + r.id);
   },
 
   onInput(e) {

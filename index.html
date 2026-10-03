@@ -273,6 +273,29 @@ svg.i.xs { width: 11px; height: 11px; }
 .tbl .tr:not(.th) { border-radius: 0; }
 .trw .tr.sel { box-shadow: inset 2px 0 0 var(--fg); }
 
+/* Снабжение: один модуль во всю высоту, список прокручивается внутри, шапка списка липкая */
+.grid.single { display: flex; }
+.grid.single > .mod { flex: 1; min-height: 0; }
+.mod.fill .mod-surface { display: flex; flex-direction: column; min-height: 0; }
+.sup-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+.sup-list > .th { position: sticky; top: 0; background: var(--surface); z-index: 2; }
+.sup-list > * + * { border-top: 1px solid var(--line); }
+.sup-list > .th + * { border-top: 0; }
+.sup-list .trw .tr { min-height: 44px; }
+/* всплывающие по наведению: история статусов и контакт поставщика */
+.hp { position: relative; display: inline-flex; align-items: center; }
+.hp-trg { border-bottom: 1px dashed var(--line-2); cursor: default; }
+.hp-pop { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 70; background: var(--surface); border: 1px solid var(--line-2); border-radius: 9px; box-shadow: var(--shadow); padding: 8px 10px; min-width: 190px; white-space: nowrap; font-size: 11.5px; }
+.hp-pop.up { top: auto; bottom: calc(100% + 6px); }
+.hp:hover { z-index: 70; }
+.hp:hover .hp-pop { display: block; animation: xp-in .14s ease-out; }
+.ic-btn { width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); color: var(--surface-2); display: grid; place-items: center; cursor: default; }
+.xp-panel.under { top: calc(100% + 4px); left: 0; right: 0; }
+.files { display: flex; flex-direction: column; gap: 4px; }
+.file { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: 11.5px; }
+.file .fi { display: grid; place-items: center; color: var(--surface-2); }
+.items .tr { padding: 0 6px; }
+
 /* сводка */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 7px; }
 .kpi { background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; }
@@ -427,7 +450,7 @@ const DIRS = [
 const DIR = Object.fromEntries(DIRS.map(d => [d.id, d]));
 
 const PAGES = [
-  { id: 'logistics',  name: 'Логистика',    icon: 'truck',   sub: 'общая служба · все направления', ready: true,  unread: 3 },
+  { id: 'supply',     name: 'Снабжение',    icon: 'box',     sub: 'общая служба · все направления', ready: true,  unread: 3 },
   { id: 'warehouse',  name: 'Склад',        icon: 'wh',      sub: 'по каждому направлению отдельно', ready: false, unread: 0 },
   { id: 'production', name: 'Производство', icon: 'factory', sub: 'по каждому направлению отдельно', ready: false, unread: 1 },
   { id: 'sales',      name: 'Продажи',      icon: 'tag',     sub: 'по каждому направлению отдельно', ready: false, unread: 0 },
@@ -439,7 +462,7 @@ const PAGES = [
 /* подразделения: shared — одно на все направления, иначе — по направлению */
 const DEPTS = [
   { id: 'mgmt',   name: 'Руководство',        shared: true },
-  { id: 'log',    name: 'Логистика',          shared: true },
+  { id: 'log',    name: 'Снабжение и логистика', shared: true },
   { id: 'wh',     name: 'Склад',              perDir: true, names: { metal: 'Склад А', furn: 'Склад Б', poly: 'Склад В' } },
   { id: 'prod',   name: 'Производство',       perDir: true, names: { metal: 'Цех №1', furn: 'Цех №2', poly: 'Цех №3' } },
   { id: 'sales',  name: 'Продажи',            perDir: true, names: { metal: 'Продажи · металл', furn: 'Продажи · мебель', poly: 'Продажи · полимеры' } },
@@ -450,23 +473,23 @@ const DEPTS = [
 
 /* доступ к страницам по роли: full — работа, view — просмотр */
 const ROLES = {
-  director:   { name: 'Директор',            pages: { logistics: 'full', warehouse: 'full', production: 'full', sales: 'full', clients: 'full', finance: 'full', staff: 'full' } },
-  logist:     { name: 'Логист',              pages: { logistics: 'full', warehouse: 'view', sales: 'view', clients: 'view' } },
-  driver:     { name: 'Водитель',            pages: { logistics: 'full' } },
-  storekeeper:{ name: 'Кладовщик',           pages: { warehouse: 'full', logistics: 'view', production: 'view' } },
+  director:   { name: 'Директор',            pages: { supply: 'full', warehouse: 'full', production: 'full', sales: 'full', clients: 'full', finance: 'full', staff: 'full' } },
+  logist:     { name: 'Снабженец',           pages: { supply: 'full', warehouse: 'view', sales: 'view', clients: 'view' } },
+  driver:     { name: 'Водитель',            pages: { supply: 'full' } },
+  storekeeper:{ name: 'Кладовщик',           pages: { warehouse: 'full', supply: 'view', production: 'view' } },
   foreman:    { name: 'Производство',        pages: { production: 'full', warehouse: 'view' } },
-  seller:     { name: 'Менеджер продаж',     pages: { sales: 'full', clients: 'full', warehouse: 'view', logistics: 'view' } },
+  seller:     { name: 'Менеджер продаж',     pages: { sales: 'full', clients: 'full', warehouse: 'view', supply: 'view' } },
   finance:    { name: 'Финансы',             pages: { finance: 'full', sales: 'view', clients: 'view', staff: 'view' } },
-  cs:         { name: 'Клиентский сервис',   pages: { clients: 'full', sales: 'view', logistics: 'view' } },
+  cs:         { name: 'Клиентский сервис',   pages: { clients: 'full', sales: 'view', supply: 'view' } },
   hr:         { name: 'Кадры',               pages: { staff: 'full' } },
 };
 
 /* статусы присутствия: office, remote, trip (в рейсе), vacation, sick */
 const STAFF = [
   { id: 1,  name: 'Орлов Дмитрий',      pos: 'Генеральный директор',     dept: 'mgmt',  dirs: 'all',     role: 'director',    st: 'office',   on: true,  tel: '+7 927 100-01-01', mail: 'orlov@bereg.example' },
-  { id: 2,  name: 'Савельев Антон',     pos: 'Руководитель логистики',   dept: 'log',   dirs: 'all',     role: 'logist',      st: 'office',   on: true,  tel: '+7 927 100-01-02', mail: 'saveliev@bereg.example', me: true },
-  { id: 3,  name: 'Кузнецова Марина',   pos: 'Логист',                   dept: 'log',   dirs: 'all',     role: 'logist',      st: 'office',   on: true,  tel: '+7 927 100-01-03', mail: 'kuznetsova@bereg.example' },
-  { id: 4,  name: 'Петров Илья',        pos: 'Логист',                   dept: 'log',   dirs: 'all',     role: 'logist',      st: 'remote',   on: true,  tel: '+7 927 100-01-04', mail: 'petrov@bereg.example' },
+  { id: 2,  name: 'Савельев Антон',     pos: 'Руководитель снабжения',    dept: 'log',   dirs: 'all',     role: 'logist',      st: 'office',   on: true,  tel: '+7 927 100-01-02', mail: 'saveliev@bereg.example', me: true },
+  { id: 3,  name: 'Кузнецова Марина',   pos: 'Специалист по снабжению',  dept: 'log',   dirs: 'all',     role: 'logist',      st: 'office',   on: true,  tel: '+7 927 100-01-03', mail: 'kuznetsova@bereg.example' },
+  { id: 4,  name: 'Петров Илья',        pos: 'Специалист по снабжению',  dept: 'log',   dirs: 'all',     role: 'logist',      st: 'remote',   on: true,  tel: '+7 927 100-01-04', mail: 'petrov@bereg.example' },
   { id: 5,  name: 'Громов Сергей',      pos: 'Водитель',                 dept: 'log',   dirs: 'all',     role: 'driver',      st: 'trip',     on: true,  tel: '+7 927 100-01-05', mail: '' },
   { id: 6,  name: 'Лебедев Олег',       pos: 'Водитель',                 dept: 'log',   dirs: 'all',     role: 'driver',      st: 'office',   on: false, tel: '+7 927 100-01-06', mail: '' },
   { id: 7,  name: 'Титов Руслан',       pos: 'Водитель',                 dept: 'log',   dirs: 'all',     role: 'driver',      st: 'trip',     on: true,  tel: '+7 927 100-01-07', mail: '' },
@@ -502,47 +525,24 @@ const ST = {
   sick:     { name: 'Больничный',cls: 'warn' },
 };
 
-/* этапы рейса */
-const STAGES = ['Заявка', 'Сборка на складе', 'Погрузка', 'В пути', 'Доставлено'];
+/* статусы заявки на снабжение */
+const SUP_ST = { req: ['Заявка', 'dashed'], ord: ['Заказ создан', 'line'], tr: ['Груз в пути', 'solid'], done: ['Завершён', 'ok'] };
 
-/* рейсы на сегодня. stage — индекс текущего этапа; times — время по пройденным этапам */
-const TRIPS = [
-  { id: 'Р-1042', dir: 'metal', from: 'Склад А', to: 'Казань, «Стройкомплект»', veh: 'МАН TGL · А 123 ВС', driver: 5,  cargo: '12 ферм, 6,4 т', stage: 3, times: ['вчера 16:10', '07:20', '08:35', '08:40', ''], eta: '14:30', km: 345, prog: '≈ 190 км из 345', docs: ['ТТН №1042', 'Счёт-фактура', 'Пропуск на объект'], contact: 'Ибрагимов Р., приёмка · +7 843 000-00-00', note: 'Окно разгрузки 14:00–16:00, кран заказчика.' },
-  { id: 'Р-1043', dir: 'furn',  from: 'Склад Б', to: 'Самара, «Домострой»',     veh: 'Газель Next · В 456 ЕК', driver: 6, cargo: '18 шкафов, 1,1 т', stage: 2, times: ['вчера 11:00', '09:10', '', '', ''], eta: '13:10', km: 38, prog: 'погрузка · док 2', docs: ['ТТН №1043', 'УПД'], contact: 'Селезнёва О. · +7 846 000-00-00', note: 'Хрупкое, упаковка в стрейч + уголки.' },
-  { id: 'Р-1044', dir: 'poly',  from: '«Полипласт», Тольятти', to: 'Склад В', veh: 'ТК «Дельта» (наёмный)', driver: null, cargo: 'Гранулят ПЭ, 4 т', stage: 1, times: ['вчера 14:40', '', '', '', ''], eta: '16:00', km: 92, prog: 'ждём подтверждение поставщика', docs: ['Заявка ТК', 'Спецификация №88'], contact: 'Диспетчер ТК · +7 800 000-00-00', note: 'Входящая поставка сырья на склад В.' },
-  { id: 'Р-1045', dir: 'metal', from: 'Склад А', to: 'Цех №1 (внутреннее)',    veh: 'Погрузчик Toyota', driver: 10, cargo: 'Профиль 40×40, 2 т', stage: 4, times: ['08:00', '08:05', '08:20', '08:30', '08:50'], eta: '—', km: 0, prog: 'завершён', docs: ['Накладная на перемещение'], contact: 'Климов Е., цех №1', note: 'Перемещение между складом и цехом одного направления.' },
-  { id: 'Р-1046', dir: 'furn',  from: 'Склад Б', to: 'Тольятти, ИП Серова',    veh: 'Газель Next · Е 789 КМ', driver: 7, cargo: '6 кухонь, 0,9 т', stage: 3, times: ['вчера 15:30', '07:40', '08:50', '09:05', ''], eta: '11:40', km: 96, prog: '≈ 70 км из 96', docs: ['ТТН №1046', 'УПД', 'Акт приёма'], contact: 'Серова Н. · +7 848 000-00-00', note: 'Подъём на 4 этаж, лифт есть.' },
-  { id: 'Р-1047', dir: 'poly',  from: 'Склад В', to: 'Пенза, «Агротех»',       veh: 'Fiat Ducato · К 321 ОР', driver: 8, cargo: '300 ящиков, 1,5 т', stage: 2, times: ['вчера 12:00', '08:30', '', '', ''], eta: '—', km: 410, prog: 'простой на погрузке 1 ч 20 мин', docs: ['ТТН №1047'], contact: 'Диспетчер «Агротех» · +7 841 000-00-00', note: 'Склад В не успел собрать партию: смена кладовщика с 09:00.', bad: true },
-  { id: 'Р-1048', dir: 'metal', from: '«Металлсервис»', to: 'Склад А',         veh: 'не назначен', driver: null, cargo: 'Лист 3 мм, 6 т', stage: 0, times: ['10:05', '', '', '', ''], eta: '—', km: 120, prog: 'нужен транспорт 6 т', docs: ['Счёт №3301'], contact: 'Менеджер поставщика · +7 846 000-00-01', note: 'Поставка под заказ «Стройкомплект», вторая партия.' },
-  { id: 'Р-1049', dir: 'furn',  from: 'Склад Б', to: 'Самара, «Мебель-Маркет»', veh: 'не назначен', driver: null, cargo: '24 стола, 1,3 т', stage: 0, times: ['09:50', '', '', '', ''], eta: '—', km: 41, prog: 'ждёт назначения', docs: [], contact: 'Отдел закупок · +7 846 000-00-02', note: 'Можно совместить с Р-1043 завтрашним рейсом.' },
-];
-
-/* заявки на доставку от отделов продаж и складов разных направлений */
-const REQUESTS = [
-  { id: 'З-311', dir: 'metal', from: 'Продажи · металл', who: 18, what: '12 ферм → «Стройкомплект»',     due: 'до 3 окт', prio: 'high', trip: 'Р-1042' },
-  { id: 'З-314', dir: 'furn',  from: 'Продажи · мебель', who: 20, what: '10 шкафов → «Уют», Самара',    due: 'до 7 окт', prio: 'norm', trip: null },
-  { id: 'З-315', dir: 'poly',  from: 'Продажи · полимеры', who: 21, what: '300 ящиков → «Агротех»',    due: 'до 4 окт', prio: 'high', trip: 'Р-1047' },
-  { id: 'З-316', dir: 'poly',  from: 'Склад В',            who: 13, what: 'Сырьё от «Полипласт» → Склад В', due: 'до 3 окт', prio: 'norm', trip: 'Р-1044' },
-  { id: 'З-317', dir: 'metal', from: 'Продажи · металл', who: 19, what: 'Лист 3 мм от «Металлсервис»', due: 'до 6 окт', prio: 'norm', trip: 'Р-1048' },
-  { id: 'З-318', dir: 'furn',  from: 'Продажи · мебель', who: 20, what: '24 стола → «Мебель-Маркет»',  due: 'до 8 окт', prio: 'low',  trip: 'Р-1049' },
-];
-
-const FLEET = [
-  { name: 'МАН TGL 5 т',        plate: 'А 123 ВС 163', driver: 5,  state: 'В рейсе Р-1042', load: 8,  cls: 'solid', to: 'ТО через 1 200 км' },
-  { name: 'Газель Next',        plate: 'В 456 ЕК 163', driver: 6,  state: 'Погрузка Р-1043', load: 6, cls: 'line', to: 'ТО через 4 800 км' },
-  { name: 'Газель Next',        plate: 'Е 789 КМ 163', driver: 7,  state: 'В рейсе Р-1046', load: 5,  cls: 'solid', to: 'ТО через 900 км' },
-  { name: 'Fiat Ducato',        plate: 'К 321 ОР 163', driver: 8,  state: 'Простой на погрузке', load: 0, cls: 'bad', to: 'ТО через 3 100 км' },
-  { name: 'Погрузчик Toyota',   plate: 'внутренний',   driver: 10, state: 'Свободен', load: 0, cls: 'ok', to: 'Осмотр 10 окт' },
-  { name: 'ТК «Дельта»',        plate: 'наёмный',      driver: null, state: 'Заказан на Р-1044', load: 10, cls: 'dashed', to: '' },
-];
-
-/* задачи смены (раскрывающийся элемент, образец -49) */
-const SHIFT_TASKS = [
-  { n: 'Согласовать окно разгрузки у «Стройкомплект»', done: true },
-  { n: 'Передать ТТН по Р-1045 в бухгалтерию', done: true },
-  { n: 'Назначить рейс на заявку З-314 («Уют»)', done: false },
-  { n: 'Разобраться с простоем Фомина на складе В', done: false },
-  { n: 'Заявка на ТО Газели Е 789 КМ', done: false },
+/* заявки на снабжение: заказ клиента → заявка → поставщик; hist — история статусов (код, дата);
+   files — [название, вид, размер, дата]; items — [артикул, наименование, категория, ед. изм., кол-во, цена] */
+const SUPPLY = [
+  { id: 'СН-1050', order: 'З-321', dir: 'metal', st: 'req', hist: [['req', '04.10.2026 08:20']], supplier: 'ООО «Техносталь»', inn: '6315099001', contact: { name: 'Громова Ирина Павловна', tel: '+7 846 390-90-09', mail: 'gromova@technostal.example' }, eta: '14.10.2026', comment: 'Труба профильная под навес «Домострой». Запросили три КП, ждём лучшую цену.', files: [], items: [['ТП-60-3', 'Труба профильная 60×40×3, 6 м', 'Металлопрокат', 'шт', 60, 2340], ['ТП-40-2', 'Труба профильная 40×20×2, 6 м', 'Металлопрокат', 'шт', 80, 980]] },
+  { id: 'СН-1051', order: 'З-322', dir: 'poly', st: 'ord', hist: [['req', '02.10.2026 12:40'], ['ord', '03.10.2026 17:25']], supplier: 'ООО «Полимер-Трейд»', inn: '6311022334', contact: { name: 'Юсупов Марат Рашидович', tel: '+7 846 221-11-10', mail: 'yusupov@polymer-trade.example' }, eta: '12.10.2026', comment: 'Полипропилен под пресс-формы, партия на октябрь.', files: [['Счёт №8812', 'счёт', '141 КБ', '03.10.2026'], ['Договор №31-2026', 'договор', '1,1 МБ', '03.10.2026']], items: [['ПП-H030', 'Полипропилен PP H030', 'Сырьё', 'кг', 2500, 131]] },
+  { id: 'СН-1053', order: 'З-324', dir: 'metal', st: 'tr', hist: [['req', '27.09.2026 13:00'], ['ord', '29.09.2026 09:15'], ['tr', '03.10.2026 14:50']], supplier: 'АО «Самарский метизный завод»', inn: '6318001122', contact: { name: 'Тихонова Марина Сергеевна', tel: '+7 846 266-13-12', mail: 'sales@smz.example' }, eta: '07.10.2026', comment: 'Метизы для серии ферм, отгрузка со склада завода.', files: [['Счёт №2026-771', 'счёт', '126 КБ', '29.09.2026'], ['Спецификация к договору', 'спецификация', '214 КБ', '29.09.2026']], items: [['ШП-8-40', 'Шпилька М8×40', 'Крепёж', 'шт', 1000, 6], ['СМ-6-30', 'Саморез 6×30', 'Крепёж', 'шт', 5000, 2], ['ШБ-10', 'Шайба 10 усиленная', 'Крепёж', 'шт', 2000, 3]] },
+  { id: 'СН-1046', order: 'З-317', dir: 'metal', st: 'req', hist: [['req', '03.10.2026 11:10']], supplier: 'ООО «Крепёж-Волга»', inn: '6318044556', contact: { name: 'Малышева Екатерина Андреевна', tel: '+7 846 333-50-05', mail: 'order@krepezh-volga.example' }, eta: '10.10.2026', comment: 'Болты и анкеры для монтажа ферм. Счёт ещё не получен.', files: [], items: [['БМ-16-120', 'Болт М16×120 8.8 оц.', 'Крепёж', 'шт', 400, 42], ['ГМ-16', 'Гайка М16 оц.', 'Крепёж', 'шт', 400, 9], ['АН-12-150', 'Анкер клиновой 12×150', 'Крепёж', 'шт', 200, 38]] },
+  { id: 'СН-1047', order: 'З-318', dir: 'poly', st: 'ord', hist: [['req', '01.10.2026 15:30'], ['ord', '03.10.2026 10:05']], supplier: 'ООО «Красители Поволжья»', inn: '6319077889', contact: { name: 'Фёдоров Антон Ильич', tel: '+7 846 345-60-06', mail: 'fedorov@kp-color.example' }, eta: '11.10.2026', comment: 'Пигменты под партию ящиков «Агротех» на ноябрь.', files: [['Счёт №455', 'счёт', '118 КБ', '03.10.2026']], items: [['ПГ-С-7', 'Пигмент синий 7', 'Сырьё', 'кг', 25, 1340], ['ПГ-Ж-3', 'Пигмент жёлтый 3', 'Сырьё', 'кг', 15, 1210]] },
+  { id: 'СН-1042', order: 'З-311', dir: 'metal', st: 'tr', hist: [['req', '28.09.2026 10:15'], ['ord', '29.09.2026 14:02'], ['tr', '03.10.2026 09:40']], supplier: 'ООО «Металлсервис»', inn: '6316123456', contact: { name: 'Семёнов Игорь Петрович', tel: '+7 846 200-10-01', mail: 'semenov@metalservice.example' }, eta: '06.10.2026', comment: 'Лист 3 мм под фермы «Стройкомплект», вторая партия. Разгрузка краном у склада А.', files: [['Счёт №3301', 'счёт', '184 КБ', '29.09.2026'], ['Договор поставки №12-2026', 'договор', '1,2 МБ', '29.09.2026'], ['Спецификация №88', 'спецификация', '96 КБ', '29.09.2026']], items: [['МС-3-1500', 'Лист г/к 3 мм 1500×6000', 'Металлопрокат', 'шт', 12, 9800], ['ПР-40-3', 'Профиль 40×40×3, 6 м', 'Металлопрокат', 'шт', 40, 1860], ['ЭЛ-МР3-4', 'Электроды МР-3 Ø4', 'Расходные', 'кг', 20, 190]] },
+  { id: 'СН-1045', order: 'З-316', dir: 'furn', st: 'tr', hist: [['req', '26.09.2026 14:00'], ['ord', '27.09.2026 10:40'], ['tr', '03.10.2026 07:30']], supplier: 'ООО «Лесторг»', inn: '6321011223', contact: { name: 'Дмитриев Олег Сергеевич', tel: '+7 846 212-40-04', mail: 'dmitriev@lestorg.example' }, eta: '04.10.2026', comment: 'ЛДСП 16 мм дуб сонома, 48 листов. Машина вышла утром, ждём к 15:00.', files: [['Счёт №918', 'счёт', '132 КБ', '27.09.2026'], ['Договор №7/26', 'договор', '980 КБ', '15.01.2026']], items: [['ЛД-16-ДС', 'ЛДСП 16 мм 2800×2070 дуб сонома', 'Плитные материалы', 'лист', 48, 2450], ['ХД-3', 'ХДФ 3 мм 2800×2070 белый', 'Плитные материалы', 'лист', 20, 780]] },
+  { id: 'СН-1048', order: 'З-319', dir: 'furn', st: 'tr', hist: [['req', '29.09.2026 09:50'], ['ord', '30.09.2026 13:15'], ['tr', '02.10.2026 18:00']], supplier: 'ООО «Упаковка-Самара»', inn: '6312066778', contact: { name: 'Ким Светлана Олеговна', tel: '+7 846 378-70-07', mail: 'kim@upak-samara.example' }, eta: '05.10.2026', comment: 'Гофрокороба и уголки под кухни ИП Серовой.', files: [['Счёт №1203', 'счёт', '97 КБ', '30.09.2026'], ['Макет короба', 'прочее', '2,1 МБ', '29.09.2026']], items: [['ГК-1200', 'Гофрокороб 1200×600×400', 'Упаковка', 'шт', 60, 210], ['УГ-50', 'Уголок защитный 50×50×3', 'Упаковка', 'м', 500, 14], ['СТ-500', 'Стрейч-плёнка 500 мм', 'Упаковка', 'рул', 24, 560]] },
+  { id: 'СН-1043', order: 'З-314', dir: 'furn', st: 'ord', hist: [['req', '30.09.2026 11:20'], ['ord', '02.10.2026 16:45']], supplier: 'ИП Галимов Р. Ф.', inn: '163501234567', contact: { name: 'Галимов Рустам Фаритович', tel: '+7 917 300-20-02', mail: 'galimov.furnitura@example' }, eta: '09.10.2026', comment: 'Фурнитура на 10 шкафов «Уют». Отгрузка в понедельник, срок перенесён с 07.10.', files: [['Счёт №77', 'счёт', '120 КБ', '02.10.2026']], items: [['ПТ-110', 'Петля накладная 110°', 'Фурнитура', 'шт', 120, 86], ['НП-450', 'Направляющие шариковые 450 мм', 'Фурнитура', 'компл', 40, 310], ['РЧ-128', 'Ручка-скоба 128 мм', 'Фурнитура', 'шт', 60, 145]] },
+  { id: 'СН-1044', order: 'З-315', dir: 'poly', st: 'done', hist: [['req', '22.09.2026 09:05'], ['ord', '23.09.2026 12:30'], ['tr', '29.09.2026 08:10'], ['done', '02.10.2026 15:20']], supplier: 'ООО «Полипласт»', inn: '6324098765', contact: { name: 'Орехова Наталья Викторовна', tel: '+7 848 270-30-03', mail: 'sales@poliplast.example' }, eta: '01.10.2026', comment: 'Гранулят ПЭ под ящики «Агротех». Принято на склад В, УПД подписан.', files: [['Счёт №2210', 'счёт', '150 КБ', '23.09.2026'], ['УПД №2210', 'УПД', '210 КБ', '02.10.2026'], ['Паспорт качества', 'прочее', '640 КБ', '29.09.2026']], items: [['ПЭ-273', 'Гранулят ПЭНД 273-83', 'Сырьё', 'кг', 4000, 118], ['КР-ПЭ-З', 'Краситель зелёный для ПЭ', 'Сырьё', 'кг', 40, 920]] },
+  { id: 'СН-1049', order: 'З-320', dir: 'furn', st: 'done', hist: [['req', '18.09.2026 10:00'], ['ord', '19.09.2026 11:20'], ['tr', '24.09.2026 09:30'], ['done', '26.09.2026 14:45']], supplier: 'ИП Серов В. Н.', inn: '631600987654', contact: { name: 'Серов Владимир Николаевич', tel: '+7 927 400-80-08', mail: 'serov.kromka@example' }, eta: '26.09.2026', comment: 'Кромка ПВХ, закрыто без замечаний.', files: [['Счёт №61', 'счёт', '88 КБ', '19.09.2026'], ['УПД №61', 'УПД', '140 КБ', '26.09.2026']], items: [['КР-2-ДС', 'Кромка ПВХ 2×19 дуб сонома', 'Фурнитура', 'м', 600, 22], ['КР-04-Б', 'Кромка ПВХ 0,4×19 белая', 'Фурнитура', 'м', 900, 9]] },
+  { id: 'СН-1052', order: 'З-323', dir: 'metal', st: 'done', hist: [['req', '15.09.2026 09:00'], ['ord', '16.09.2026 10:30'], ['tr', '22.09.2026 07:50'], ['done', '23.09.2026 16:10']], supplier: 'ООО «ЭлектроМонтаж»', inn: '6317033445', contact: { name: 'Белов Николай Юрьевич', tel: '+7 846 255-12-11', mail: 'belov@electromontazh.example' }, eta: '23.09.2026', comment: 'Кабель и автоматы для сборки щита на объект «Стройкомплект».', files: [['Счёт №4410', 'счёт', '105 КБ', '16.09.2026'], ['УПД №4410', 'УПД', '176 КБ', '23.09.2026']], items: [['ВВГ-3-2.5', 'Кабель ВВГнг 3×2,5', 'Электрика', 'м', 300, 78], ['АВ-16', 'Автомат 16 А 1P', 'Электрика', 'шт', 12, 310]] },
 ];
 
 /* адаптация новых сотрудников */
@@ -553,12 +553,12 @@ const ONBOARDING = [
 
 /* чат по страницам: участники — те, у кого есть доступ к странице */
 const CHATS = {
-  logistics: [
-    { who: 9,  t: '08:52', text: 'Р-1045 принят в цех №1, профиль пересчитали — 2 т ровно.' },
-    { who: 2,  t: '09:03', text: 'Спасибо. Фомин стоит на складе В уже час, кто-нибудь из полимеров на связи?' },
-    { who: 13, t: '09:07', text: 'Царёв. Партию добираем, кладовщик вышел в 09:00. Погрузим к 10:30.' },
-    { who: 18, t: '09:40', text: 'По Р-1042: заказчик подтвердил кран на 14:00, пропуск на водителя отправила.' },
-    { who: 3,  t: '10:12', text: 'З-314 («Уют») можно поставить на понедельник вместе с Р-1049, направление одно.' },
+  supply: [
+    { who: 9,  t: '08:52', text: 'Лист 3 мм от «Металлсервис» принят на склад А: 12 листов, без замечаний.' },
+    { who: 2,  t: '09:03', text: 'Спасибо. По СН-1046 «Крепёж-Волга» счёт так и не прислал, кто-нибудь с ними на связи?' },
+    { who: 18, t: '09:07', text: 'Звонила утром, обещали счёт до 12:00. Заказ «Стройкомплект» ждёт крепёж.' },
+    { who: 13, t: '09:40', text: 'Гранулят по СН-1044 закрыт: УПД подписан, паспорт качества в файлах заявки.' },
+    { who: 3,  t: '10:12', text: 'Фурнитуру по СН-1043 Галимов отгрузит в понедельник, перенесла срок на 09.10.' },
   ],
   staff: [
     { who: 25, t: '09:15', text: 'Степанов и Ковалёв: инструктаж по ТБ в пятницу прошли, отметила в адаптации.' },
@@ -573,16 +573,16 @@ const CHATS = {
 
 /* автоответы для демонстрации онлайн-переписки */
 const REPLIES = {
-  logistics: { who: 13, text: 'Царёв: вижу, отвечу через пару минут — заканчиваем погрузку Р-1047.' },
-  staff:     { who: 25, text: 'Данилова: приняла, внесу в карточку сотрудника.' },
-  generic:   { who: 1,  text: 'Орлов: принято.' },
+  supply:  { who: 18, text: 'Воронцова: счёт от «Крепёж-Волга» пришёл, прикрепила к заявке СН-1046.' },
+  staff:   { who: 25, text: 'Данилова: приняла, внесу в карточку сотрудника.' },
+  generic: { who: 1,  text: 'Орлов: принято.' },
 };
 
 /* модули-заглушки для страниц, которые спроектируем позже */
 const STUBS = {
-  warehouse:  { text: 'Остатки и движения по каждому складу отдельно: склад А (металл), склад Б (мебель), склад В (полимеры). Переключатель склада — в верхней полосе, как переключатель направления на этой странице.', mods: ['Остатки по номенклатуре', 'Приход и расход за день', 'Инвентаризация', 'Заявки на отгрузку от логистики', 'Чат склада'] },
+  warehouse:  { text: 'Остатки и движения по каждому складу отдельно: склад А (металл), склад Б (мебель), склад В (полимеры). Переключатель склада — в верхней полосе, как переключатель направления на этой странице.', mods: ['Остатки по номенклатуре', 'Приход и расход за день', 'Инвентаризация', 'Заявки на отгрузку', 'Чат склада'] },
   production: { text: 'Планы и выпуск по каждому цеху отдельно. Наряды, загрузка участков, потребность в материалах со склада своего направления.', mods: ['План выпуска на неделю', 'Наряды и исполнители', 'Потребность в материалах', 'Брак и переделки', 'Чат цеха'] },
-  sales:      { text: 'Воронка и сделки по каждому отделу продаж отдельно, с заявками на доставку, которые уходят в общую логистику.', mods: ['Воронка сделок', 'Счета и оплаты', 'Заявки на доставку', 'План и факт по менеджерам', 'Чат отдела'] },
+  sales:      { text: 'Воронка и сделки по каждому отделу продаж отдельно, с заявками на закупку, которые уходят в общее снабжение.', mods: ['Воронка сделок', 'Счета и оплаты', 'Заявки на доставку', 'План и факт по менеджерам', 'Чат отдела'] },
   clients:    { text: 'Общая база клиентов по всем направлениям: один клиент может покупать и металл, и мебель.', mods: ['Карточки клиентов', 'История заказов по направлениям', 'Обращения и претензии', 'Чат клиентского сервиса'] },
   finance:    { text: 'Общая финансовая служба с учётом по направлениям: выручка, затраты и маржа каждого направления отдельно, общие расходы распределяются.', mods: ['ДДС по направлениям', 'Дебиторка и кредиторка', 'Платёжный календарь', 'Распределение общих затрат', 'Чат финансов'] },
 };
@@ -691,6 +691,7 @@ const gearPath = (cx, cy, ro, ri, n, hole) => {
   return `<path fill-rule="evenodd" d="${d}Z M${cx + hole} ${cy} a${hole} ${hole} 0 1 0 ${-2 * hole} 0 a${hole} ${hole} 0 1 0 ${2 * hole} 0 Z"/>`;
 };
 Object.assign(GLASS, {
+  box: { back: '<rect x="6" y="15" width="36" height="29" rx="6"/>', front: '<path d="M4 11a4 4 0 0 1 4-4h32a4 4 0 0 1 4 4v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>', extra: '<rect x="21" y="27" width="6" height="17" rx="3" fill="var(--ico-edge)" opacity=".45"/>' },
   search: { back: '<path fill-rule="evenodd" d="M20 5a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 6a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/><rect x="32" y="27" width="8" height="19" rx="4" transform="rotate(-45 36 36.5)"/>', front: '<circle cx="20" cy="20" r="9.5"/>' },
   bell: { back: '<path d="M24 4a13 13 0 0 1 13 13v8l4.2 6.3A2.5 2.5 0 0 1 39 35H9a2.5 2.5 0 0 1-2.2-3.7L11 25v-8A13 13 0 0 1 24 4z"/><circle cx="24" cy="40.5" r="4.5"/>', front: '<rect x="11" y="26" width="26" height="12" rx="6"/>' },
   chat: { back: '<path d="M5 14a8 8 0 0 1 8-8h16a8 8 0 0 1 8 8v7a8 8 0 0 1-8 8H16l-7.3 5.9A1.5 1.5 0 0 1 6.3 33.7L7 29.2A8 8 0 0 1 5 23z"/>', front: '<path d="M18 25a6 6 0 0 1 6-6h13a6 6 0 0 1 6 6v6a6 6 0 0 1-6 6h-2.5v4.3a1.2 1.2 0 0 1-2 .9L27 37h-3a6 6 0 0 1-6-6z"/>' },
@@ -868,15 +869,15 @@ const CHAT = {
    ============================================================ */
 
 const pct16 = (a, b) => b ? Math.round(16 * a / b) : 0;
-const tripStatus = t => t.bad ? ['Проблема', 'bad'] : t.stage === 4 ? ['Доставлено', 'ok'] : t.stage === 3 ? ['В пути', 'solid'] : t.stage === 2 ? ['Погрузка', 'line'] : t.stage === 1 ? ['Сборка', 'line'] : ['Заявка', 'dashed'];
-const stageState = (t, i) => t.stage === 4 || i < t.stage ? 'done' : i === t.stage ? (t.bad ? 'bad' : 'cur') : 'pend';
 const rmIcon = (st, i) => st === 'done' ? ic('check', 'xs') : st === 'cur' ? ic('loader', 'sm spin') : st === 'bad' ? ic('alert', 'xs') : (i + 1);
 const hit = (q, ...fields) => !q || fields.join(' ').toLowerCase().includes(q);
-const driverName = id => id ? shortName(BY_ID[id].name) : '—';
+const fmtMoney = n => n.toLocaleString('ru-RU');
+const fmtSize = b => b < 1024 * 1024 ? Math.max(1, Math.round(b / 1024)) + ' КБ' : (b / 1024 / 1024).toFixed(1).replace('.', ',') + ' МБ';
+const todayShort = () => new Date().toLocaleDateString('ru-RU');
 
 const App = {
   state: {
-    page: 'logistics', dir: 'all', trip: 'Р-1042', dept: null, q: '',
+    page: 'supply', dir: 'all', dept: null, q: '',
     theme: localStorage.getItem('riva.theme') || 'light',
   },
   el: {},
@@ -889,6 +890,7 @@ const App = {
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));
     document.addEventListener('input', e => this.onInput(e));
+    document.addEventListener('change', e => this.onChange(e));
     document.addEventListener('keydown', e => {
       if (e.key === '/' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); document.querySelector('[data-search]')?.focus(); }
     });
@@ -898,8 +900,8 @@ const App = {
   page() { return PAGES.find(p => p.id === this.state.page); },
 
   route() {
-    const id = location.hash.replace('#', '') || 'logistics';
-    this.state.page = PAGES.some(p => p.id === id) ? id : 'logistics';
+    const id = (location.hash.replace('#', '') || 'supply').replace('logistics', 'supply');
+    this.state.page = PAGES.some(p => p.id === id) ? id : 'supply';
     this.state.q = ''; this.state.dept = null; this.state.all = false;
     XP.closeAll();
     this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
@@ -922,7 +924,7 @@ const App = {
   renderSide() {
     const s = this.state, dark = s.theme === 'dark';
     this.el.side.innerHTML = `
-      <a class="logo-tile" href="#logistics" data-tip="RIVA · прототип для ПК">R</a>
+      <a class="logo-tile" href="#supply" data-tip="RIVA · прототип для ПК">R</a>
       <nav class="dock">${PAGES.map(pg => `<a href="#${pg.id}" class="dk-item ${pg.id === s.page ? 'active' : ''}" data-tip="${pg.name}${pg.ready ? '' : ' · эскиз'}">${glassIcon(pg.icon, pg.id === s.page ? 'n' : 'i')}${pg.unread ? `<span class="n">${pg.unread}</span>` : ''}</a>`).join('')}</nav>
       <div class="side-foot">
         <button class="rail-btn" data-theme-toggle data-tip="${dark ? 'Светлая тема' : 'Тёмная тема'}">${glassIcon(dark ? 'sun' : 'moon', 'i')}</button>
@@ -941,8 +943,8 @@ const App = {
       <div class="sep"></div>
       <div class="mute small" style="padding:4px 9px 6px">Общие службы (логистика, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
     </div>`;
-    const primary = { logistics: 'Рейс', staff: 'Сотрудник' }[pg.id] || 'Запись';
-    const ph = { logistics: 'Рейсы, водители, заявки…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
+    const primary = { supply: 'Заявка', staff: 'Сотрудник' }[pg.id] || 'Запись';
+    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
     this.el.topbar.innerHTML = `
       <div class="tb-ic">${ic(pg.icon)}</div>
       <div><div class="tb-title">${pg.name}</div><div class="tb-sub">${pg.sub}</div></div>
@@ -958,7 +960,8 @@ const App = {
 
   renderGrid() {
     const pg = this.page();
-    this.el.grid.innerHTML = pg.id === 'logistics' ? this.logistics() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+    this.el.grid.classList.toggle('single', pg.id === 'supply');
+    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'staff' ? this.staff() : this.stub(pg);
   },
 
   /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом */
@@ -968,66 +971,48 @@ const App = {
     const m = document.getElementById('chat-msgs'); if (m) m.scrollTop = m.scrollHeight;
   },
 
-  /* ---------- Логистика ---------- */
-  logistics() {
+  /* ---------- Снабжение: один список с прокруткой, карточка заказа раскрывается под строкой ---------- */
+  supply() {
     const s = this.state, q = s.q.trim().toLowerCase();
-    const inDir = t => s.dir === 'all' || t.dir === s.dir;
-    const trips = TRIPS.filter(t => inDir(t) && hit(q, t.id, t.from, t.to, t.veh, t.cargo, t.driver ? BY_ID[t.driver].name : ''));
-    const reqs = REQUESTS.filter(r => inDir(r) && hit(q, r.id, r.what, r.from));
-    const all = TRIPS.filter(inDir);
-    const cnt = f => all.filter(f).length;
-
-    /* рейсы — строки раскрываются поверх следующих */
-    const cols = '72px 96px minmax(0,1.8fr) minmax(0,1.2fr) minmax(0,1fr) 96px 72px';
-    const rows = trips.map(t => {
-      const [stName, stCls] = tripStatus(t), last = t.times.filter(Boolean).pop() || '';
-      const head = `<div class="tr clickable ${t.id === s.trip ? 'sel' : ''}" style="grid-template-columns:${cols}" data-trip="${t.id}">
-          <div><div class="t num">${t.id}</div><div class="s">${t.km ? t.km + ' км' : 'внутр.'}</div></div>
-          <div>${chipDir(t.dir)}</div>
-          <div class="ellip"><span class="t">${t.from}</span> <span class="mute">→</span> ${t.to}</div>
-          <div><div class="ellip">${t.veh}</div><div class="s">${driverName(t.driver)}</div></div>
-          <div class="ellip">${t.cargo}</div>
+    const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
+    const cols = '78px 76px 104px 114px minmax(0,1.3fr) 34px 90px minmax(0,1.7fr)';
+    const head = `<div class="tr th" style="grid-template-columns:${cols}"><div>Заказ клиента</div><div>Заявка</div><div>Статус</div><div>Изменён</div><div>Поставщик · ИНН</div><div></div><div>Срок доставки</div><div>Комментарий</div></div>`;
+    const rows = list.map((r, i) => {
+      const [stName, stCls] = SUP_ST[r.st], last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
+      const hist = `<span class="hp"><span class="num hp-trg">${last[1]}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px"><span class="chip ${SUP_ST[st][1]}">${SUP_ST[st][0]}</span><span class="num mute small">${at}</span></div>`).join('')}</div></span>`;
+      const contact = `<span class="hp"><span class="ic-btn">${ic('user', 'sm')}</span><div class="hp-pop ${up}"><div class="b">${r.contact.name}</div><div class="num" style="margin-top:3px">${r.contact.tel}</div><div class="mute small">${r.contact.mail}</div></div></span>`;
+      const headRow = `<div class="tr clickable" style="grid-template-columns:${cols}">
+          <div class="t num">${r.order}</div>
+          <div class="num">${r.id}</div>
           <div><span class="chip ${stCls}">${stName}</span></div>
-          <div class="num small">${t.stage === 3 ? `<span class="mute">до</span> ${t.eta}` : last}</div>
+          <div>${hist}</div>
+          <div><div class="t ellip">${r.supplier}</div><div class="s num">ИНН ${r.inn}</div></div>
+          <div>${contact}</div>
+          <div class="num">${r.eta}</div>
+          <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
         </div>`;
-      const req = REQUESTS.find(r => r.trip === t.id);
-      const panel = `<div class="ph">${chipDir(t.dir)}<span class="t num">Рейс ${t.id}</span><span class="mute small ellip">${t.from} → ${t.to}</span><span class="chip ${stCls}">${stName}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
-        <div class="pb cols-3">
-          <div><div class="sec-t">Маршрут</div><dl class="kv"><dt>Откуда</dt><dd>${t.from}</dd><dt>Куда</dt><dd>${t.to}</dd><dt>Расстояние</dt><dd>${t.km ? t.km + ' км' : 'внутреннее'}</dd><dt>Прибытие</dt><dd>${t.eta}</dd><dt>Контакт</dt><dd>${t.contact}</dd></dl></div>
-          <div><div class="sec-t">Транспорт и груз</div><dl class="kv"><dt>Машина</dt><dd>${t.veh}</dd><dt>Водитель</dt><dd>${t.driver ? `<span class="row" style="gap:6px">${av(BY_ID[t.driver])}${BY_ID[t.driver].name}</span>` : 'не назначен'}</dd><dt>Груз</dt><dd>${t.cargo}</dd><dt>Заявка</dt><dd>${req ? `${req.id} · ${req.from}` : '—'}</dd><dt>Сейчас</dt><dd>${t.prog}</dd></dl></div>
-          <div><div class="sec-t">Документы</div><div class="docs">${t.docs.length ? t.docs.map(d => `<div class="doc">${ic('file', 'xs')}<span class="grow ellip">${d}</span>${ic('right', 'xs')}</div>`).join('') : '<span class="mute small">пока нет</span>'}</div><div class="sec-t" style="margin-top:10px">Примечание</div><div class="small">${t.note}</div></div>
+      return xp({ id: 'sup-' + r.id, head: headRow, panel: this.orderCard(r), place: 'under', cls: 'trw' });
+    }).join('');
+    const body = `<div class="sup-list">${head}${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div>`;
+    return mod({ span: 12, cls: 'fill', title: 'Заявки на снабжение', sub: `${list.length} из ${SUPPLY.length} · по клику под строкой раскрывается карточка заказа`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
+  },
+
+  /* карточка заказа: файлы (счёт, договор, УПД и прочее) и позиции */
+  orderCard(r) {
+    const [stName, stCls] = SUP_ST[r.st], icols = '104px minmax(0,2fr) minmax(0,1fr) 112px 104px 112px';
+    const total = r.items.reduce((a, it) => a + it[4] * it[5], 0);
+    const files = r.files.map(([name, kind, size, at]) => `<div class="file"><span class="fi">${ic('file', 'sm')}</span><span class="grow ellip">${esc(name)}</span><span class="chip ${kind === 'прочее' ? 'line' : ''}">${kind}</span><span class="mute small num">${size}</span><span class="mute small num">${at}</span><button class="btn ghost sm icon" title="Скачать">${icRaw('down', 'xs')}</button></div>`).join('');
+    return `<div class="ph">${chipDir(r.dir)}<span class="t num">Заказ клиента ${r.order}</span><span class="mute small ellip">заявка ${r.id} · ${r.supplier}</span><span class="chip ${stCls}">${stName}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
+      <div class="pb">
+        <div class="row between" style="margin-bottom:6px"><div class="sec-t" style="margin:0">Файлы заказа · ${r.files.length}</div><label class="btn sm">${ic('clip', 'xs')}Загрузить файл<input type="file" multiple hidden data-upload="${r.id}"></label></div>
+        <div class="files">${files || '<div class="mute small" style="padding:4px 2px">Файлов пока нет: счёт, договор, УПД и прочее появятся здесь списком</div>'}</div>
+        <div class="sec-t" style="margin-top:12px">Позиции заказа · ${r.items.length}</div>
+        <div class="tbl items">
+          <div class="tr th" style="grid-template-columns:${icols}"><div>Артикул</div><div>Наименование</div><div>Категория</div><div>Кол-во, ед. изм.</div><div style="text-align:right">Цена за ед.</div><div style="text-align:right">Сумма</div></div>
+          ${r.items.map(([sku, name, cat, unit, qty, price]) => `<div class="tr" style="grid-template-columns:${icols};min-height:30px"><div class="num mute">${sku}</div><div class="ellip">${name}</div><div class="small">${cat}</div><div class="num">${fmtMoney(qty)} ${unit}</div><div class="num" style="text-align:right">${fmtMoney(price)} ₽</div><div class="num b" style="text-align:right">${fmtMoney(qty * price)} ₽</div></div>`).join('')}
+          <div class="tr" style="grid-template-columns:${icols};min-height:30px"><div></div><div class="b">Итого</div><div></div><div></div><div></div><div class="num b" style="text-align:right">${fmtMoney(total)} ₽</div></div>
         </div>
-        <div class="pf"><button class="btn sm">${ic('pin', 'xs')}На карте</button><button class="btn sm">${ic('chat', 'xs')}Сообщить заказчику</button><button class="btn sm ghost">Изменить этап</button><span class="grow"></span><button class="btn sm ghost">${ic('edit', 'xs')}Редактировать</button></div>`;
-      return xp({ id: 'trip-' + t.id, head, panel, place: 'over-wide', cls: 'trw' });
-    }).join('');
-    const tripsBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${cols}"><div>Рейс</div><div>Направление</div><div>Маршрут</div><div>Транспорт · водитель</div><div>Груз</div><div>Этап</div><div>Время</div></div>${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div>`;
-
-    /* заявки на доставку от разных направлений */
-    const rcols = '48px 88px minmax(0,1fr) 100px';
-    const reqRows = reqs.map(r => {
-      const t = TRIPS.find(x => x.id === r.trip);
-      const assign = xp({ id: 'assign-' + r.id, head: `<button class="btn sm primary">Назначить${icRaw('down', 'xs')}</button>`, place: 'below-r', panel: `<div class="menu" style="width:290px"><div class="lbl">Назначить на рейс</div><button data-assign="${r.id}:new">${ic('plus', 'sm')}Новый рейс</button>${TRIPS.filter(x => x.stage <= 1 && x.dir === r.dir).map(x => `<button data-assign="${r.id}:${x.id}">${ic('truck', 'sm')}<span class="grow ellip">${x.id} · ${x.from} → ${x.to}</span></button>`).join('')}</div>` });
-      const prio = r.prio === 'high' ? `<span style="color:var(--bad);font-weight:500">срочно</span>` : r.prio === 'low' ? 'не срочно' : 'обычно';
-      return `<div class="tr" style="grid-template-columns:${rcols};min-height:46px">
-          <div class="t num">${r.id}</div><div>${chipDir(r.dir)}</div>
-          <div><div class="ellip">${r.what}</div><div class="s ellip">${r.from} · ${shortName(BY_ID[r.who].name)} · ${r.due} · ${prio}</div></div>
-          <div>${t ? `<span class="chip ${tripStatus(t)[1]}">${glassIcon('truck', tripStatus(t)[1] === 'solid' ? themeInv() : themeVar(), 'xs')}${t.id}</span>` : assign}</div>
-        </div>`;
-    }).join('');
-    const reqBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${rcols}"><div>№</div><div>Направление</div><div>Что и куда · от кого · срок</div><div>Рейс</div></div>${reqRows || '<div class="mute small" style="padding:14px 10px">Заявок нет</div>'}</div>`;
-
-    /* транспорт */
-    const fcols = 'minmax(0,1fr) 80px auto';
-    const fleetRows = FLEET.map(f => `<div class="tr" style="grid-template-columns:${fcols};min-height:46px">
-        <div><div class="t ellip">${f.name} <span class="mute num" style="font-weight:400">· ${f.plate}</span></div><div class="s ellip">${f.driver ? shortName(BY_ID[f.driver].name) : 'без водителя'}${f.to ? ' · ' + f.to : ''}</div></div>
-        <div class="row" style="gap:6px" title="Загрузка">${ticks(f.load, 10, 'fg')}<span class="mute xsmall num">${f.load * 10}%</span></div>
-        <div><span class="chip ${f.cls}">${f.state}</span></div>
-      </div>`).join('');
-    const fleetBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${fcols}"><div>Машина · водитель · обслуживание</div><div>Загрузка</div><div>Состояние</div></div>${fleetRows}</div>`;
-
-    return mod({ span: 12, title: 'Рейсы сегодня', sub: `${trips.length} из ${TRIPS.length} · строка раскрывается поверх списка, не сдвигая его`, body: tripsBody, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${ic('more', 'sm')}</button>` })
-      + mod({ span: 7, title: 'Заявки на доставку', sub: 'от отделов продаж и складов всех направлений', body: reqBody, tight: true, acts: `<button class="btn ghost sm icon">${ic('more', 'sm')}</button>` })
-      + mod({ span: 5, title: 'Транспорт', sub: `${FLEET.length} единиц · ${FLEET.filter(f => f.cls === 'solid').length} в рейсе`, body: fleetBody, tight: true, acts: `<button class="btn ghost sm">${ic('wrench', 'sm')}ТО</button>` });
+      </div>`;
   },
 
   /* ---------- Сотрудники ---------- */
@@ -1141,24 +1126,10 @@ const App = {
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');
     if (dirBtn) { this.state.dir = dirBtn.dataset.dir; XP.close(); this.renderTopbar(); this.renderGrid(); return; }
-    const task = t.closest('[data-task]');
-    if (task) { const i = +task.dataset.task; SHIFT_TASKS[i].done = !SHIFT_TASKS[i].done; this.renderGrid(); this.reopen('tasks'); return; }
-    const assign = t.closest('[data-assign]');
-    if (assign) {
-      const [rid, tid] = assign.dataset.assign.split(':'); const r = REQUESTS.find(x => x.id === rid);
-      if (tid === 'new') { const id = 'Р-' + (1050 + TRIPS.filter(x => x.id >= 'Р-1050').length); TRIPS.push({ id, dir: r.dir, from: 'Склад ' + { metal: 'А', furn: 'Б', poly: 'В' }[r.dir], to: r.what.split('→')[1]?.trim() || '—', veh: 'не назначен', driver: null, cargo: r.what.split('→')[0].trim(), stage: 0, times: [nowTime(), '', '', '', ''], eta: '—', km: 0, prog: 'создан из заявки ' + r.id, docs: [], contact: '—', note: 'Создан из заявки ' + r.id + '.' }); r.trip = id; }
-      else r.trip = tid;
-      XP.close(); this.renderGrid(); return;
-    }
     const cell = t.closest('[data-dcell]');
     if (cell) { const d = { id: cell.dataset.dcell, dir: cell.dataset.ddir || null }; this.state.dept = this.state.dept && this.state.dept.id === d.id && this.state.dept.dir === d.dir ? null : d; XP.close(); this.renderGrid(); return; }
     if (t.closest('[data-clear-dept]')) { this.state.dept = null; XP.close(); this.renderGrid(); return; }
     if (t.closest('[data-show-all]')) { this.state.all = true; this.renderGrid(); return; }
-    const trip = t.closest('[data-trip]');
-    if (trip && trip.dataset.trip !== this.state.trip) {
-      this.state.trip = trip.dataset.trip;
-      document.querySelectorAll('[data-trip]').forEach(el => el.classList.toggle('sel', el.dataset.trip === this.state.trip));
-    }
     const tg = t.closest('[data-xp-toggle]');
     if (tg) { if (t.closest('a,button') && !t.closest('.xp-head > .company, .xp-head > .btn, .xp-head > .avs')) return; XP.toggle(tg.closest('.xp')); return; }
     if (!t.closest('.xp-panel')) XP.closeAll();
@@ -1170,6 +1141,14 @@ const App = {
     const inp = f.querySelector('input'), text = inp.value.trim(); if (!text) return;
     CHAT.send(f.dataset.chatForm, text);
     document.querySelector('.chat-in')?.focus();
+  },
+
+  /* загрузка файлов в карточку заказа: имена добавляются в список заявки */
+  onChange(e) {
+    const inp = e.target.closest('[data-upload]'); if (!inp || !inp.files.length) return;
+    const r = SUPPLY.find(x => x.id === inp.dataset.upload);
+    [...inp.files].forEach(f => r.files.push([f.name.replace(/\.[^.]+$/, ''), /счет|счёт|invoice/i.test(f.name) ? 'счёт' : /договор|contract/i.test(f.name) ? 'договор' : /упд/i.test(f.name) ? 'УПД' : 'прочее', fmtSize(f.size), todayShort()]));
+    this.renderGrid(); this.reopen('sup-' + r.id);
   },
 
   onInput(e) {

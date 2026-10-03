@@ -102,6 +102,7 @@ const gearPath = (cx, cy, ro, ri, n, hole) => {
   return `<path fill-rule="evenodd" d="${d}Z M${cx + hole} ${cy} a${hole} ${hole} 0 1 0 ${-2 * hole} 0 a${hole} ${hole} 0 1 0 ${2 * hole} 0 Z"/>`;
 };
 Object.assign(GLASS, {
+  box: { back: '<rect x="6" y="15" width="36" height="29" rx="6"/>', front: '<path d="M4 11a4 4 0 0 1 4-4h32a4 4 0 0 1 4 4v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>', extra: '<rect x="21" y="27" width="6" height="17" rx="3" fill="var(--ico-edge)" opacity=".45"/>' },
   search: { back: '<path fill-rule="evenodd" d="M20 5a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 6a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/><rect x="32" y="27" width="8" height="19" rx="4" transform="rotate(-45 36 36.5)"/>', front: '<circle cx="20" cy="20" r="9.5"/>' },
   bell: { back: '<path d="M24 4a13 13 0 0 1 13 13v8l4.2 6.3A2.5 2.5 0 0 1 39 35H9a2.5 2.5 0 0 1-2.2-3.7L11 25v-8A13 13 0 0 1 24 4z"/><circle cx="24" cy="40.5" r="4.5"/>', front: '<rect x="11" y="26" width="26" height="12" rx="6"/>' },
   chat: { back: '<path d="M5 14a8 8 0 0 1 8-8h16a8 8 0 0 1 8 8v7a8 8 0 0 1-8 8H16l-7.3 5.9A1.5 1.5 0 0 1 6.3 33.7L7 29.2A8 8 0 0 1 5 23z"/>', front: '<path d="M18 25a6 6 0 0 1 6-6h13a6 6 0 0 1 6 6v6a6 6 0 0 1-6 6h-2.5v4.3a1.2 1.2 0 0 1-2 .9L27 37h-3a6 6 0 0 1-6-6z"/>' },

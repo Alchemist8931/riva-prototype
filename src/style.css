@@ -261,6 +261,29 @@ svg.i.xs { width: 11px; height: 11px; }
 .tbl .tr:not(.th) { border-radius: 0; }
 .trw .tr.sel { box-shadow: inset 2px 0 0 var(--fg); }
 
+/* Снабжение: один модуль во всю высоту, список прокручивается внутри, шапка списка липкая */
+.grid.single { display: flex; }
+.grid.single > .mod { flex: 1; min-height: 0; }
+.mod.fill .mod-surface { display: flex; flex-direction: column; min-height: 0; }
+.sup-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+.sup-list > .th { position: sticky; top: 0; background: var(--surface); z-index: 2; }
+.sup-list > * + * { border-top: 1px solid var(--line); }
+.sup-list > .th + * { border-top: 0; }
+.sup-list .trw .tr { min-height: 44px; }
+/* всплывающие по наведению: история статусов и контакт поставщика */
+.hp { position: relative; display: inline-flex; align-items: center; }
+.hp-trg { border-bottom: 1px dashed var(--line-2); cursor: default; }
+.hp-pop { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 70; background: var(--surface); border: 1px solid var(--line-2); border-radius: 9px; box-shadow: var(--shadow); padding: 8px 10px; min-width: 190px; white-space: nowrap; font-size: 11.5px; }
+.hp-pop.up { top: auto; bottom: calc(100% + 6px); }
+.hp:hover { z-index: 70; }
+.hp:hover .hp-pop { display: block; animation: xp-in .14s ease-out; }
+.ic-btn { width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); color: var(--surface-2); display: grid; place-items: center; cursor: default; }
+.xp-panel.under { top: calc(100% + 4px); left: 0; right: 0; }
+.files { display: flex; flex-direction: column; gap: 4px; }
+.file { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: 11.5px; }
+.file .fi { display: grid; place-items: center; color: var(--surface-2); }
+.items .tr { padding: 0 6px; }
+
 /* сводка */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 7px; }
 .kpi { background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; }
