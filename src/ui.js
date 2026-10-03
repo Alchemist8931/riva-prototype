@@ -97,6 +97,7 @@ const XP = {
   show(el) {
     if (this.open && this.open !== el) this.open.classList.remove('open');
     this.open = el; el.classList.add('open');
+    el.querySelector('.xp-panel').scrollIntoView({ block: 'nearest' });
     this.focus();
   },
   close() {

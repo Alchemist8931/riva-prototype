@@ -39,6 +39,7 @@ const App = {
     this.state.q = ''; this.state.dept = null; this.state.all = false;
     XP.close();
     this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
+    this.el.grid.scrollTop = 0;
   },
 
   /* ---------- боковая панель в тёмной рамке ---------- */
@@ -118,7 +119,7 @@ const App = {
     const summary = `<div class="kpis">
         <div class="kpi"><b>${all.length}</b><span>рейсов сегодня</span></div>
         <div class="kpi"><b>${cnt(t => t.stage === 3)}</b><span>${dot('fg')}в пути</span></div>
-        <div class="kpi"><b>${cnt(t => t.stage <= 2 && !t.bad)}</b><span>${dot('')}сборка, погрузка, ожидание</span></div>
+        <div class="kpi"><b>${cnt(t => t.stage <= 2 && !t.bad)}</b><span>${dot('')}сборка и погрузка</span></div>
         <div class="kpi ${cnt(t => t.bad) ? 'bad' : ''}"><b>${cnt(t => t.bad)}</b><span>${dot('bad')}требуют внимания</span></div>
       </div>
       <div class="sec-t" style="margin-top:14px">Выполнение по направлениям</div>
@@ -129,12 +130,12 @@ const App = {
 
     /* задачи смены — раскрывается поверх соседей (образец -49) */
     const tdone = SHIFT_TASKS.filter(t => t.done).length;
-    const tasksHead = n => `<div class="row" style="height:36px;padding:0 4px;gap:6px">${ic(n ? 'up' : 'down', 'sm')}<span class="b">Задачи смены</span><span class="grow"></span>${ticks(pct16(tdone, SHIFT_TASKS.length), 16, 'sm')}<span class="num mute small">${tdone}/${SHIFT_TASKS.length}</span></div>`;
+    const tasksHead = n => `<div class="row wrap" style="min-height:36px;padding:4px 4px;gap:2px 6px">${ic(n ? 'up' : 'down', 'sm')}<span class="b">Задачи смены</span><span class="grow"></span><span class="row" style="gap:6px;margin-left:auto">${ticks(pct16(tdone, SHIFT_TASKS.length), 16, 'sm')}<span class="num mute small">${tdone}/${SHIFT_TASKS.length}</span></span></div>`;
     const tasksPanel = `<div style="padding:4px 8px 8px">${tasksHead(true)}<div class="steps">${SHIFT_TASKS.map((t, i) => {
       const cur = !t.done && SHIFT_TASKS.findIndex(x => !x.done) === i;
       return `<div class="st ${t.done ? 'done' : cur ? 'cur' : ''}" data-task="${i}"><span class="ic">${t.done ? ic('check', 'xs') : i + 1}</span><span class="n">${t.n}</span>${t.done ? '' : `<span class="chev">${ic('right', 'sm')}</span>`}</div>`;
     }).join('')}</div></div>`;
-    const tasks = `${xp({ id: 'tasks', head: tasksHead(false), panel: tasksPanel, place: 'over-wide' })}
+    const tasks = `${xp({ id: 'tasks', head: tasksHead(false), panel: tasksPanel, place: 'over-wide tasks-panel' })}
       <div class="mute small" style="padding:8px 4px 0;border-top:1px solid var(--line);margin-top:6px">Следующая: ${SHIFT_TASKS.find(t => !t.done)?.n || 'всё сделано'}</div>
       <div class="row small" style="padding:8px 4px 0;gap:6px">${ic('clock', 'xs')}<span class="mute">Смена 08:00–17:00 · диспетчер</span><span class="grow"></span>${av(BY_ID[3])}</div>
       <div class="sec-t" style="padding:12px 4px 0">На смене</div>
