@@ -1,0 +1,1126 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>RIVA · прототип интерфейса для ПК</title>
+<meta name="viewport" content="width=1280">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23111%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial%27 font-weight=%27800%27 font-size=%2718%27 fill=%27%23fff%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   RIVA · прототип дизайна (ПК). Токены, оболочка, компоненты.
+   ============================================================ */
+
+:root {
+  /* светлая бело-чёрная тема */
+  --page: #e4e4e4;
+  --page-hatch: rgba(0, 0, 0, .045);
+  --frame: #141414;
+  --frame-2: #202020;
+  --frame-fg: #f4f4f4;
+  --frame-mute: #8d8d8d;
+  --frame-line: rgba(255, 255, 255, .08);
+  --frame-active: rgba(255, 255, 255, .11);
+  --panel: #ffffff;
+  --shell: #f2f2f2;
+  --surface: #ffffff;
+  --surface-2: #f6f6f6;
+  --surface-3: #ededed;
+  --line: #e5e5e5;
+  --line-2: #d4d4d4;
+  --fg: #111111;
+  --fg-2: #474747;
+  --mute: #8a8a8a;
+  --primary: #111111;
+  --primary-fg: #ffffff;
+  --ok: #1f9d55;
+  --ok-bg: #e7f6ee;
+  --warn: #b86e00;
+  --warn-bg: #fff3dd;
+  --bad: #cf3338;
+  --bad-bg: #fdeaea;
+  --veil: rgba(255, 255, 255, .28);
+  --shadow: 0 14px 36px rgba(0, 0, 0, .14), 0 2px 8px rgba(0, 0, 0, .06);
+  --frame-shadow: 0 30px 80px rgba(0, 0, 0, .28);
+  --logo-bg: #ffffff;
+  --logo-fg: #111111;
+}
+
+:root[data-theme="dark"] {
+  /* тёмная чёрно-белая тема */
+  --page: #000000;
+  --page-hatch: rgba(255, 255, 255, .05);
+  --frame: #171717;
+  --frame-2: #222222;
+  --frame-fg: #f2f2f2;
+  --frame-mute: #8a8a8a;
+  --frame-line: rgba(255, 255, 255, .08);
+  --frame-active: rgba(255, 255, 255, .12);
+  --panel: #0a0a0a;
+  --shell: #151515;
+  --surface: #0d0d0d;
+  --surface-2: #161616;
+  --surface-3: #1f1f1f;
+  --line: #262626;
+  --line-2: #363636;
+  --fg: #f0f0f0;
+  --fg-2: #c4c4c4;
+  --mute: #7f7f7f;
+  --primary: #f2f2f2;
+  --primary-fg: #111111;
+  --ok: #3ccf7a;
+  --ok-bg: rgba(60, 207, 122, .13);
+  --warn: #f0a63a;
+  --warn-bg: rgba(240, 166, 58, .14);
+  --bad: #f06a6a;
+  --bad-bg: rgba(240, 106, 106, .14);
+  --veil: rgba(0, 0, 0, .38);
+  --shadow: 0 14px 36px rgba(0, 0, 0, .7), 0 2px 8px rgba(0, 0, 0, .5);
+  --frame-shadow: 0 30px 80px rgba(0, 0, 0, .8), 0 0 0 1px #262626;
+  --logo-bg: #ffffff;
+  --logo-fg: #111111;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background-color: var(--page);
+  background-image: repeating-linear-gradient(135deg, var(--page-hatch) 0 1px, transparent 1px 9px);
+  color: var(--fg);
+  font: 13px/1.45 Inter, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  min-width: 1200px;
+}
+::selection { background: var(--fg); color: var(--panel); }
+button, input { font: inherit; }
+a { color: inherit; }
+svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+svg.i.sm { width: 14px; height: 14px; }
+svg.i.xs { width: 12px; height: 12px; }
+.num { font-variant-numeric: tabular-nums; }
+.mute { color: var(--mute); }
+.small { font-size: 12px; }
+.xsmall { font-size: 11px; }
+.b { font-weight: 600; }
+.row { display: flex; align-items: center; gap: 8px; }
+.row.between { justify-content: space-between; }
+.grow { flex: 1; min-width: 0; }
+.ellip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- оболочка: рамка 30px от края, контент 10px сверху/справа/снизу ---------- */
+.frame {
+  position: fixed; inset: 30px;
+  background: var(--frame);
+  border-radius: 22px;
+  box-shadow: var(--frame-shadow);
+  display: grid; grid-template-columns: 220px minmax(0, 1fr);
+  color: var(--fg);
+}
+.side {
+  display: flex; flex-direction: column; min-height: 0;
+  padding: 18px 12px 14px;
+  color: var(--frame-fg);
+}
+.content {
+  margin: 10px 10px 10px 0;
+  background: var(--panel);
+  border-radius: 16px;
+  display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  overflow: hidden;
+}
+
+/* боковая панель */
+.brand { display: flex; align-items: center; gap: 10px; padding: 2px 8px 12px; }
+.logo { width: 30px; height: 30px; border-radius: 9px; background: var(--logo-bg); color: var(--logo-fg); display: grid; place-items: center; font-weight: 800; font-size: 15px; letter-spacing: -.02em; }
+.brand-name { font-weight: 700; letter-spacing: .14em; font-size: 13px; }
+.brand-tag { font-size: 10px; color: var(--frame-mute); letter-spacing: .04em; margin-left: 2px; }
+.company {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  height: 40px; padding: 0 10px; border-radius: 10px;
+  background: var(--frame-2); border: 1px solid var(--frame-line); color: var(--frame-fg);
+  cursor: pointer; text-align: left;
+}
+.company:hover { background: var(--frame-active); }
+.company .cmp-name { font-weight: 600; font-size: 12.5px; line-height: 1.2; }
+.company .cmp-sub { font-size: 11px; color: var(--frame-mute); }
+.company .chev { margin-left: auto; color: var(--frame-mute); }
+.side-sec { font-size: 10.5px; color: var(--frame-mute); letter-spacing: .09em; text-transform: uppercase; padding: 16px 10px 6px; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav a {
+  display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px;
+  border-radius: 9px; color: var(--frame-mute); text-decoration: none; font-weight: 500;
+}
+.nav a:hover { background: var(--frame-2); color: var(--frame-fg); }
+.nav a.active { background: var(--frame-active); color: #fff; }
+.nav a .badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #fff; color: #111; font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+.nav a .soon { margin-left: auto; font-size: 10px; color: var(--frame-mute); border: 1px solid var(--frame-line); border-radius: 999px; padding: 1px 6px; }
+.dirs { display: flex; flex-direction: column; gap: 1px; }
+.dirs div { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; color: var(--frame-mute); font-size: 12px; }
+.dirs .dk { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--frame-line); display: grid; place-items: center; font-size: 10px; font-weight: 700; color: var(--frame-fg); }
+.side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--frame-line); }
+.theme-sw { display: flex; background: var(--frame-2); border-radius: 9px; padding: 3px; gap: 2px; }
+.theme-sw button { flex: 1; height: 28px; border-radius: 7px; border: 0; background: transparent; color: var(--frame-mute); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 500; }
+.theme-sw button.on { background: #fff; color: #111; }
+.me { display: flex; align-items: center; gap: 9px; padding: 4px 6px; }
+.me .av { background: #fff; color: #111; border: none; }
+.me .me-n { font-weight: 600; font-size: 12.5px; line-height: 1.2; }
+.me .me-r { font-size: 11px; color: var(--frame-mute); }
+
+/* верхняя полоса страницы */
+.topbar { height: 58px; padding: 0 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); flex: none; }
+.tb-ic { width: 32px; height: 32px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; color: var(--fg-2); }
+.tb-title { font-size: 15.5px; font-weight: 600; letter-spacing: -.01em; line-height: 1.15; }
+.tb-sub { color: var(--mute); font-size: 12px; }
+.search { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); color: var(--mute); width: 250px; }
+.search input { border: 0; background: transparent; outline: 0; color: var(--fg); width: 100%; font-size: 12.5px; }
+.search input::placeholder { color: var(--mute); }
+.search kbd { font: 10.5px/1 Inter, sans-serif; border: 1px solid var(--line-2); border-radius: 5px; padding: 3px 5px; color: var(--mute); }
+
+/* тело страницы: сетка модулей + колонка чата */
+.body { flex: 1; min-height: 0; display: flex; }
+.grid { flex: 1; min-width: 0; overflow: auto; padding: 12px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; align-content: start; grid-auto-rows: min-content; }
+.grid > * { min-width: 0; }
+.chatcol { width: 312px; flex: none; padding: 12px 12px 12px 0; display: flex; min-height: 0; }
+.chatcol .mod { flex: 1; }
+.chatcol.collapsed { width: 56px; }
+.chatcol.collapsed .mod { display: none; }
+.chat-rail { display: none; }
+.chatcol.collapsed .chat-rail { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1; background: var(--shell); border-radius: 18px; padding: 10px 0; }
+.chat-rail .badge-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--primary); color: var(--primary-fg); font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+.chat-rail .vtxt { writing-mode: vertical-rl; transform: rotate(180deg); color: var(--mute); font-size: 11.5px; letter-spacing: .04em; margin-top: 6px; }
+
+/* ---------- модуль: поверхность + подпись снизу (образец -48) ---------- */
+.mod { background: var(--shell); border-radius: 18px; padding: 6px; display: flex; flex-direction: column; min-width: 0; }
+.mod-surface { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 14px; flex: 1; min-height: 0; position: relative; }
+.mod-surface.tight { padding: 8px; }
+.mod-cap { display: flex; align-items: center; gap: 10px; padding: 9px 8px 4px; }
+.mod-cap .t { font-weight: 600; font-size: 13px; line-height: 1.25; }
+.mod-cap .s { color: var(--mute); font-size: 12px; line-height: 1.25; margin-top: 1px; }
+.mod-cap .acts { margin-left: auto; display: flex; gap: 4px; }
+.span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; } .span-5 { grid-column: span 5; }
+.span-6 { grid-column: span 6; } .span-7 { grid-column: span 7; } .span-8 { grid-column: span 8; }
+.span-9 { grid-column: span 9; } .span-12 { grid-column: span 12; }
+
+/* ---------- кнопки, чипы, точки, аватары ---------- */
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); color: var(--fg); font-weight: 500; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn.primary:hover { opacity: .9; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--fg-2); }
+.btn.ghost:hover { background: var(--surface-2); color: var(--fg); }
+.btn.icon { width: 32px; padding: 0; justify-content: center; position: relative; }
+.btn.sm { height: 26px; padding: 0 9px; font-size: 12px; border-radius: 7px; }
+.btn.sm.icon { width: 26px; }
+.btn .dot-n { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--bad); border: 1.5px solid var(--surface); }
+.chip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; border: 1px solid var(--line); background: var(--surface-2); color: var(--fg-2); white-space: nowrap; }
+.chip.solid { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.chip.ok { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+.chip.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.chip.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+.chip.dashed { border-style: dashed; background: transparent; color: var(--mute); }
+.chip.line { background: transparent; border-color: var(--line-2); }
+.chip.dir { background: transparent; border-color: var(--line-2); font-weight: 600; letter-spacing: .01em; }
+.chip.dir .dk { width: 14px; height: 14px; border-radius: 4px; background: var(--fg); color: var(--panel); display: grid; place-items: center; font-size: 9px; font-weight: 700; }
+.chip.all { background: var(--surface-3); border-color: transparent; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--line-2); flex: none; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.fg { background: var(--fg); }
+.av { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--line); display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--fg-2); flex: none; letter-spacing: .02em; position: relative; }
+.av.lg { width: 36px; height: 36px; font-size: 13px; }
+.av .on { position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); border: 1.5px solid var(--surface); }
+.avs { display: flex; }
+.avs .av { margin-left: -7px; border: 2px solid var(--surface); }
+.avs .av:first-child { margin-left: 0; }
+.avs .av.more { font-size: 9.5px; color: var(--mute); }
+.pg-ics { display: inline-flex; gap: 3px; }
+.pg-ics span { width: 20px; height: 20px; border-radius: 6px; border: 1px solid var(--line); display: grid; place-items: center; color: var(--fg-2); background: var(--surface-2); }
+.pg-ics span.no { opacity: .22; }
+
+/* тик-прогресс (образец -49) */
+.ticks { display: inline-flex; gap: 2px; align-items: center; }
+.ticks i { display: block; width: 3px; height: 12px; border-radius: 1.5px; background: var(--line-2); }
+.ticks i.on { background: var(--ok); }
+.ticks.fg i.on { background: var(--fg); }
+.ticks.sm { gap: 2px; } .ticks.sm i { width: 2px; height: 10px; }
+.xp-head > .row { overflow: hidden; } .xp-head .b { white-space: nowrap; }
+
+/* дорожная карта (образец -50) */
+.rm { display: flex; flex-direction: column; }
+.rm-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.rm-head .t { font-weight: 600; white-space: nowrap; }
+.rm-head .n { color: var(--mute); font-size: 12px; white-space: nowrap; }
+.rm-step { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+.rm-ic { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line-2); display: grid; place-items: center; font-size: 10px; color: var(--mute); flex: none; background: var(--surface); }
+.rm-step.done .rm-ic { background: var(--ok); border-color: var(--ok); color: #fff; }
+.rm-step.cur .rm-ic { border-color: transparent; color: var(--fg); }
+.rm-step.cur .rm-name { font-weight: 600; }
+.rm-step.pend .rm-name { color: var(--fg-2); }
+.rm-step.bad .rm-ic { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+.rm-name { flex: 1; min-width: 0; }
+.rm-time { color: var(--mute); font-size: 12px; font-variant-numeric: tabular-nums; }
+.rm-foot { margin-top: 8px; padding: 10px 12px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+.rm-foot .ic { width: 30px; height: 30px; border-radius: 9px; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; color: var(--fg-2); }
+.rm-foot .t { font-weight: 600; font-size: 12.5px; }
+.rm-foot .s { color: var(--mute); font-size: 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin .9s linear infinite; }
+
+/* списки-таблицы (строки — div, чтобы раскрываться поверх соседей) */
+.tbl { display: flex; flex-direction: column; }
+.tr { display: grid; align-items: center; gap: 8px; padding: 0 10px; min-height: 42px; border-radius: 9px; }
+.tr > * { min-width: 0; }
+.tr.th { min-height: 28px; font-size: 11.5px; color: var(--mute); font-weight: 500; }
+.tr.clickable { cursor: pointer; }
+.tr.clickable:hover { background: var(--surface-2); }
+.tr.sel { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--fg); }
+.tr .t { font-weight: 500; }
+.tr .s { color: var(--mute); font-size: 11.5px; }
+.tbl > * + * { border-top: 1px solid var(--line); }
+.tbl > .th + * { border-top: 0; }
+.tbl .tr:not(.th) { border-radius: 0; }
+.trw .tr.sel { box-shadow: inset 2px 0 0 var(--fg); }
+
+/* сводка */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
+.kpi { background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px; }
+.kpi b { display: block; font-size: 22px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 12px; color: var(--mute); display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.kpi.bad b { color: var(--bad); }
+.dirbars { display: flex; flex-direction: column; gap: 6px; }
+.dirbar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; font-size: 12px; }
+.dirbar .n { white-space: nowrap; }
+.dirbar .n { color: var(--mute); font-variant-numeric: tabular-nums; }
+
+/* тайлы */
+.tiles { display: grid; gap: 8px; }
+.tile { background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px; }
+.tile .t { font-weight: 600; font-size: 12.5px; }
+.tile .s { color: var(--mute); font-size: 11.5px; }
+
+/* карта подразделений (общие службы на все направления и раздельный учёт) */
+.dmap { display: grid; grid-template-columns: 148px repeat(3, 1fr); gap: 6px; }
+.dmap .hd { font-size: 11.5px; color: var(--mute); padding: 4px 8px; font-weight: 500; }
+.dmap .hd.dir { display: flex; align-items: center; gap: 6px; }
+.dmap .rl { display: flex; align-items: center; gap: 8px; padding: 0 8px; font-weight: 500; font-size: 12.5px; }
+.dcell { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 48px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+.dcell:hover { border-color: var(--line-2); background: var(--surface-3); }
+.dcell.shared { grid-column: span 3; background: repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 11px); flex-direction: row; align-items: center; gap: 12px; }
+.dcell .t { font-weight: 600; font-size: 12.5px; }
+.dcell .s { color: var(--mute); font-size: 11.5px; }
+.dcell.sel { border-color: var(--fg); }
+
+/* чат страницы */
+.chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.chat-head { display: flex; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.chat-msgs { flex: 1; min-height: 0; overflow: auto; padding: 10px 2px; display: flex; flex-direction: column; gap: 10px; }
+.msg { display: flex; gap: 8px; align-items: flex-end; }
+.msg .av { margin-bottom: 2px; }
+.msg-b { max-width: 82%; }
+.msg-meta { font-size: 11px; color: var(--mute); margin: 0 0 3px 2px; display: flex; gap: 6px; }
+.msg-t { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; border-bottom-left-radius: 4px; padding: 7px 10px; font-size: 12.5px; line-height: 1.4; }
+.msg.me { flex-direction: row-reverse; }
+.msg.me .msg-b { display: flex; flex-direction: column; align-items: flex-end; }
+.msg.me .msg-t { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); border-radius: 12px; border-bottom-right-radius: 4px; }
+.msg.sys { justify-content: center; }
+.msg.sys .msg-t { background: transparent; border: 0; color: var(--mute); font-size: 11.5px; padding: 2px 0; }
+.typing { font-size: 11.5px; color: var(--mute); display: flex; align-items: center; gap: 6px; height: 16px; }
+.typing i { width: 4px; height: 4px; border-radius: 50%; background: var(--mute); display: inline-block; animation: blink 1.2s infinite; }
+.typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+.chat-form { display: flex; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.chat-in { flex: 1; min-width: 0; height: 34px; border: 1px solid var(--line-2); border-radius: 9px; padding: 0 10px; background: var(--surface); color: var(--fg); outline: 0; }
+.chat-in:focus { border-color: var(--fg); }
+
+/* ---------- раскрытие поверх соседей + блюр-фокус (образец -49 и правило владельца) ---------- */
+.xp { position: relative; }
+.xp-head { cursor: pointer; }
+.xp-panel { display: none; position: absolute; z-index: 5; background: var(--surface); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow); }
+.xp.open { z-index: 60; }
+.xp.open .xp-panel { display: block; animation: xp-in .16s ease-out; }
+.xp-panel.over { top: -1px; left: -1px; right: -1px; }
+.xp-panel.over-wide { top: -7px; left: -7px; right: -7px; }
+.xp-panel.below { top: calc(100% + 6px); left: 0; min-width: 100%; }
+.xp-panel.below-r { top: calc(100% + 6px); right: 0; }
+.xp-panel.side-up { bottom: 0; left: 0; right: 0; }
+.xp-panel.roles-panel { left: auto; right: -7px; }
+@keyframes xp-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.veil {
+  position: absolute; inset: 0; border-radius: inherit; z-index: 50;
+  background: var(--veil);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  opacity: 0; pointer-events: none; transition: opacity .18s ease;
+}
+.veil.on { opacity: 1; pointer-events: auto; }
+
+/* наполнение раскрытых панелей */
+.xp-panel .ph { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.xp-panel .ph .t { font-weight: 600; }
+.xp-panel .pb { padding: 10px 12px 12px; }
+.xp-panel .pf { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.menu { display: flex; flex-direction: column; padding: 6px; }
+.menu button { display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 9px; border: 0; border-radius: 8px; background: transparent; color: var(--fg); cursor: pointer; text-align: left; width: 100%; }
+.menu button:hover { background: var(--surface-2); }
+.menu button.on { background: var(--surface-2); font-weight: 600; }
+.menu button .chk { margin-left: auto; color: var(--fg); }
+.menu .sep { height: 1px; background: var(--line); margin: 5px 4px; }
+.menu .lbl { font-size: 11px; color: var(--mute); padding: 6px 9px 3px; letter-spacing: .06em; text-transform: uppercase; }
+.steps { display: flex; flex-direction: column; }
+.steps .st { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 4px; border-radius: 8px; }
+.steps .st:hover { background: var(--surface-2); }
+.steps .st .ic { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 600; border: 1.5px solid var(--line-2); color: var(--mute); flex: none; }
+.steps .st.done .ic { background: var(--ok); border-color: var(--ok); color: #fff; }
+.steps .st.cur .ic { background: var(--fg); border-color: var(--fg); color: var(--panel); }
+.steps .st.done .n { color: var(--mute); text-decoration: line-through; text-decoration-color: var(--line-2); }
+.steps .st .n { flex: 1; min-width: 0; }
+.steps .st .chev { color: var(--mute); }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 5px 10px; font-size: 12.5px; }
+.kv dt { color: var(--mute); } .kv dd { margin: 0; }
+.cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.sec-t { font-size: 11px; color: var(--mute); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 6px; }
+.doc { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; background: var(--surface-2); }
+.docs { display: flex; flex-direction: column; gap: 5px; }
+.matrix { display: grid; gap: 4px; font-size: 12px; align-items: center; }
+.matrix .mh { color: var(--mute); font-size: 11px; text-align: center; }
+.matrix .mr { font-weight: 500; }
+.matrix .mc { height: 26px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; color: var(--fg); }
+.matrix .mc.no { opacity: .3; }
+.matrix .mc.view { color: var(--mute); font-size: 10.5px; }
+
+/* заглушка страниц, которые ещё не спроектированы */
+.stub { display: flex; flex-direction: column; gap: 10px; padding: 26px 20px; align-items: flex-start; }
+.stub h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+.stub p { margin: 0; color: var(--fg-2); max-width: 620px; }
+.stub ul { margin: 6px 0 0; padding-left: 18px; color: var(--fg-2); display: grid; gap: 3px; }
+
+/* подсказка о размере окна (только ПК) */
+.too-small { display: none; }
+
+</style>
+</head>
+<body>
+<div class="frame">
+  <aside class="side" id="side"></aside>
+  <main class="content">
+    <header class="topbar" id="topbar"></header>
+    <div class="body">
+      <div class="grid" id="grid"></div>
+      <div class="chatcol" id="chatcol"></div>
+    </div>
+  </main>
+  <div class="veil"></div>
+</div>
+<script>
+/* ============================================================
+   Тестовые данные. Вымышленное предприятие ПК «Берег»:
+   три направления, у каждого свой склад, цех и отдел продаж;
+   логистика, финансы, клиентский сервис и HR — общие.
+   ============================================================ */
+
+const COMPANY = { name: 'ПК «Берег»', sub: '3 направления · 27 чел.' };
+
+const DIRS = [
+  { id: 'metal', name: 'Металлоконструкции', short: 'Металл', k: 'М' },
+  { id: 'furn',  name: 'Корпусная мебель',   short: 'Мебель', k: 'К' },
+  { id: 'poly',  name: 'Полимерные изделия', short: 'Полимеры', k: 'П' },
+];
+const DIR = Object.fromEntries(DIRS.map(d => [d.id, d]));
+
+const PAGES = [
+  { id: 'logistics',  name: 'Логистика',    icon: 'truck',   sub: 'общая служба · все направления', ready: true,  unread: 3 },
+  { id: 'warehouse',  name: 'Склад',        icon: 'wh',      sub: 'по каждому направлению отдельно', ready: false, unread: 0 },
+  { id: 'production', name: 'Производство', icon: 'factory', sub: 'по каждому направлению отдельно', ready: false, unread: 1 },
+  { id: 'sales',      name: 'Продажи',      icon: 'tag',     sub: 'по каждому направлению отдельно', ready: false, unread: 0 },
+  { id: 'clients',    name: 'Клиенты',      icon: 'users',   sub: 'общая база',                     ready: false, unread: 0 },
+  { id: 'finance',    name: 'Финансы',      icon: 'money',   sub: 'общая служба · учёт по направлениям', ready: false, unread: 0 },
+  { id: 'staff',      name: 'Сотрудники',   icon: 'idcard',  sub: 'все подразделения',             ready: true,  unread: 2 },
+];
+
+/* подразделения: shared — одно на все направления, иначе — по направлению */
+const DEPTS = [
+  { id: 'mgmt',   name: 'Руководство',        shared: true },
+  { id: 'log',    name: 'Логистика',          shared: true },
+  { id: 'wh',     name: 'Склад',              perDir: true, names: { metal: 'Склад А', furn: 'Склад Б', poly: 'Склад В' } },
+  { id: 'prod',   name: 'Производство',       perDir: true, names: { metal: 'Цех №1', furn: 'Цех №2', poly: 'Цех №3' } },
+  { id: 'sales',  name: 'Продажи',            perDir: true, names: { metal: 'Продажи · металл', furn: 'Продажи · мебель', poly: 'Продажи · полимеры' } },
+  { id: 'fin',    name: 'Финансы',            shared: true },
+  { id: 'cs',     name: 'Клиентский сервис',  shared: true },
+  { id: 'hr',     name: 'Кадры',              shared: true },
+];
+
+/* доступ к страницам по роли: full — работа, view — просмотр */
+const ROLES = {
+  director:   { name: 'Директор',            pages: { logistics: 'full', warehouse: 'full', production: 'full', sales: 'full', clients: 'full', finance: 'full', staff: 'full' } },
+  logist:     { name: 'Логист',              pages: { logistics: 'full', warehouse: 'view', sales: 'view', clients: 'view' } },
+  driver:     { name: 'Водитель',            pages: { logistics: 'full' } },
+  storekeeper:{ name: 'Кладовщик',           pages: { warehouse: 'full', logistics: 'view', production: 'view' } },
+  foreman:    { name: 'Производство',        pages: { production: 'full', warehouse: 'view' } },
+  seller:     { name: 'Менеджер продаж',     pages: { sales: 'full', clients: 'full', warehouse: 'view', logistics: 'view' } },
+  finance:    { name: 'Финансы',             pages: { finance: 'full', sales: 'view', clients: 'view', staff: 'view' } },
+  cs:         { name: 'Клиентский сервис',   pages: { clients: 'full', sales: 'view', logistics: 'view' } },
+  hr:         { name: 'Кадры',               pages: { staff: 'full' } },
+};
+
+/* статусы присутствия: office, remote, trip (в рейсе), vacation, sick */
+const STAFF = [
+  { id: 1,  name: 'Орлов Дмитрий',      pos: 'Генеральный директор',     dept: 'mgmt',  dirs: 'all',     role: 'director',    st: 'office',   on: true,  tel: '+7 927 100-01-01', mail: 'orlov@bereg.example' },
+  { id: 2,  name: 'Савельев Антон',     pos: 'Руководитель логистики',   dept: 'log',   dirs: 'all',     role: 'logist',      st: 'office',   on: true,  tel: '+7 927 100-01-02', mail: 'saveliev@bereg.example', me: true },
+  { id: 3,  name: 'Кузнецова Марина',   pos: 'Логист',                   dept: 'log',   dirs: 'all',     role: 'logist',      st: 'office',   on: true,  tel: '+7 927 100-01-03', mail: 'kuznetsova@bereg.example' },
+  { id: 4,  name: 'Петров Илья',        pos: 'Логист',                   dept: 'log',   dirs: 'all',     role: 'logist',      st: 'remote',   on: true,  tel: '+7 927 100-01-04', mail: 'petrov@bereg.example' },
+  { id: 5,  name: 'Громов Сергей',      pos: 'Водитель',                 dept: 'log',   dirs: 'all',     role: 'driver',      st: 'trip',     on: true,  tel: '+7 927 100-01-05', mail: '' },
+  { id: 6,  name: 'Лебедев Олег',       pos: 'Водитель',                 dept: 'log',   dirs: 'all',     role: 'driver',      st: 'office',   on: false, tel: '+7 927 100-01-06', mail: '' },
+  { id: 7,  name: 'Титов Руслан',       pos: 'Водитель',                 dept: 'log',   dirs: 'all',     role: 'driver',      st: 'trip',     on: true,  tel: '+7 927 100-01-07', mail: '' },
+  { id: 8,  name: 'Фомин Павел',        pos: 'Водитель',                 dept: 'log',   dirs: 'all',     role: 'driver',      st: 'trip',     on: true,  tel: '+7 927 100-01-08', mail: '' },
+  { id: 9,  name: 'Беляев Виктор',      pos: 'Заведующий складом',       dept: 'wh',    dirs: ['metal'], role: 'storekeeper', st: 'office',   on: true,  tel: '+7 927 100-01-09', mail: 'belyaev@bereg.example' },
+  { id: 10, name: 'Жуков Андрей',       pos: 'Кладовщик',                dept: 'wh',    dirs: ['metal'], role: 'storekeeper', st: 'office',   on: false, tel: '+7 927 100-01-10', mail: '' },
+  { id: 11, name: 'Мельникова Ольга',   pos: 'Заведующая складом',       dept: 'wh',    dirs: ['furn'],  role: 'storekeeper', st: 'office',   on: true,  tel: '+7 927 100-01-11', mail: 'melnikova@bereg.example' },
+  { id: 12, name: 'Соколов Иван',       pos: 'Кладовщик',                dept: 'wh',    dirs: ['furn'],  role: 'storekeeper', st: 'vacation', on: false, tel: '+7 927 100-01-12', mail: '' },
+  { id: 13, name: 'Царёв Николай',      pos: 'Заведующий складом',       dept: 'wh',    dirs: ['poly'],  role: 'storekeeper', st: 'office',   on: true,  tel: '+7 927 100-01-13', mail: 'tsarev@bereg.example' },
+  { id: 14, name: 'Климов Егор',        pos: 'Начальник цеха',           dept: 'prod',  dirs: ['metal'], role: 'foreman',     st: 'office',   on: true,  tel: '+7 927 100-01-14', mail: 'klimov@bereg.example' },
+  { id: 15, name: 'Зайцев Артём',       pos: 'Мастер участка',           dept: 'prod',  dirs: ['metal'], role: 'foreman',     st: 'office',   on: false, tel: '+7 927 100-01-15', mail: '' },
+  { id: 16, name: 'Прохорова Елена',    pos: 'Начальник цеха',           dept: 'prod',  dirs: ['furn'],  role: 'foreman',     st: 'office',   on: true,  tel: '+7 927 100-01-16', mail: 'prokhorova@bereg.example' },
+  { id: 17, name: 'Галкин Михаил',      pos: 'Начальник цеха',           dept: 'prod',  dirs: ['poly'],  role: 'foreman',     st: 'sick',     on: false, tel: '+7 927 100-01-17', mail: 'galkin@bereg.example' },
+  { id: 18, name: 'Воронцова Анна',     pos: 'Руководитель продаж',      dept: 'sales', dirs: ['metal'], role: 'seller',      st: 'office',   on: true,  tel: '+7 927 100-01-18', mail: 'vorontsova@bereg.example' },
+  { id: 19, name: 'Степанов Денис',     pos: 'Менеджер продаж',          dept: 'sales', dirs: ['metal'], role: 'seller',      st: 'office',   on: true,  tel: '+7 927 100-01-19', mail: 'stepanov@bereg.example', newbie: true },
+  { id: 20, name: 'Якушева Ирина',      pos: 'Менеджер продаж',          dept: 'sales', dirs: ['furn'],  role: 'seller',      st: 'remote',   on: true,  tel: '+7 927 100-01-20', mail: 'yakusheva@bereg.example' },
+  { id: 21, name: 'Никитин Глеб',       pos: 'Менеджер продаж',          dept: 'sales', dirs: ['poly'],  role: 'seller',      st: 'office',   on: false, tel: '+7 927 100-01-21', mail: 'nikitin@bereg.example' },
+  { id: 22, name: 'Романова Светлана',  pos: 'Главный бухгалтер',        dept: 'fin',   dirs: 'all',     role: 'finance',     st: 'office',   on: true,  tel: '+7 927 100-01-22', mail: 'romanova@bereg.example' },
+  { id: 23, name: 'Ефимова Дарья',      pos: 'Экономист',                dept: 'fin',   dirs: 'all',     role: 'finance',     st: 'vacation', on: false, tel: '+7 927 100-01-23', mail: 'efimova@bereg.example' },
+  { id: 24, name: 'Морозова Юлия',      pos: 'Специалист по клиентам',   dept: 'cs',    dirs: 'all',     role: 'cs',          st: 'office',   on: true,  tel: '+7 927 100-01-24', mail: 'morozova@bereg.example' },
+  { id: 25, name: 'Данилова Ксения',    pos: 'Специалист по кадрам',     dept: 'hr',    dirs: 'all',     role: 'hr',          st: 'office',   on: true,  tel: '+7 927 100-01-25', mail: 'danilova@bereg.example' },
+  { id: 26, name: 'Ковалёв Станислав',  pos: 'Кладовщик',                dept: 'wh',    dirs: ['poly'],  role: 'storekeeper', st: 'office',   on: true,  tel: '+7 927 100-01-26', mail: '', newbie: true },
+  { id: 27, name: 'Абрамова Вера',      pos: 'Сборщик мебели',           dept: 'prod',  dirs: ['furn'],  role: 'foreman',     st: 'office',   on: false, tel: '+7 927 100-01-27', mail: '' },
+];
+const BY_ID = Object.fromEntries(STAFF.map(s => [s.id, s]));
+const ME = STAFF.find(s => s.me);
+
+const ST = {
+  office:   { name: 'В офисе',   cls: 'ok' },
+  remote:   { name: 'Удалённо',  cls: 'line' },
+  trip:     { name: 'В рейсе',   cls: 'solid' },
+  vacation: { name: 'Отпуск',    cls: 'dashed' },
+  sick:     { name: 'Больничный',cls: 'warn' },
+};
+
+/* этапы рейса */
+const STAGES = ['Заявка', 'Сборка на складе', 'Погрузка', 'В пути', 'Доставлено'];
+
+/* рейсы на сегодня. stage — индекс текущего этапа; times — время по пройденным этапам */
+const TRIPS = [
+  { id: 'Р-1042', dir: 'metal', from: 'Склад А', to: 'Казань, «Стройкомплект»', veh: 'МАН TGL · А 123 ВС', driver: 5,  cargo: '12 ферм, 6,4 т', stage: 3, times: ['вчера 16:10', '07:20', '08:35', '08:40', ''], eta: '14:30', km: 345, prog: '≈ 190 км из 345', docs: ['ТТН №1042', 'Счёт-фактура', 'Пропуск на объект'], contact: 'Ибрагимов Р., приёмка · +7 843 000-00-00', note: 'Окно разгрузки 14:00–16:00, кран заказчика.' },
+  { id: 'Р-1043', dir: 'furn',  from: 'Склад Б', to: 'Самара, «Домострой»',     veh: 'Газель Next · В 456 ЕК', driver: 6, cargo: '18 шкафов, 1,1 т', stage: 2, times: ['вчера 11:00', '09:10', '', '', ''], eta: '13:10', km: 38, prog: 'погрузка · док 2', docs: ['ТТН №1043', 'УПД'], contact: 'Селезнёва О. · +7 846 000-00-00', note: 'Хрупкое, упаковка в стрейч + уголки.' },
+  { id: 'Р-1044', dir: 'poly',  from: '«Полипласт», Тольятти', to: 'Склад В', veh: 'ТК «Дельта» (наёмный)', driver: null, cargo: 'Гранулят ПЭ, 4 т', stage: 1, times: ['вчера 14:40', '', '', '', ''], eta: '16:00', km: 92, prog: 'ждём подтверждение поставщика', docs: ['Заявка ТК', 'Спецификация №88'], contact: 'Диспетчер ТК · +7 800 000-00-00', note: 'Входящая поставка сырья на склад В.' },
+  { id: 'Р-1045', dir: 'metal', from: 'Склад А', to: 'Цех №1 (внутреннее)',    veh: 'Погрузчик Toyota', driver: 10, cargo: 'Профиль 40×40, 2 т', stage: 4, times: ['08:00', '08:05', '08:20', '08:30', '08:50'], eta: '—', km: 0, prog: 'завершён', docs: ['Накладная на перемещение'], contact: 'Климов Е., цех №1', note: 'Перемещение между складом и цехом одного направления.' },
+  { id: 'Р-1046', dir: 'furn',  from: 'Склад Б', to: 'Тольятти, ИП Серова',    veh: 'Газель Next · Е 789 КМ', driver: 7, cargo: '6 кухонь, 0,9 т', stage: 3, times: ['вчера 15:30', '07:40', '08:50', '09:05', ''], eta: '11:40', km: 96, prog: '≈ 70 км из 96', docs: ['ТТН №1046', 'УПД', 'Акт приёма'], contact: 'Серова Н. · +7 848 000-00-00', note: 'Подъём на 4 этаж, лифт есть.' },
+  { id: 'Р-1047', dir: 'poly',  from: 'Склад В', to: 'Пенза, «Агротех»',       veh: 'Fiat Ducato · К 321 ОР', driver: 8, cargo: '300 ящиков, 1,5 т', stage: 2, times: ['вчера 12:00', '08:30', '', '', ''], eta: '—', km: 410, prog: 'простой на погрузке 1 ч 20 мин', docs: ['ТТН №1047'], contact: 'Диспетчер «Агротех» · +7 841 000-00-00', note: 'Склад В не успел собрать партию: смена кладовщика с 09:00.', bad: true },
+  { id: 'Р-1048', dir: 'metal', from: '«Металлсервис»', to: 'Склад А',         veh: 'не назначен', driver: null, cargo: 'Лист 3 мм, 6 т', stage: 0, times: ['10:05', '', '', '', ''], eta: '—', km: 120, prog: 'нужен транспорт 6 т', docs: ['Счёт №3301'], contact: 'Менеджер поставщика · +7 846 000-00-01', note: 'Поставка под заказ «Стройкомплект», вторая партия.' },
+  { id: 'Р-1049', dir: 'furn',  from: 'Склад Б', to: 'Самара, «Мебель-Маркет»', veh: 'не назначен', driver: null, cargo: '24 стола, 1,3 т', stage: 0, times: ['09:50', '', '', '', ''], eta: '—', km: 41, prog: 'ждёт назначения', docs: [], contact: 'Отдел закупок · +7 846 000-00-02', note: 'Можно совместить с Р-1043 завтрашним рейсом.' },
+];
+
+/* заявки на доставку от отделов продаж и складов разных направлений */
+const REQUESTS = [
+  { id: 'З-311', dir: 'metal', from: 'Продажи · металл', who: 18, what: '12 ферм → «Стройкомплект»',     due: 'до 3 окт', prio: 'high', trip: 'Р-1042' },
+  { id: 'З-314', dir: 'furn',  from: 'Продажи · мебель', who: 20, what: '10 шкафов → «Уют», Самара',    due: 'до 7 окт', prio: 'norm', trip: null },
+  { id: 'З-315', dir: 'poly',  from: 'Продажи · полимеры', who: 21, what: '300 ящиков → «Агротех»',    due: 'до 4 окт', prio: 'high', trip: 'Р-1047' },
+  { id: 'З-316', dir: 'poly',  from: 'Склад В',            who: 13, what: 'Сырьё от «Полипласт» → Склад В', due: 'до 3 окт', prio: 'norm', trip: 'Р-1044' },
+  { id: 'З-317', dir: 'metal', from: 'Продажи · металл', who: 19, what: 'Лист 3 мм от «Металлсервис»', due: 'до 6 окт', prio: 'norm', trip: 'Р-1048' },
+  { id: 'З-318', dir: 'furn',  from: 'Продажи · мебель', who: 20, what: '24 стола → «Мебель-Маркет»',  due: 'до 8 окт', prio: 'low',  trip: 'Р-1049' },
+];
+
+const FLEET = [
+  { name: 'МАН TGL 5 т',        plate: 'А 123 ВС 163', driver: 5,  state: 'В рейсе Р-1042', load: 8,  cls: 'solid', to: 'ТО через 1 200 км' },
+  { name: 'Газель Next',        plate: 'В 456 ЕК 163', driver: 6,  state: 'Погрузка Р-1043', load: 6, cls: 'line', to: 'ТО через 4 800 км' },
+  { name: 'Газель Next',        plate: 'Е 789 КМ 163', driver: 7,  state: 'В рейсе Р-1046', load: 5,  cls: 'solid', to: 'ТО через 900 км' },
+  { name: 'Fiat Ducato',        plate: 'К 321 ОР 163', driver: 8,  state: 'Простой на погрузке', load: 0, cls: 'bad', to: 'ТО через 3 100 км' },
+  { name: 'Погрузчик Toyota',   plate: 'внутренний',   driver: 10, state: 'Свободен', load: 0, cls: 'ok', to: 'Осмотр 10 окт' },
+  { name: 'ТК «Дельта»',        plate: 'наёмный',      driver: null, state: 'Заказан на Р-1044', load: 10, cls: 'dashed', to: '' },
+];
+
+/* задачи смены (раскрывающийся элемент, образец -49) */
+const SHIFT_TASKS = [
+  { n: 'Согласовать окно разгрузки у «Стройкомплект»', done: true },
+  { n: 'Передать ТТН по Р-1045 в бухгалтерию', done: true },
+  { n: 'Назначить рейс на заявку З-314 («Уют»)', done: false },
+  { n: 'Разобраться с простоем Фомина на складе В', done: false },
+  { n: 'Заявка на ТО Газели Е 789 КМ', done: false },
+];
+
+/* адаптация новых сотрудников */
+const ONBOARDING = [
+  { who: 19, steps: ['Документы и договор', 'Доступы в RIVA', 'Инструктаж по ТБ', 'Наставник и план', 'Испытательный срок'], done: 3, cur: 3 },
+  { who: 26, steps: ['Документы и договор', 'Доступы в RIVA', 'Инструктаж по ТБ', 'Обучение на ТСД', 'Испытательный срок'], done: 2, cur: 2 },
+];
+
+/* чат по страницам: участники — те, у кого есть доступ к странице */
+const CHATS = {
+  logistics: [
+    { who: 9,  t: '08:52', text: 'Р-1045 принят в цех №1, профиль пересчитали — 2 т ровно.' },
+    { who: 2,  t: '09:03', text: 'Спасибо. Фомин стоит на складе В уже час, кто-нибудь из полимеров на связи?' },
+    { who: 13, t: '09:07', text: 'Царёв. Партию добираем, кладовщик вышел в 09:00. Погрузим к 10:30.' },
+    { who: 18, t: '09:40', text: 'По Р-1042: заказчик подтвердил кран на 14:00, пропуск на водителя отправила.' },
+    { who: 3,  t: '10:12', text: 'З-314 («Уют») можно поставить на понедельник вместе с Р-1049, направление одно.' },
+  ],
+  staff: [
+    { who: 25, t: '09:15', text: 'Степанов и Ковалёв: инструктаж по ТБ в пятницу прошли, отметила в адаптации.' },
+    { who: 1,  t: '09:20', text: 'Хорошо. Ковалёву нужен доступ в Склад В — Царёв, подтверди.' },
+    { who: 13, t: '09:31', text: 'Подтверждаю, кладовщик склада В, доступ по направлению «Полимеры».' },
+    { who: 22, t: '10:02', text: 'Напоминаю: табель за сентябрь закрываем сегодня до 17:00.' },
+  ],
+  generic: [
+    { who: 1, t: '09:00', text: 'Страница в проектировании, чат уже работает для участников.' },
+  ],
+};
+
+/* автоответы для демонстрации онлайн-переписки */
+const REPLIES = {
+  logistics: { who: 13, text: 'Царёв: вижу, отвечу через пару минут — заканчиваем погрузку Р-1047.' },
+  staff:     { who: 25, text: 'Данилова: приняла, внесу в карточку сотрудника.' },
+  generic:   { who: 1,  text: 'Орлов: принято.' },
+};
+
+/* модули-заглушки для страниц, которые спроектируем позже */
+const STUBS = {
+  warehouse:  { text: 'Остатки и движения по каждому складу отдельно: склад А (металл), склад Б (мебель), склад В (полимеры). Переключатель склада — в верхней полосе, как переключатель направления на этой странице.', mods: ['Остатки по номенклатуре', 'Приход и расход за день', 'Инвентаризация', 'Заявки на отгрузку от логистики', 'Чат склада'] },
+  production: { text: 'Планы и выпуск по каждому цеху отдельно. Наряды, загрузка участков, потребность в материалах со склада своего направления.', mods: ['План выпуска на неделю', 'Наряды и исполнители', 'Потребность в материалах', 'Брак и переделки', 'Чат цеха'] },
+  sales:      { text: 'Воронка и сделки по каждому отделу продаж отдельно, с заявками на доставку, которые уходят в общую логистику.', mods: ['Воронка сделок', 'Счета и оплаты', 'Заявки на доставку', 'План и факт по менеджерам', 'Чат отдела'] },
+  clients:    { text: 'Общая база клиентов по всем направлениям: один клиент может покупать и металл, и мебель.', mods: ['Карточки клиентов', 'История заказов по направлениям', 'Обращения и претензии', 'Чат клиентского сервиса'] },
+  finance:    { text: 'Общая финансовая служба с учётом по направлениям: выручка, затраты и маржа каждого направления отдельно, общие расходы распределяются.', mods: ['ДДС по направлениям', 'Дебиторка и кредиторка', 'Платёжный календарь', 'Распределение общих затрат', 'Чат финансов'] },
+};
+
+/* ============================================================
+   Иконки, помощники, компоненты, раскрытие с блюр-фокусом, чат.
+   ============================================================ */
+
+const ICONS = {
+  truck: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  wh: '<path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/>',
+  factory: '<path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>',
+  tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  money: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  idcard: '<path d="M16 10h2"/><path d="M16 14h2"/><path d="M6.17 15a3 3 0 0 1 5.66 0"/><circle cx="9" cy="11" r="2"/><rect x="2" y="5" width="20" height="14" rx="2"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  bell: '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  down: '<path d="m6 9 6 6 6-6"/>',
+  up: '<path d="m18 15-6-6-6 6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  more: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+  filter: '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>',
+  pin: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  building: '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>',
+  pkg: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  arrow: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  loader: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+  alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  panel: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>',
+  layers: '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  cal: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  clip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+  lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  edit: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+  wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+};
+const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const initials = name => name.split(' ').slice(0, 2).map(w => w[0]).join('');
+const shortName = name => { const [f, n] = name.split(' '); return n ? `${f} ${n[0]}.` : f; };
+const av = (p, cls = '') => `<span class="av ${cls}" title="${esc(p.name)}">${initials(p.name)}${p.on ? '<i class="on"></i>' : ''}</span>`;
+const avs = (list, max = 4) => {
+  const shown = list.slice(0, max), rest = list.length - shown.length;
+  return `<span class="avs">${shown.map(p => av(p)).join('')}${rest > 0 ? `<span class="av more">+${rest}</span>` : ''}</span>`;
+};
+const chipDir = (id, cls = '') => id === 'all'
+  ? `<span class="chip all ${cls}">${ic('layers', 'xs')}Все направления</span>`
+  : `<span class="chip dir ${cls}"><span class="dk">${DIR[id].k}</span>${DIR[id].short}</span>`;
+const chipDirs = dirs => dirs === 'all' ? chipDir('all') : dirs.map(d => chipDir(d)).join(' ');
+const ticks = (n, total, cls = '') => `<span class="ticks ${cls}" title="${n} из ${total}">${Array.from({ length: total }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
+const dot = cls => `<span class="dot ${cls}"></span>`;
+const nowTime = () => new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const todayStr = () => new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+/* иконки доступа к страницам: full — чётко, view — приглушённо, нет — почти прозрачно */
+const pageIcons = role => `<span class="pg-ics">${PAGES.map(p => {
+  const a = ROLES[role].pages[p.id];
+  const cls = a === 'full' ? '' : a === 'view' ? 'view' : 'no';
+  return `<span class="${cls}" title="${p.name}: ${a === 'full' ? 'работа' : a === 'view' ? 'просмотр' : 'нет доступа'}">${ic(p.icon, 'xs')}</span>`;
+}).join('')}</span>`;
+
+/* модуль: поверхность сверху, подпись (название + описание) снизу */
+const mod = ({ span = 12, cls = '', body, title, sub = '', acts = '', tight = false, id = '' }) =>
+  `<section class="mod span-${span} ${cls}" ${id ? `id="${id}"` : ''}>
+    <div class="mod-surface ${tight ? 'tight' : ''}">${body}</div>
+    <div class="mod-cap"><div><div class="t">${title}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div>${acts ? `<div class="acts">${acts}</div>` : ''}</div>
+  </section>`;
+
+/* раскрывающийся элемент: заголовок в потоке, панель — поверх соседей */
+const xp = ({ id, head, panel, place = 'over', cls = '', headCls = '', data = '' }) =>
+  `<div class="xp ${cls}" data-xp="${id}" ${data}><div class="xp-head ${headCls}" data-xp-toggle>${head}</div><div class="xp-panel ${place}">${panel}</div></div>`;
+
+/* ---------- раскрытие поверх соседей и блюр-фокус ---------- */
+const XP = {
+  open: null,
+  frame: null, veil: null,
+  init() {
+    this.frame = document.querySelector('.frame');
+    this.veil = document.querySelector('.veil');
+    this.veil.addEventListener('click', () => this.close());
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') this.close(); });
+    document.addEventListener('scroll', () => { if (this.open) this.focus(); }, true);
+    window.addEventListener('resize', () => { if (this.open) this.focus(); });
+  },
+  toggle(el) { this.open === el ? this.close() : this.show(el); },
+  show(el) {
+    if (this.open && this.open !== el) this.open.classList.remove('open');
+    this.open = el; el.classList.add('open');
+    this.focus();
+  },
+  close() {
+    if (!this.open) return;
+    this.open.classList.remove('open'); this.open = null;
+    this.veil.classList.remove('on');
+  },
+  /* маска: полный блюр у границ раскрытой панели, затухание с удалением */
+  focus() {
+    const panel = this.open.querySelector('.xp-panel');
+    const fr = this.frame.getBoundingClientRect(), r = panel.getBoundingClientRect();
+    const cx = r.left + r.width / 2 - fr.left, cy = r.top + r.height / 2 - fr.top;
+    const rx = r.width / 2 + 320, ry = r.height / 2 + 260;
+    const g = `radial-gradient(ellipse ${rx}px ${ry}px at ${cx}px ${cy}px, #000 34%, rgba(0,0,0,.6) 60%, transparent 100%)`;
+    this.veil.style.webkitMaskImage = g; this.veil.style.maskImage = g;
+    this.veil.classList.add('on');
+  },
+};
+
+/* ---------- чат страницы ---------- */
+const CHAT = {
+  state: {},   // pageId → { msgs, replied, typing }
+  get(pageId) {
+    if (!this.state[pageId]) this.state[pageId] = { msgs: (CHATS[pageId] || CHATS.generic).map(m => ({ ...m })), replied: false, typing: false };
+    return this.state[pageId];
+  },
+  members(pageId) { return STAFF.filter(s => ROLES[s.role].pages[pageId]); },
+  render(pageId) {
+    const page = PAGES.find(p => p.id === pageId);
+    const st = this.get(pageId), members = this.members(pageId), online = members.filter(m => m.on);
+    const msgs = st.msgs.map(m => {
+      const p = BY_ID[m.who], me = p.me;
+      return `<div class="msg ${me ? 'me' : ''}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
+    }).join('');
+    const membersPanel = `<div class="ph"><span class="t">Участники чата</span><span class="mute small">${members.length} · доступ к странице «${page.name}»</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
+      <div class="pb" style="max-height:320px;overflow:auto;display:flex;flex-direction:column;gap:6px">${members.map(m => `<div class="row">${av(m)}<div class="grow"><div class="ellip" style="font-weight:500">${m.name}</div><div class="mute xsmall ellip">${m.pos} · ${ROLES[m.role].pages[pageId] === 'full' ? 'работа' : 'просмотр'}</div></div>${chipDirs(m.dirs === 'all' ? 'all' : m.dirs)}</div>`).join('')}</div>`;
+    const body = `<div class="chat">
+      <div class="chat-head">
+        ${xp({ id: 'members', head: avs(members, 4), panel: membersPanel, place: 'below', cls: '', headCls: '' })}
+        <div class="grow"><div class="b small">Чат · ${page.name}</div><div class="mute xsmall">${online.length} онлайн из ${members.length}</div></div>
+        <button class="btn ghost sm icon" title="Свернуть чат" data-chat-toggle>${ic('panel', 'sm')}</button>
+      </div>
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="msg sys"><div class="msg-t">Сегодня, ${todayStr()}</div></div>
+        ${msgs}
+        ${st.typing ? `<div class="typing">${shortName(BY_ID[REPLIES[pageId]?.who || 1].name)} печатает <i></i><i></i><i></i></div>` : ''}
+      </div>
+      <form class="chat-form" data-chat-form="${pageId}">
+        <button type="button" class="btn ghost icon" title="Прикрепить файл">${ic('clip')}</button>
+        <input class="chat-in" placeholder="Сообщение участникам…" autocomplete="off">
+        <button class="btn primary icon" title="Отправить">${ic('send')}</button>
+      </form>
+    </div>`;
+    return mod({ title: `Чат · ${page.name}`, sub: `${members.length} участников · видят все, кому открыта страница`, body, cls: 'chat-mod' });
+  },
+  send(pageId, text) {
+    const st = this.get(pageId);
+    st.msgs.push({ who: ME.id, t: nowTime(), text });
+    if (!st.replied && REPLIES[pageId]) {
+      st.replied = true; st.typing = true;
+      setTimeout(() => { st.typing = false; st.msgs.push({ who: REPLIES[pageId].who, t: nowTime(), text: REPLIES[pageId].text.replace(/^[^:]+:\s*/, '') }); App.renderChat(); }, 2400);
+    }
+    App.renderChat();
+  },
+};
+
+/* ============================================================
+   Страницы: Логистика, Сотрудники, заглушки. Маршрутизация и события.
+   ============================================================ */
+
+const pct16 = (a, b) => b ? Math.round(16 * a / b) : 0;
+const tripStatus = t => t.bad ? ['Проблема', 'bad'] : t.stage === 4 ? ['Доставлено', 'ok'] : t.stage === 3 ? ['В пути', 'solid'] : t.stage === 2 ? ['Погрузка', 'line'] : t.stage === 1 ? ['Сборка', 'line'] : ['Заявка', 'dashed'];
+const stageState = (t, i) => t.stage === 4 || i < t.stage ? 'done' : i === t.stage ? (t.bad ? 'bad' : 'cur') : 'pend';
+const rmIcon = (st, i) => st === 'done' ? ic('check', 'xs') : st === 'cur' ? ic('loader', 'sm spin') : st === 'bad' ? ic('alert', 'xs') : (i + 1);
+const hit = (q, ...fields) => !q || fields.join(' ').toLowerCase().includes(q);
+const driverName = id => id ? shortName(BY_ID[id].name) : '—';
+
+const App = {
+  state: {
+    page: 'logistics', dir: 'all', trip: 'Р-1042', dept: null, q: '',
+    theme: localStorage.getItem('riva.theme') || 'light',
+    chat: localStorage.getItem('riva.chat') !== 'off',
+  },
+  el: {},
+
+  init() {
+    this.el = { side: document.getElementById('side'), topbar: document.getElementById('topbar'), grid: document.getElementById('grid'), chatcol: document.getElementById('chatcol') };
+    document.documentElement.dataset.theme = this.state.theme;
+    XP.init();
+    window.addEventListener('hashchange', () => this.route());
+    document.addEventListener('click', e => this.onClick(e));
+    document.addEventListener('submit', e => this.onSubmit(e));
+    document.addEventListener('input', e => this.onInput(e));
+    document.addEventListener('keydown', e => {
+      if (e.key === '/' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); document.querySelector('[data-search]')?.focus(); }
+    });
+    this.route();
+  },
+
+  page() { return PAGES.find(p => p.id === this.state.page); },
+
+  route() {
+    const id = location.hash.replace('#', '') || 'logistics';
+    this.state.page = PAGES.some(p => p.id === id) ? id : 'logistics';
+    this.state.q = ''; this.state.dept = null; this.state.all = false;
+    XP.close();
+    this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
+  },
+
+  /* ---------- боковая панель в тёмной рамке ---------- */
+  renderSide() {
+    const s = this.state;
+    const companyPanel = `<div class="ph"><span class="t">${COMPANY.name}</span><span class="mute small">структура предприятия</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
+      <div class="pb" style="display:grid;gap:8px">
+        ${DIRS.map(d => {
+          const n = STAFF.filter(p => Array.isArray(p.dirs) && p.dirs.includes(d.id)).length;
+          return `<div class="tile"><div class="row between"><span class="t">${d.name}</span><span class="mute xsmall">${n} чел.</span></div>
+            <div class="row small mute" style="margin-top:4px;gap:6px">${ic('wh', 'xs')}${DEPTS[2].names[d.id]} <span>·</span> ${ic('factory', 'xs')}${DEPTS[3].names[d.id]} <span>·</span> ${ic('tag', 'xs')}${DEPTS[4].names[d.id].replace('Продажи · ', 'продажи ')}</div></div>`;
+        }).join('')}
+        <div class="tile" style="background:repeating-linear-gradient(135deg,var(--surface-2) 0 10px,var(--surface-3) 10px 11px)"><div class="t">Общие службы на все направления</div><div class="small mute" style="margin-top:3px">Руководство · Логистика · Финансы · Клиентский сервис · Кадры · ${STAFF.filter(p => p.dirs === 'all').length} чел.</div></div>
+      </div>`;
+    this.el.side.innerHTML = `
+      <div class="brand"><div class="logo">R</div><div class="brand-name">RIVA</div><span class="brand-tag">прототип · ПК</span></div>
+      ${xp({ id: 'company', head: `<div class="company">${ic('building')}<div><div class="cmp-name">${COMPANY.name}</div><div class="cmp-sub">${COMPANY.sub}</div></div><span class="chev">${ic('down', 'sm')}</span></div>`, panel: companyPanel, place: 'below', cls: 'company-xp' })}
+      <div class="side-sec">Страницы</div>
+      <nav class="nav">${PAGES.map(pg => `<a href="#${pg.id}" class="${pg.id === s.page ? 'active' : ''}">${ic(pg.icon)}<span>${pg.name}</span>${pg.unread ? `<span class="badge">${pg.unread}</span>` : pg.ready ? '' : '<span class="soon">эскиз</span>'}</a>`).join('')}</nav>
+      <div class="side-sec">Направления</div>
+      <div class="dirs">${DIRS.map(d => `<div><span class="dk">${d.k}</span>${d.name}</div>`).join('')}</div>
+      <div class="side-foot">
+        <div class="theme-sw"><button class="${s.theme === 'light' ? 'on' : ''}" data-theme-set="light">${ic('sun', 'sm')}Светлая</button><button class="${s.theme === 'dark' ? 'on' : ''}" data-theme-set="dark">${ic('moon', 'sm')}Тёмная</button></div>
+        <div class="me">${av(ME)}<div><div class="me-n">${ME.name}</div><div class="me-r">${ME.pos}</div></div><button class="btn ghost sm icon" style="margin-left:auto;color:var(--frame-mute)" title="Профиль">${ic('more', 'sm')}</button></div>
+      </div>`;
+  },
+
+  /* ---------- верхняя полоса: заголовок, направление, поиск, действия ---------- */
+  renderTopbar() {
+    const s = this.state, pg = this.page();
+    const dirLabel = s.dir === 'all' ? 'Все направления' : DIR[s.dir].name;
+    const dirBtn = `<button class="btn" title="Направление деятельности">${s.dir === 'all' ? ic('layers', 'sm') : `<span class="chip dir" style="height:18px;padding:0;border:0;background:none"><span class="dk">${DIR[s.dir].k}</span></span>`}${dirLabel}${ic('down', 'sm')}</button>`;
+    const dirPanel = `<div class="menu" style="width:300px">
+      <div class="lbl">Направление деятельности</div>
+      ${['all', ...DIRS.map(d => d.id)].map(id => `<button class="${id === s.dir ? 'on' : ''}" data-dir="${id}">${id === 'all' ? ic('layers', 'sm') : `<span class="chip dir" style="height:18px;padding:0;border:0;background:none"><span class="dk">${DIR[id].k}</span></span>`}${id === 'all' ? 'Все направления' : DIR[id].name}${id === s.dir ? `<span class="chk">${ic('check', 'sm')}</span>` : ''}</button>`).join('')}
+      <div class="sep"></div>
+      <div class="mute small" style="padding:4px 9px 6px">Общие службы (логистика, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
+    </div>`;
+    const primary = { logistics: 'Рейс', staff: 'Сотрудник' }[pg.id] || 'Запись';
+    const ph = { logistics: 'Рейсы, водители, заявки…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
+    this.el.topbar.innerHTML = `
+      <div class="tb-ic">${ic(pg.icon)}</div>
+      <div><div class="tb-title">${pg.name}</div><div class="tb-sub">${pg.sub}</div></div>
+      <div style="width:6px"></div>
+      ${xp({ id: 'dir', head: dirBtn, panel: dirPanel, place: 'below' })}
+      <div class="grow"></div>
+      <label class="search">${ic('search', 'sm')}<input placeholder="${ph}" data-search value="${esc(s.q)}"><kbd>/</kbd></label>
+      <button class="btn primary">${ic('plus', 'sm')}${primary}</button>
+      <button class="btn icon" title="Уведомления">${ic('bell')}<i class="dot-n"></i></button>
+      ${s.chat ? '' : `<button class="btn icon" title="Открыть чат страницы" data-chat-toggle>${ic('chat')}</button>`}`;
+  },
+
+  renderGrid() {
+    const pg = this.page();
+    this.el.grid.innerHTML = pg.id === 'logistics' ? this.logistics() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+  },
+
+  renderChat() {
+    const s = this.state, pg = this.page();
+    this.el.chatcol.classList.toggle('collapsed', !s.chat);
+    const unread = pg.unread || 0;
+    this.el.chatcol.innerHTML = s.chat ? CHAT.render(pg.id)
+      : `<div class="chat-rail"><button class="btn ghost icon" title="Развернуть чат" data-chat-toggle>${ic('chat')}</button>${unread ? `<span class="badge-n">${unread}</span>` : ''}<span class="vtxt">Чат · ${pg.name}</span></div>`;
+    const m = document.getElementById('chat-msgs'); if (m) m.scrollTop = m.scrollHeight;
+  },
+
+  /* ---------- Логистика ---------- */
+  logistics() {
+    const s = this.state, q = s.q.trim().toLowerCase();
+    const inDir = t => s.dir === 'all' || t.dir === s.dir;
+    const trips = TRIPS.filter(t => inDir(t) && hit(q, t.id, t.from, t.to, t.veh, t.cargo, t.driver ? BY_ID[t.driver].name : ''));
+    const reqs = REQUESTS.filter(r => inDir(r) && hit(q, r.id, r.what, r.from));
+    const all = TRIPS.filter(inDir);
+    const cnt = f => all.filter(f).length;
+
+    /* сводка дня */
+    const summary = `<div class="kpis">
+        <div class="kpi"><b>${all.length}</b><span>рейсов сегодня</span></div>
+        <div class="kpi"><b>${cnt(t => t.stage === 3)}</b><span>${dot('fg')}в пути</span></div>
+        <div class="kpi"><b>${cnt(t => t.stage <= 2 && !t.bad)}</b><span>${dot('')}сборка, погрузка, ожидание</span></div>
+        <div class="kpi ${cnt(t => t.bad) ? 'bad' : ''}"><b>${cnt(t => t.bad)}</b><span>${dot('bad')}требуют внимания</span></div>
+      </div>
+      <div class="sec-t" style="margin-top:14px">Выполнение по направлениям</div>
+      <div class="dirbars">${DIRS.filter(d => s.dir === 'all' || d.id === s.dir).map(d => {
+        const dt = TRIPS.filter(t => t.dir === d.id), done = dt.filter(t => t.stage >= 3).length;
+        return `<div class="dirbar">${chipDir(d.id)}${ticks(pct16(done, dt.length), 16)}<span class="n">${done} из ${dt.length} · ${dt.length ? Math.round(100 * done / dt.length) : 0}%</span></div>`;
+      }).join('')}</div>`;
+
+    /* задачи смены — раскрывается поверх соседей (образец -49) */
+    const tdone = SHIFT_TASKS.filter(t => t.done).length;
+    const tasksHead = n => `<div class="row" style="height:36px;padding:0 4px;gap:6px">${ic(n ? 'up' : 'down', 'sm')}<span class="b">Задачи смены</span><span class="grow"></span>${ticks(pct16(tdone, SHIFT_TASKS.length), 16, 'sm')}<span class="num mute small">${tdone}/${SHIFT_TASKS.length}</span></div>`;
+    const tasksPanel = `<div style="padding:4px 8px 8px">${tasksHead(true)}<div class="steps">${SHIFT_TASKS.map((t, i) => {
+      const cur = !t.done && SHIFT_TASKS.findIndex(x => !x.done) === i;
+      return `<div class="st ${t.done ? 'done' : cur ? 'cur' : ''}" data-task="${i}"><span class="ic">${t.done ? ic('check', 'xs') : i + 1}</span><span class="n">${t.n}</span>${t.done ? '' : `<span class="chev">${ic('right', 'sm')}</span>`}</div>`;
+    }).join('')}</div></div>`;
+    const tasks = `${xp({ id: 'tasks', head: tasksHead(false), panel: tasksPanel, place: 'over-wide' })}
+      <div class="mute small" style="padding:8px 4px 0;border-top:1px solid var(--line);margin-top:6px">Следующая: ${SHIFT_TASKS.find(t => !t.done)?.n || 'всё сделано'}</div>
+      <div class="row small" style="padding:8px 4px 0;gap:6px">${ic('clock', 'xs')}<span class="mute">Смена 08:00–17:00 · диспетчер</span><span class="grow"></span>${av(BY_ID[3])}</div>
+      <div class="sec-t" style="padding:12px 4px 0">На смене</div>
+      <div class="tiles" style="padding:0 4px;grid-template-columns:1fr">
+        <div class="tile row" style="padding:7px 10px"><div class="grow"><div class="t">Логисты</div><div class="s">${STAFF.filter(p => p.role === 'logist' && p.on).length} на связи из ${STAFF.filter(p => p.role === 'logist').length}</div></div>${avs(STAFF.filter(p => p.role === 'logist'), 3)}</div>
+        <div class="tile row" style="padding:7px 10px"><div class="grow"><div class="t">Водители</div><div class="s">${STAFF.filter(p => p.role === 'driver' && p.st === 'trip').length} в рейсе из ${STAFF.filter(p => p.role === 'driver').length}</div></div>${avs(STAFF.filter(p => p.role === 'driver'), 3)}</div>
+      </div>`;
+
+    /* рейсы — строки раскрываются поверх следующих */
+    const cols = '80px 100px minmax(0,1.8fr) minmax(0,1.2fr) minmax(0,1fr) 96px 64px';
+    const rows = trips.map(t => {
+      const [stName, stCls] = tripStatus(t), last = t.times.filter(Boolean).pop() || '';
+      const head = `<div class="tr clickable ${t.id === s.trip ? 'sel' : ''}" style="grid-template-columns:${cols}" data-trip="${t.id}">
+          <div><div class="t num">${t.id}</div><div class="s">${t.km ? t.km + ' км' : 'внутр.'}</div></div>
+          <div>${chipDir(t.dir)}</div>
+          <div class="ellip"><span class="t">${t.from}</span> <span class="mute">→</span> ${t.to}</div>
+          <div><div class="ellip">${t.veh}</div><div class="s">${driverName(t.driver)}</div></div>
+          <div class="ellip">${t.cargo}</div>
+          <div><span class="chip ${stCls}">${stName}</span></div>
+          <div class="num small">${t.stage === 3 ? `<span class="mute">до</span> ${t.eta}` : last}</div>
+        </div>`;
+      const req = REQUESTS.find(r => r.trip === t.id);
+      const panel = `<div class="ph">${chipDir(t.dir)}<span class="t num">Рейс ${t.id}</span><span class="mute small ellip">${t.from} → ${t.to}</span><span class="chip ${stCls}">${stName}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
+        <div class="pb cols-3">
+          <div><div class="sec-t">Маршрут</div><dl class="kv"><dt>Откуда</dt><dd>${t.from}</dd><dt>Куда</dt><dd>${t.to}</dd><dt>Расстояние</dt><dd>${t.km ? t.km + ' км' : 'внутреннее'}</dd><dt>Прибытие</dt><dd>${t.eta}</dd><dt>Контакт</dt><dd>${t.contact}</dd></dl></div>
+          <div><div class="sec-t">Транспорт и груз</div><dl class="kv"><dt>Машина</dt><dd>${t.veh}</dd><dt>Водитель</dt><dd>${t.driver ? `<span class="row" style="gap:6px">${av(BY_ID[t.driver])}${BY_ID[t.driver].name}</span>` : 'не назначен'}</dd><dt>Груз</dt><dd>${t.cargo}</dd><dt>Заявка</dt><dd>${req ? `${req.id} · ${req.from}` : '—'}</dd><dt>Сейчас</dt><dd>${t.prog}</dd></dl></div>
+          <div><div class="sec-t">Документы</div><div class="docs">${t.docs.length ? t.docs.map(d => `<div class="doc">${ic('file', 'xs')}<span class="grow ellip">${d}</span>${ic('right', 'xs')}</div>`).join('') : '<span class="mute small">пока нет</span>'}</div><div class="sec-t" style="margin-top:10px">Примечание</div><div class="small">${t.note}</div></div>
+        </div>
+        <div class="pf"><button class="btn sm">${ic('pin', 'xs')}На карте</button><button class="btn sm">${ic('chat', 'xs')}Сообщить заказчику</button><button class="btn sm ghost">Изменить этап</button><span class="grow"></span><button class="btn sm ghost">${ic('edit', 'xs')}Редактировать</button></div>`;
+      return xp({ id: 'trip-' + t.id, head, panel, place: 'over-wide', cls: 'trw' });
+    }).join('');
+    const tripsBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${cols}"><div>Рейс</div><div>Направление</div><div>Маршрут</div><div>Транспорт · водитель</div><div>Груз</div><div>Этап</div><div>Время</div></div>${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div>`;
+
+    /* заявки на доставку от разных направлений */
+    const rcols = '56px 100px minmax(0,1fr) 116px';
+    const reqRows = reqs.map(r => {
+      const t = TRIPS.find(x => x.id === r.trip);
+      const assign = xp({ id: 'assign-' + r.id, head: `<button class="btn sm primary">Назначить${ic('down', 'xs')}</button>`, place: 'below-r', panel: `<div class="menu" style="width:290px"><div class="lbl">Назначить на рейс</div><button data-assign="${r.id}:new">${ic('plus', 'sm')}Новый рейс</button>${TRIPS.filter(x => x.stage <= 1 && x.dir === r.dir).map(x => `<button data-assign="${r.id}:${x.id}">${ic('truck', 'sm')}<span class="grow ellip">${x.id} · ${x.from} → ${x.to}</span></button>`).join('')}</div>` });
+      const prio = r.prio === 'high' ? `<span style="color:var(--bad);font-weight:500">срочно</span>` : r.prio === 'low' ? 'не срочно' : 'обычно';
+      return `<div class="tr" style="grid-template-columns:${rcols};min-height:46px">
+          <div class="t num">${r.id}</div><div>${chipDir(r.dir)}</div>
+          <div><div class="ellip">${r.what}</div><div class="s ellip">${r.from} · ${shortName(BY_ID[r.who].name)} · ${r.due} · ${prio}</div></div>
+          <div>${t ? `<span class="chip ${tripStatus(t)[1]}">${ic('truck', 'xs')}${t.id}</span>` : assign}</div>
+        </div>`;
+    }).join('');
+    const reqBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${rcols}"><div>№</div><div>Направление</div><div>Что и куда · от кого · срок</div><div>Рейс</div></div>${reqRows || '<div class="mute small" style="padding:14px 10px">Заявок нет</div>'}</div>`;
+
+    /* транспорт */
+    const fcols = 'minmax(0,1fr) 92px auto';
+    const fleetRows = FLEET.map(f => `<div class="tr" style="grid-template-columns:${fcols};min-height:46px">
+        <div><div class="t ellip">${f.name} <span class="mute num" style="font-weight:400">· ${f.plate}</span></div><div class="s ellip">${f.driver ? shortName(BY_ID[f.driver].name) : 'без водителя'}${f.to ? ' · ' + f.to : ''}</div></div>
+        <div class="row" style="gap:6px" title="Загрузка">${ticks(f.load, 10, 'fg')}<span class="mute xsmall num">${f.load * 10}%</span></div>
+        <div><span class="chip ${f.cls}">${f.state}</span></div>
+      </div>`).join('');
+    const fleetBody = `<div class="tbl"><div class="tr th" style="grid-template-columns:${fcols}"><div>Машина · водитель · обслуживание</div><div>Загрузка</div><div>Состояние</div></div>${fleetRows}</div>`;
+
+    return mod({ span: 5, title: 'Сводка дня', sub: `${todayStr()} · ${s.dir === 'all' ? 'все направления' : DIR[s.dir].name}`, body: summary, acts: `<button class="btn ghost sm icon" title="Период">${ic('cal', 'sm')}</button>` })
+      + `<section class="mod span-4" id="rm-mod">${this.roadmap()}</section>`
+      + mod({ span: 3, title: 'Задачи смены', sub: 'раскрываются поверх соседей', body: tasks, tight: true })
+      + mod({ span: 12, title: 'Рейсы сегодня', sub: `${trips.length} из ${TRIPS.length} · строка раскрывается поверх списка, не сдвигая его`, body: tripsBody, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${ic('more', 'sm')}</button>` })
+      + mod({ span: 7, title: 'Заявки на доставку', sub: 'от отделов продаж и складов всех направлений', body: reqBody, tight: true, acts: `<button class="btn ghost sm icon">${ic('more', 'sm')}</button>` })
+      + mod({ span: 5, title: 'Транспорт', sub: `${FLEET.length} единиц · ${FLEET.filter(f => f.cls === 'solid').length} в рейсе`, body: fleetBody, tight: true, acts: `<button class="btn ghost sm">${ic('wrench', 'sm')}ТО</button>` });
+  },
+
+  /* дорожная карта выбранного рейса (образец -50) */
+  roadmap() {
+    const t = TRIPS.find(x => x.id === this.state.trip) || TRIPS[0];
+    const done = t.stage === 4 ? 5 : t.stage;
+    const steps = STAGES.map((n, i) => { const st = stageState(t, i); return `<div class="rm-step ${st}"><span class="rm-ic">${rmIcon(st, i)}</span><span class="rm-name">${n}</span><span class="rm-time">${t.times[i] || (st === 'cur' ? 'сейчас' : '—')}</span></div>`; }).join('');
+    const [stName] = tripStatus(t);
+    return `<div class="mod-surface"><div class="rm">
+        <div class="rm-head"><span class="t num">${t.id}</span>${chipDir(t.dir)}<span class="grow"></span><span class="n num">${done}/${STAGES.length}</span></div>
+        ${steps}
+        <div class="rm-foot"><span class="ic">${ic(t.bad ? 'alert' : t.stage === 4 ? 'check' : t.stage === 3 ? 'pin' : 'clock')}</span><div><div class="t">${stName}${t.stage === 3 ? ` · прибытие ${t.eta}` : ''}</div><div class="s">${t.prog}${t.driver ? ' · ' + driverName(t.driver) : ''}</div></div></div>
+      </div></div>
+      <div class="mod-cap"><div><div class="t">Дорожная карта рейса</div><div class="s">этапы и статус · выберите рейс в списке</div></div><div class="acts"><button class="btn ghost sm icon" title="История">${ic('clock', 'sm')}</button></div></div>`;
+  },
+
+  /* ---------- Сотрудники ---------- */
+  staff() {
+    const s = this.state, q = s.q.trim().toLowerCase();
+    const inDir = p => s.dir === 'all' || p.dirs === 'all' || p.dirs.includes(s.dir);
+    const inDept = p => !s.dept || (p.dept === s.dept.id && (!s.dept.dir || p.dirs === 'all' || p.dirs.includes(s.dept.dir)));
+    const people = STAFF.filter(p => inDir(p) && inDept(p) && hit(q, p.name, p.pos, DEPTS.find(d => d.id === p.dept).name));
+    const deptName = p => { const d = DEPTS.find(x => x.id === p.dept); return d.perDir ? d.names[p.dirs[0]] : d.name; };
+
+    /* карта подразделений: общие службы — на все направления, остальные — по каждому */
+    const cells = DEPTS.map(d => {
+      const lbl = `<div class="rl">${d.name}</div>`;
+      if (d.shared) {
+        const ps = STAFF.filter(p => p.dept === d.id), sel = s.dept && s.dept.id === d.id;
+        return lbl + `<div class="dcell shared ${sel ? 'sel' : ''}" data-dcell="${d.id}"><div><div class="t">Общая служба · все направления</div><div class="s">${ps.length} чел. · ${ps.filter(p => p.on).length} онлайн</div></div><span class="grow"></span>${avs(ps, 5)}</div>`;
+      }
+      return lbl + DIRS.map(dir => {
+        const ps = STAFF.filter(p => p.dept === d.id && p.dirs.includes(dir.id)), sel = s.dept && s.dept.id === d.id && s.dept.dir === dir.id;
+        return `<div class="dcell ${sel ? 'sel' : ''}" data-dcell="${d.id}" data-ddir="${dir.id}"><div class="t">${d.names[dir.id]}</div><div class="s">${ps.length} чел. · ${ps.filter(p => p.on).length} онлайн</div></div>`;
+      }).join('');
+    }).join('');
+    const dmap = `<div class="dmap"><div class="hd">Подразделение</div>${DIRS.map(d => `<div class="hd dir">${chipDir(d.id)}</div>`).join('')}${cells}</div>`;
+
+    /* сегодня */
+    const c = st => STAFF.filter(p => p.st === st).length;
+    const absent = STAFF.filter(p => p.st === 'vacation' || p.st === 'sick');
+    const today = `<div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi"><b>${c('office')}</b><span>${dot('ok')}в офисе и цехах</span></div>
+        <div class="kpi"><b>${c('remote')}</b><span>${dot('')}удалённо</span></div>
+        <div class="kpi"><b>${c('trip')}</b><span>${dot('fg')}в рейсе</span></div>
+        <div class="kpi"><b>${absent.length}</b><span>${dot('warn')}отсутствуют</span></div>
+      </div>
+      <div class="dirbar" style="margin-top:12px;grid-template-columns:120px 1fr auto"><span class="small mute">На связи сейчас</span>${ticks(pct16(STAFF.filter(p => p.on).length, STAFF.length), 16)}<span class="n">${STAFF.filter(p => p.on).length} из ${STAFF.length}</span></div>
+      <div class="sec-t" style="margin-top:12px">Отсутствуют</div>
+      <div class="tbl">${absent.map(p => `<div class="tr" style="grid-template-columns:minmax(0,1fr) auto;min-height:36px;padding:0 4px">
+        <div class="row" style="gap:8px">${av(p)}<div class="grow"><div class="ellip small" style="font-weight:500">${p.name}</div><div class="s">${deptName(p)}</div></div></div>
+        <span class="chip ${ST[p.st].cls}">${ST[p.st].name}${p.st === 'vacation' ? ' · до 12 окт' : ' · с 1 окт'}</span></div>`).join('')}</div>
+      <div class="sec-t" style="margin-top:12px">Ближайшее</div>
+      <div class="tbl">${[[26, 'обучение на ТСД', '6 окт'], [18, 'день рождения', '9 окт'], [12, 'выход из отпуска', '13 окт'], [19, 'конец испытательного срока', '20 окт']].map(([id, what, when]) => `<div class="tr" style="grid-template-columns:minmax(0,1fr) auto;min-height:34px;padding:0 4px">
+        <div class="row" style="gap:8px">${av(BY_ID[id])}<div class="grow ellip small"><span style="font-weight:500">${shortName(BY_ID[id].name)}</span> <span class="mute">· ${what}</span></div></div><span class="small mute num">${when}</span></div>`).join('')}</div>`;
+
+    /* таблица сотрудников — строки раскрываются поверх списка */
+    const cols = 'minmax(0,1.6fr) minmax(0,1fr) 150px 164px 104px';
+    const filtered = q || s.dept || s.dir !== 'all';
+    const shown = filtered || s.all ? people : people.slice(0, 12);
+    const rows = shown.map(p => {
+      const head = `<div class="tr clickable" style="grid-template-columns:${cols}">
+          <div class="row" style="gap:9px">${av(p)}<div class="grow"><div class="t ellip">${p.name}${p.newbie ? ' <span class="chip dashed" style="height:18px;font-size:10.5px">адаптация</span>' : ''}</div><div class="s ellip">${p.pos}</div></div></div>
+          <div class="ellip small">${deptName(p)}</div>
+          <div>${chipDirs(p.dirs)}</div>
+          <div>${pageIcons(p.role)}</div>
+          <div><span class="chip ${ST[p.st].cls}">${ST[p.st].name}</span></div>
+        </div>`;
+      const role = ROLES[p.role];
+      const matrix = `<div class="matrix" style="grid-template-columns:repeat(7,1fr)">${PAGES.map(pg => `<div class="mh" title="${pg.name}">${ic(pg.icon, 'xs')}</div>`).join('')}${PAGES.map(pg => { const a = role.pages[pg.id]; return `<div class="mc ${a === 'full' ? '' : a === 'view' ? 'view' : 'no'}">${a === 'full' ? ic('check', 'xs') : a === 'view' ? 'просм.' : '—'}</div>`; }).join('')}</div>`;
+      const ob = ONBOARDING.find(o => o.who === p.id);
+      const panel = `<div class="ph">${av(p, 'lg')}<div><div class="t">${p.name}</div><div class="mute small">${p.pos} · ${deptName(p)}</div></div><span class="chip ${ST[p.st].cls}">${ST[p.st].name}</span>${p.on ? `<span class="chip ok">${dot('ok')}онлайн</span>` : ''}<button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
+        <div class="pb cols-3">
+          <div><div class="sec-t">Контакты</div><dl class="kv"><dt>Телефон</dt><dd class="num">${p.tel}</dd><dt>Почта</dt><dd class="ellip">${p.mail || '—'}</dd><dt>График</dt><dd>${p.role === 'driver' ? 'по рейсам' : 'пн–пт · 08:00–17:00'}</dd><dt>Руководитель</dt><dd>${p.dept === 'mgmt' ? '—' : p.dept === 'log' && p.id !== 2 ? 'Савельев А.' : 'Орлов Д.'}</dd></dl></div>
+          <div><div class="sec-t">Направления</div><div class="row" style="flex-wrap:wrap;gap:4px;margin-bottom:10px">${chipDirs(p.dirs)}</div><div class="sec-t">Доступ к страницам · роль «${role.name}»</div>${matrix}</div>
+          <div><div class="sec-t">${ob ? 'Адаптация' : 'Сегодня'}</div>${ob
+            ? `<div class="steps">${ob.steps.map((n, i) => `<div class="st ${i < ob.done ? 'done' : i === ob.cur ? 'cur' : ''}"><span class="ic">${i < ob.done ? ic('check', 'xs') : i + 1}</span><span class="n small">${n}</span></div>`).join('')}</div>`
+            : `<dl class="kv"><dt>Статус</dt><dd>${ST[p.st].name}</dd><dt>В RIVA</dt><dd>${p.on ? 'сейчас онлайн' : 'был(а) сегодня 08:4' + (p.id % 10)}</dd><dt>Задач</dt><dd>${(p.id * 7) % 9 + 1} открытых</dd></dl>`}</div>
+        </div>
+        <div class="pf"><button class="btn sm">${ic('chat', 'xs')}Написать</button><button class="btn sm">${ic('shield', 'xs')}Изменить доступ</button><span class="grow"></span><button class="btn sm ghost">${ic('edit', 'xs')}Карточка</button></div>`;
+      return xp({ id: 'emp-' + p.id, head, panel, place: 'over-wide', cls: 'trw' });
+    }).join('');
+    const filterChip = s.dept ? `<span class="chip line">${DEPTS.find(d => d.id === s.dept.id).name}${s.dept.dir ? ' · ' + DIR[s.dept.dir].short : ''}<button class="btn ghost sm icon" data-clear-dept style="width:18px;height:18px;margin:-2px -6px -2px 0">${ic('x', 'xs')}</button></span>` : '';
+    const more = shown.length < people.length ? `<div class="row" style="padding:8px 6px 4px"><button class="btn sm ghost" data-show-all>${ic('down', 'xs')}Показать всех · ${people.length}</button></div>` : '';
+    const table = `<div class="tbl"><div class="tr th" style="grid-template-columns:${cols}"><div>Сотрудник</div><div>Подразделение</div><div>Направления</div><div>Доступ к страницам</div><div>Статус</div></div>${rows || '<div class="mute small" style="padding:14px 10px">Никого не найдено</div>'}</div>${more}`;
+
+    /* адаптация — дорожная карта */
+    const onb = ONBOARDING.map(o => { const p = BY_ID[o.who]; return `<div class="rm" style="margin-bottom:8px">
+        <div class="rm-head">${av(p)}<span class="t">${shortName(p.name)}</span><span class="n ellip">${p.pos}</span><span class="grow"></span><span class="n num">${o.done} / ${o.steps.length}</span></div>
+        ${o.steps.map((n, i) => { const st = i < o.done ? 'done' : i === o.cur ? 'cur' : 'pend'; return `<div class="rm-step ${st}" style="padding:5px 0"><span class="rm-ic">${rmIcon(st, i)}</span><span class="rm-name small">${n}</span><span class="rm-time">${i < o.done ? 'готово' : i === o.cur ? 'сейчас' : ''}</span></div>`; }).join('')}
+      </div>`; }).join('<div style="height:1px;background:var(--line);margin:4px 0 10px"></div>');
+
+    /* роли и доступ — раскрывается влево поверх таблицы */
+    const rolesHead = n => `<div class="row" style="height:36px;padding:0 4px">${ic(n ? 'up' : 'down', 'sm')}<span class="b">Роли и доступ</span><span class="grow"></span><span class="mute small">${Object.keys(ROLES).length} ролей · ${PAGES.length} страниц</span></div>`;
+    const rolesPanel = `<div style="padding:4px 8px 8px">${rolesHead(true)}
+      <div class="matrix" style="grid-template-columns:150px repeat(7,1fr)"><div></div>${PAGES.map(pg => `<div class="mh">${pg.name}</div>`).join('')}
+      ${Object.values(ROLES).map(r => `<div class="mr small">${r.name}</div>${PAGES.map(pg => { const a = r.pages[pg.id]; return `<div class="mc ${a === 'full' ? '' : a === 'view' ? 'view' : 'no'}">${a === 'full' ? ic('check', 'xs') : a === 'view' ? 'просм.' : '—'}</div>`; }).join('')}`).join('')}</div>
+      <div class="mute small" style="margin-top:8px">Доступ к странице открывает и её чат. Доступ по направлению ограничивает склад, цех и продажи своим направлением; общие службы видят все.</div></div>`;
+    const roles = `${xp({ id: 'roles', head: rolesHead(false), panel: `<div style="width:min(760px, 80vw)">${rolesPanel}</div>`, place: 'over-wide roles-panel', cls: 'roles-xp' })}
+      <div class="tiles" style="grid-template-columns:1fr 1fr;padding:6px 4px 0;border-top:1px solid var(--line);margin-top:6px">${Object.values(ROLES).slice(0, 4).map(r => `<div class="tile" style="padding:7px 10px"><div class="t">${r.name}</div><div class="s">${Object.values(r.pages).filter(a => a === 'full').length} страниц · ${STAFF.filter(p => ROLES[p.role] === r).length} чел.</div></div>`).join('')}</div>`;
+
+    return mod({ span: 7, title: 'Карта подразделений', sub: 'общие службы работают на все направления, учёт склада, цеха и продаж — по каждому отдельно', body: dmap, tight: true })
+      + mod({ span: 5, title: 'Сегодня', sub: todayStr(), body: today })
+      + mod({ span: 12, title: 'Сотрудники', sub: `${shown.length} из ${STAFF.length}${shown.length < people.length ? ' · показаны первые' : ''} · строка раскрывается поверх списка, не сдвигая его`, body: table, tight: true, acts: `${filterChip}<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button>` })
+      + mod({ span: 6, title: 'Адаптация', sub: 'новые сотрудники · этапы', body: onb })
+      + mod({ span: 6, title: 'Роли и доступ', sub: 'раскрывается влево поверх соседнего модуля', body: roles, tight: true });
+  },
+
+  /* ---------- страницы, которые ещё не спроектированы ---------- */
+  stub(pg) {
+    const st = STUBS[pg.id];
+    const body = `<div class="stub"><span class="chip dashed">эскиз · проектируется следующей</span><h2>${pg.name}</h2><p>${st.text}</p><div class="sec-t" style="margin-top:8px">Модули страницы</div><ul>${st.mods.map(m => `<li>${m}</li>`).join('')}</ul>
+      <div class="row" style="margin-top:8px;gap:6px"><button class="btn sm primary">${ic('plus', 'xs')}Предложить модуль</button><a class="btn sm" href="#logistics">Открыть «Логистика»</a><a class="btn sm" href="#staff">Открыть «Сотрудники»</a></div></div>`;
+    return mod({ span: 12, title: pg.name, sub: pg.sub, body });
+  },
+
+  /* ---------- события ---------- */
+  reopen(id) { const el = document.querySelector(`[data-xp="${id}"]`); if (el) XP.show(el); },
+
+  onClick(e) {
+    const t = e.target;
+    const themeBtn = t.closest('[data-theme-set]');
+    if (themeBtn) { this.state.theme = themeBtn.dataset.themeSet; localStorage.setItem('riva.theme', this.state.theme); document.documentElement.dataset.theme = this.state.theme; this.renderSide(); return; }
+    if (t.closest('[data-chat-toggle]')) { this.state.chat = !this.state.chat; localStorage.setItem('riva.chat', this.state.chat ? 'on' : 'off'); XP.close(); this.renderTopbar(); this.renderChat(); return; }
+    if (t.closest('[data-xp-close]')) { XP.close(); return; }
+    const dirBtn = t.closest('[data-dir]');
+    if (dirBtn) { this.state.dir = dirBtn.dataset.dir; XP.close(); this.renderTopbar(); this.renderGrid(); return; }
+    const task = t.closest('[data-task]');
+    if (task) { const i = +task.dataset.task; SHIFT_TASKS[i].done = !SHIFT_TASKS[i].done; this.renderGrid(); this.reopen('tasks'); return; }
+    const assign = t.closest('[data-assign]');
+    if (assign) {
+      const [rid, tid] = assign.dataset.assign.split(':'); const r = REQUESTS.find(x => x.id === rid);
+      if (tid === 'new') { const id = 'Р-' + (1050 + TRIPS.filter(x => x.id >= 'Р-1050').length); TRIPS.push({ id, dir: r.dir, from: 'Склад ' + { metal: 'А', furn: 'Б', poly: 'В' }[r.dir], to: r.what.split('→')[1]?.trim() || '—', veh: 'не назначен', driver: null, cargo: r.what.split('→')[0].trim(), stage: 0, times: [nowTime(), '', '', '', ''], eta: '—', km: 0, prog: 'создан из заявки ' + r.id, docs: [], contact: '—', note: 'Создан из заявки ' + r.id + '.' }); r.trip = id; }
+      else r.trip = tid;
+      XP.close(); this.renderGrid(); return;
+    }
+    const cell = t.closest('[data-dcell]');
+    if (cell) { const d = { id: cell.dataset.dcell, dir: cell.dataset.ddir || null }; this.state.dept = this.state.dept && this.state.dept.id === d.id && this.state.dept.dir === d.dir ? null : d; XP.close(); this.renderGrid(); return; }
+    if (t.closest('[data-clear-dept]')) { this.state.dept = null; XP.close(); this.renderGrid(); return; }
+    if (t.closest('[data-show-all]')) { this.state.all = true; this.renderGrid(); return; }
+    const trip = t.closest('[data-trip]');
+    if (trip && trip.dataset.trip !== this.state.trip) {
+      this.state.trip = trip.dataset.trip;
+      document.querySelectorAll('[data-trip]').forEach(el => el.classList.toggle('sel', el.dataset.trip === this.state.trip));
+      document.getElementById('rm-mod').innerHTML = this.roadmap();
+    }
+    const tg = t.closest('[data-xp-toggle]');
+    if (tg) { if (t.closest('a,button') && !t.closest('.xp-head > .company, .xp-head > .btn, .xp-head > .avs')) return; XP.toggle(tg.closest('.xp')); return; }
+    if (!t.closest('.xp-panel')) XP.close();
+  },
+
+  onSubmit(e) {
+    const f = e.target.closest('[data-chat-form]'); if (!f) return;
+    e.preventDefault();
+    const inp = f.querySelector('input'), text = inp.value.trim(); if (!text) return;
+    CHAT.send(f.dataset.chatForm, text);
+    document.querySelector('.chat-in')?.focus();
+  },
+
+  onInput(e) {
+    if (e.target.matches('[data-search]')) { this.state.q = e.target.value; XP.close(); this.renderGrid(); }
+  },
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+
+</script>
+</body>
+</html>
