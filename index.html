@@ -22,8 +22,9 @@
 
 :root {
   /* светлая бело-чёрная тема */
-  --page: #e4e4e4;
+  --page: #ffffff;
   --page-hatch: rgba(0, 0, 0, .045);
+  --glass: rgba(255, 255, 255, .42);
   --frame: #141414;
   --frame-2: #202020;
   --frame-fg: #f4f4f4;
@@ -57,8 +58,9 @@
 
 :root[data-theme="dark"] {
   /* тёмная чёрно-белая тема */
-  --page: #000000;
+  --page: #0a0a0a;
   --page-hatch: rgba(255, 255, 255, .05);
+  --glass: rgba(10, 10, 10, .5);
   --frame: #171717;
   --frame-2: #222222;
   --frame-fg: #f2f2f2;
@@ -85,7 +87,7 @@
   --bad-bg: rgba(240, 106, 106, .14);
   --veil: rgba(0, 0, 0, .38);
   --shadow: 0 12px 30px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .5);
-  --frame-shadow: 0 30px 80px rgba(0, 0, 0, .8), 0 0 0 1px #262626;
+  --frame-shadow: 0 30px 80px rgba(0, 0, 0, .8), 0 0 0 7px #262626;
   --logo-bg: #ffffff;
   --logo-fg: #111111;
 }
@@ -102,7 +104,7 @@ body {
   min-width: 1100px;
 }
 ::selection { background: var(--fg); color: var(--panel); }
-.grid, .chat-msgs, .xp-panel .pb { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+.grid, .chat-msgs, .xp-panel .pb { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; scroll-behavior: smooth; }
 .grid::-webkit-scrollbar, .chat-msgs::-webkit-scrollbar { width: 8px; }
 .grid::-webkit-scrollbar-thumb, .chat-msgs::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; border: 2px solid var(--panel); }
 .grid::-webkit-scrollbar-track, .chat-msgs::-webkit-scrollbar-track { background: transparent; }
@@ -130,26 +132,30 @@ svg.i.xs { width: 11px; height: 11px; }
 /* ---------- оболочка: рамка 20px от края, контент 6px сверху/справа/снизу ---------- */
 .frame {
   position: fixed; inset: 20px;
-  background: var(--frame);
+  background: transparent;
   border-radius: 18px;
-  box-shadow: var(--frame-shadow);
   display: grid; grid-template-columns: 52px minmax(0, 1fr);
   color: var(--fg);
 }
+/* панель страницы: почти прозрачное стекло поверх фона окна; чёрное кольцо 6px рисует box-shadow */
 .content {
+  position: relative;
   margin: 6px 6px 6px 0;
-  background: var(--panel);
+  background: transparent;
   border-radius: 13px;
+  box-shadow: 0 0 0 6px var(--frame), var(--frame-shadow);
   display: flex; flex-direction: column; min-height: 0; min-width: 0;
   overflow: hidden;
 }
+.content::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 
 /* боковая колонка: иконки 20px в плитках 32px, отступы 10px, подписи всплывают справа */
-.side { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 0; min-height: 0; }
+.side { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 0; min-height: 0; background: var(--frame); border-radius: 18px 0 0 18px; }
 .logo-tile { width: 32px; height: 32px; border-radius: 10px; background: var(--logo-bg); color: var(--logo-fg); display: grid; place-items: center; font-weight: 800; font-size: 16px; letter-spacing: -.03em; text-decoration: none; }
 .dock { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .dk-item { position: relative; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: var(--frame); opacity: .55; text-decoration: none; transition: opacity .15s, background .15s; }
-.dk-item:hover { opacity: 1; }
+.dk-item { transition: opacity .15s ease, background .2s ease, transform .18s cubic-bezier(.2, .8, .2, 1); }
+.dk-item:hover { opacity: 1; transform: translateY(-1px); }
 .dk-item.active { opacity: 1; background: #fff; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
 .dk-item .n { position: absolute; top: -4px; right: -4px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px; background: #fff; color: #111; font-size: 9px; font-weight: 700; display: grid; place-items: center; border: 2px solid var(--frame); font-variant-numeric: tabular-nums; line-height: 1; }
 .dk-item.active .n { background: #111; color: #fff; border-color: #fff; }
@@ -160,6 +166,8 @@ svg.i.xs { width: 11px; height: 11px; }
 .side-foot { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 [data-tip] { position: relative; }
 [data-tip]:hover { z-index: 80; }
+[data-tip]:hover::after, [data-tip]:hover::before { animation: tip-in .14s ease-out both; }
+@keyframes tip-in { from { opacity: 0; transform: translate(-4px, -50%); } to { opacity: 1; transform: translate(0, -50%); } }
 [data-tip]:hover::after { content: attr(data-tip); position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%); background: var(--fg); color: var(--panel); padding: 5px 9px; border-radius: 7px; font-size: 11px; font-weight: 500; white-space: nowrap; z-index: 80; pointer-events: none; box-shadow: var(--shadow); line-height: 1.3; }
 [data-tip]:hover::before { content: ""; position: absolute; left: calc(100% + 6px); top: 50%; transform: translateY(-50%); border: 4px solid transparent; border-right-color: var(--fg); z-index: 80; pointer-events: none; }
 
@@ -197,7 +205,9 @@ svg.i.xs { width: 11px; height: 11px; }
 
 /* ---------- кнопки, чипы, точки, аватары ---------- */
 .btn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--fg); font-weight: 500; cursor: pointer; white-space: nowrap; }
+.btn { transition: background .15s ease, transform .12s ease, border-color .15s ease; }
 .btn:hover { background: var(--surface-2); }
+.btn:active { transform: scale(.97); }
 .btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
 .btn.primary:hover { opacity: .9; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--fg-2); }
@@ -232,7 +242,8 @@ svg.i.xs { width: 11px; height: 11px; }
 /* тик-прогресс (образец -49) */
 .ticks { display: inline-flex; gap: 2px; align-items: center; }
 .ticks i { display: block; width: 3px; height: 10px; border-radius: 1.5px; background: var(--line-2); }
-.ticks i.on { background: var(--ok); }
+.ticks i.on { background: var(--ok); transform-origin: bottom; animation: tick .35s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--j, 0) * 18ms); }
+@keyframes tick { from { transform: scaleY(.2); opacity: .3; } to { transform: none; opacity: 1; } }
 .ticks.fg i.on { background: var(--fg); }
 .ticks.sm { gap: 2px; } .ticks.sm i { width: 2px; height: 9px; }
 .xp-head .b { white-space: nowrap; }
@@ -264,6 +275,7 @@ svg.i.xs { width: 11px; height: 11px; }
 .tr > * { min-width: 0; }
 .tr.th { min-height: 24px; font-size: 10.5px; color: var(--mute); font-weight: 500; }
 .tr.clickable { cursor: pointer; }
+.tr.clickable { transition: background .15s ease; }
 .tr.clickable:hover { background: var(--surface-2); }
 .tr.sel { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--fg); }
 .tr .t { font-weight: 500; }
@@ -277,11 +289,16 @@ svg.i.xs { width: 11px; height: 11px; }
 .grid.single { display: flex; }
 .grid.single > .mod { flex: 1; min-height: 0; }
 .mod.fill .mod-surface { display: flex; flex-direction: column; min-height: 0; }
-.sup-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
-.sup-list > .th { position: sticky; top: 0; background: var(--surface); z-index: 2; }
-.sup-list > * + * { border-top: 1px solid var(--line); }
-.sup-list > .th + * { border-top: 0; }
-.sup-list .trw .tr { min-height: 44px; }
+.sup-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; scroll-behavior: smooth; }
+.sup-head { position: sticky; top: 0; z-index: 2; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; }
+.recs { display: flex; flex-direction: column; gap: 8px; }
+.rec { background: var(--shell); border-radius: 12px; padding: 4px; }
+.rec-card { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; transition: border-color .15s ease, box-shadow .2s ease; }
+.rec:hover .rec-card { border-color: var(--line-2); }
+.rec.open .rec-card { border-color: var(--fg); }
+.rec .tr { min-height: 44px; border-radius: 9px; }
+.rec .tr.clickable { transition: background .15s ease; }
+.tr.clickable:hover { background: var(--surface-2); }
 /* всплывающие по наведению: история статусов и контакт поставщика */
 .hp { position: relative; display: inline-flex; align-items: center; }
 .hp-trg { border-bottom: 1px dashed var(--line-2); cursor: default; }
@@ -290,7 +307,7 @@ svg.i.xs { width: 11px; height: 11px; }
 .hp:hover { z-index: 70; }
 .hp:hover .hp-pop { display: block; animation: xp-in .14s ease-out; }
 .ic-btn { width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); color: var(--surface-2); display: grid; place-items: center; cursor: default; }
-.xp-panel.under { top: calc(100% + 4px); left: 0; right: 0; }
+.xp-panel.under { top: calc(100% + 6px); left: 0; right: 0; }
 .files { display: flex; flex-direction: column; gap: 4px; }
 .file { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: 11.5px; }
 .file .fi { display: grid; place-items: center; color: var(--surface-2); }
@@ -318,6 +335,7 @@ svg.i.xs { width: 11px; height: 11px; }
 .dmap .hd.dir { display: flex; align-items: center; gap: 5px; }
 .dmap .rl { display: flex; align-items: center; gap: 7px; padding: 0 7px; font-weight: 500; font-size: 11.5px; }
 .dcell { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; min-height: 40px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+.dcell { transition: border-color .15s ease, background .15s ease; }
 .dcell:hover { border-color: var(--line-2); background: var(--surface-3); }
 .dcell.shared { grid-column: span 3; background: repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 11px); flex-direction: row; align-items: center; gap: 10px; }
 .dcell .t { font-weight: 600; font-size: 11.5px; }
@@ -351,8 +369,10 @@ svg.i.xs { width: 11px; height: 11px; }
 .xp-head { cursor: pointer; }
 .xp-panel { display: none; position: absolute; z-index: 5; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow); }
 .xp.open { z-index: 60; }
-.xp.open > .xp-panel { display: block; animation: xp-in .16s ease-out; }
-.xp.open > .xp-panel.chat-pop { display: flex; }
+.xp.open > .xp-panel { display: block; transform-origin: top center; animation: xp-in .22s cubic-bezier(.2, .8, .2, 1); }
+.xp.open.closing > .xp-panel { animation: xp-out .16s ease-in forwards; pointer-events: none; }
+.xp.open > .xp-panel.chat-pop { display: flex; animation: chat-in .3s cubic-bezier(.2, .8, .2, 1); transform-origin: right center; }
+.xp.open.closing > .xp-panel.chat-pop { animation: chat-out .18s ease-in forwards; }
 .xp-panel.over { top: -1px; left: -1px; right: -1px; }
 .xp-panel.over-wide { top: -6px; left: -6px; right: -6px; }
 .xp-panel.below { top: calc(100% + 5px); left: 0; min-width: 100%; }
@@ -360,12 +380,15 @@ svg.i.xs { width: 11px; height: 11px; }
 .xp-panel.side-up { bottom: 0; left: 0; right: 0; }
 .xp-panel.roles-panel { left: auto; right: -6px; }
 .xp-panel.tasks-panel { left: auto; right: -6px; width: max(calc(100% + 12px), 320px); }
-@keyframes xp-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@keyframes xp-in { from { opacity: 0; transform: translateY(-6px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes xp-out { to { opacity: 0; transform: translateY(-4px) scale(.99); } }
+@keyframes chat-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes chat-out { to { opacity: 0; transform: translateX(12px); } }
 .veil {
   position: absolute; inset: 0; border-radius: inherit; z-index: 50;
   background: var(--veil);
   -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
-  opacity: 0; pointer-events: none; transition: opacity .18s ease;
+  opacity: 0; pointer-events: none; transition: opacity .26s ease;
 }
 .veil.on { opacity: 1; pointer-events: auto; }
 
@@ -409,6 +432,26 @@ svg.i.xs { width: 11px; height: 11px; }
 .stub h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
 .stub p { margin: 0; color: var(--fg-2); max-width: 560px; }
 .stub ul { margin: 5px 0 0; padding-left: 16px; color: var(--fg-2); display: grid; gap: 3px; }
+
+/* ---------- появление элементов (каскадом) и переходы между страницами ---------- */
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.ani { animation: rise .38s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--d, 0ms) + var(--i, 0) * 26ms); }
+.chat-msgs .msg.ani { --d: 90ms; animation-duration: .3s; }
+/* View Transitions: страница уезжает и въезжает, белая плитка активного раздела переезжает по колонке */
+html.vt-nav #grid { view-transition-name: page; }
+html.vt-nav .dk-item.active { view-transition-name: nav; }
+::view-transition-old(page) { animation: vt-out .16s ease-in both; }
+::view-transition-new(page) { animation: vt-in .32s cubic-bezier(.2, .8, .2, 1) both; }
+::view-transition-group(nav) { animation-duration: .36s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+@keyframes vt-out { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(10px); } }
+/* смена темы: новая тема раскрывается кругом от кнопки */
+html.vt-theme::view-transition-old(root) { animation: none; mix-blend-mode: normal; }
+html.vt-theme::view-transition-new(root) { animation: reveal .55s ease-in both; mix-blend-mode: normal; }
+@keyframes reveal { from { clip-path: circle(0px at var(--vt-x, 50%) var(--vt-y, 50%)); } to { clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 50%)); } }
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
 
 </style>
 </head>
@@ -754,7 +797,7 @@ const chipDir = (id, cls = '') => id === 'all'
   ? `<span class="chip all ${cls}">${ic('layers', 'xs')}Все направления</span>`
   : `<span class="chip dir ${cls}"><span class="dk">${DIR[id].k}</span>${DIR[id].short}</span>`;
 const chipDirs = dirs => dirs === 'all' ? chipDir('all') : dirs.map(d => chipDir(d)).join(' ');
-const ticks = (n, total, cls = '') => `<span class="ticks ${cls}" title="${n} из ${total}">${Array.from({ length: total }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
+const ticks = (n, total, cls = '') => `<span class="ticks ${cls}" title="${n} из ${total}">${Array.from({ length: total }, (_, i) => `<i class="${i < n ? 'on' : ''}" style="--j:${i}"></i>`).join('')}</span>`;
 const dot = cls => `<span class="dot ${cls}"></span>`;
 const nowTime = () => new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 const todayStr = () => new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -793,14 +836,17 @@ const XP = {
   toggle(el) { this.stack.includes(el) ? this.closeTo(el) : this.show(el); },
   show(el) {
     if (this.open && !this.open.contains(el)) this.closeAll();
+    clearTimeout(el._closing); el.classList.remove('closing');
     this.stack.push(el); el.classList.add('open');
     el.querySelector('.xp-panel').scrollIntoView({ block: 'nearest' });
     this.focus();
   },
-  /* закрывает верхний раскрытый элемент; вуаль переходит к нижележащему или гаснет */
+  /* закрывает верхний раскрытый элемент (с анимацией ухода); вуаль переходит к нижележащему или гаснет */
   close() {
     const el = this.stack.pop(); if (!el) return;
-    el.classList.remove('open');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) el.classList.remove('open');
+    else { el.classList.add('closing'); el._closing = setTimeout(() => el.classList.remove('open', 'closing'), 180); }
     if (this.open) this.focus(); else this.veil.classList.remove('on');
   },
   closeAll() { while (this.stack.length) this.close(); },
@@ -828,9 +874,9 @@ const CHAT = {
   render(pageId) {
     const page = PAGES.find(p => p.id === pageId);
     const st = this.get(pageId), members = this.members(pageId), online = members.filter(m => m.on);
-    const msgs = st.msgs.map(m => {
+    const msgs = st.msgs.map((m, i) => {
       const p = BY_ID[m.who], me = p.me;
-      return `<div class="msg ${me ? 'me' : ''}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
+      return `<div class="msg ani ${me ? 'me' : ''}" style="--i:${Math.min(i, 12)}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
     }).join('');
     const membersPanel = `<div class="ph"><span class="t">Участники чата</span><span class="mute small">${members.length} · доступ к странице «${page.name}»</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
       <div class="pb" style="max-height:320px;overflow:auto;display:flex;flex-direction:column;gap:6px">${members.map(m => `<div class="row">${av(m)}<div class="grow"><div class="ellip" style="font-weight:500">${m.name}</div><div class="mute xsmall ellip">${m.pos} · ${ROLES[m.role].pages[pageId] === 'full' ? 'работа' : 'просмотр'}</div></div>${chipDirs(m.dirs === 'all' ? 'all' : m.dirs)}</div>`).join('')}</div>`;
@@ -901,11 +947,26 @@ const App = {
 
   route() {
     const id = (location.hash.replace('#', '') || 'supply').replace('logistics', 'supply');
-    this.state.page = PAGES.some(p => p.id === id) ? id : 'supply';
-    this.state.q = ''; this.state.dept = null; this.state.all = false;
+    const next = PAGES.some(p => p.id === id) ? id : 'supply';
+    const render = () => {
+      this.state.page = next;
+      this.state.q = ''; this.state.dept = null; this.state.all = false;
+      this.renderSide(); this.renderTopbar(); this.renderGrid(true); this.renderChat();
+      this.el.grid.scrollTop = 0;
+    };
     XP.closeAll();
-    this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
-    this.el.grid.scrollTop = 0;
+    this.transition('vt-nav', render, this.started && next !== this.state.page);
+    this.started = true;
+  },
+
+  /* View Transitions, если браузер умеет и анимации не отключены; иначе обычная перерисовка */
+  transition(cls, render, enabled = true) {
+    const html = document.documentElement;
+    if (!enabled || !document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { render(); return; }
+    html.classList.add(cls);
+    const done = () => html.classList.remove(cls);
+    try { document.startViewTransition(render).finished.finally(done); } catch (e) { render(); done(); return; }
+    setTimeout(done, 1200);   // страховка: если переход не завершился (скрытая вкладка), снять класс всё равно
   },
 
   /* ---------- боковая колонка: стеклянные иконки страниц, подписи всплывают ---------- */
@@ -958,10 +1019,18 @@ const App = {
       <button class="btn" title="Чат страницы: открывается поверх контента справа" data-chat-toggle>${ic('chat', 'sm')}Чат${pg.unread ? `<span class="badge-n">${pg.unread}</span>` : ''}</button>`;
   },
 
-  renderGrid() {
+  renderGrid(animate = false) {
     const pg = this.page();
     this.el.grid.classList.toggle('single', pg.id === 'supply');
     this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+    if (animate) this.animateIn();
+  },
+
+  /* каскад появления: модули — по порядку, строки внутри — следом */
+  animateIn() {
+    const g = this.el.grid;
+    [...g.querySelectorAll(':scope > .mod, :scope > .span-4 > .mod')].forEach((m, i) => { m.classList.add('ani'); m.style.setProperty('--i', Math.min(i, 8)); });
+    g.querySelectorAll('.recs, .tbl').forEach(list => [...list.children].forEach((r, i) => { if (r.classList.contains('th')) return; r.classList.add('ani'); r.style.setProperty('--d', '100ms'); r.style.setProperty('--i', Math.min(i, 14)); }));
   },
 
   /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом */
@@ -976,7 +1045,7 @@ const App = {
     const s = this.state, q = s.q.trim().toLowerCase();
     const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
     const cols = '78px 76px 104px 114px minmax(0,1.3fr) 34px 90px minmax(0,1.7fr)';
-    const head = `<div class="tr th" style="grid-template-columns:${cols}"><div>Заказ клиента</div><div>Заявка</div><div>Статус</div><div>Изменён</div><div>Поставщик · ИНН</div><div></div><div>Срок доставки</div><div>Комментарий</div></div>`;
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>Заказ клиента</div><div>Заявка</div><div>Статус</div><div>Изменён</div><div>Поставщик · ИНН</div><div></div><div>Срок доставки</div><div>Комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
       const [stName, stCls] = SUP_ST[r.st], last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
       const hist = `<span class="hp"><span class="num hp-trg">${last[1]}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px"><span class="chip ${SUP_ST[st][1]}">${SUP_ST[st][0]}</span><span class="num mute small">${at}</span></div>`).join('')}</div></span>`;
@@ -991,10 +1060,10 @@ const App = {
           <div class="num">${r.eta}</div>
           <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
         </div>`;
-      return xp({ id: 'sup-' + r.id, head: headRow, panel: this.orderCard(r), place: 'under', cls: 'trw' });
+      return xp({ id: 'sup-' + r.id, head: `<div class="rec-card">${headRow}</div>`, panel: this.orderCard(r), place: 'under', cls: 'rec' });
     }).join('');
-    const body = `<div class="sup-list">${head}${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div>`;
-    return mod({ span: 12, cls: 'fill', title: 'Заявки на снабжение', sub: `${list.length} из ${SUPPLY.length} · по клику под строкой раскрывается карточка заказа`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
+    const body = `<div class="sup-list">${head}<div class="recs">${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div></div>`;
+    return mod({ span: 12, cls: 'fill', title: 'Заявки на снабжение', sub: `${list.length} из ${SUPPLY.length} · каждая запись в своём контейнере, по клику под ней раскрывается карточка заказа`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
   },
 
   /* карточка заказа: файлы (счёт, договор, УПД и прочее) и позиции */
@@ -1121,7 +1190,18 @@ const App = {
   onClick(e) {
     const t = e.target;
     const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');
-    if (themeBtn) { this.state.theme = themeBtn.dataset.themeSet || (this.state.theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('riva.theme', this.state.theme); document.documentElement.dataset.theme = this.state.theme; XP.closeAll(); this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat(); return; }
+    if (themeBtn) {
+      const r = themeBtn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, html = document.documentElement;
+      html.style.setProperty('--vt-x', x + 'px'); html.style.setProperty('--vt-y', y + 'px');
+      html.style.setProperty('--vt-r', Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 'px');
+      XP.closeAll();
+      this.transition('vt-theme', () => {
+        this.state.theme = themeBtn.dataset.themeSet || (this.state.theme === 'dark' ? 'light' : 'dark');
+        localStorage.setItem('riva.theme', this.state.theme); html.dataset.theme = this.state.theme;
+        this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
+      });
+      return;
+    }
     if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); return; }
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');

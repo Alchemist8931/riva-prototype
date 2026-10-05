@@ -35,11 +35,26 @@ const App = {
 
   route() {
     const id = (location.hash.replace('#', '') || 'supply').replace('logistics', 'supply');
-    this.state.page = PAGES.some(p => p.id === id) ? id : 'supply';
-    this.state.q = ''; this.state.dept = null; this.state.all = false;
+    const next = PAGES.some(p => p.id === id) ? id : 'supply';
+    const render = () => {
+      this.state.page = next;
+      this.state.q = ''; this.state.dept = null; this.state.all = false;
+      this.renderSide(); this.renderTopbar(); this.renderGrid(true); this.renderChat();
+      this.el.grid.scrollTop = 0;
+    };
     XP.closeAll();
-    this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
-    this.el.grid.scrollTop = 0;
+    this.transition('vt-nav', render, this.started && next !== this.state.page);
+    this.started = true;
+  },
+
+  /* View Transitions, если браузер умеет и анимации не отключены; иначе обычная перерисовка */
+  transition(cls, render, enabled = true) {
+    const html = document.documentElement;
+    if (!enabled || !document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { render(); return; }
+    html.classList.add(cls);
+    const done = () => html.classList.remove(cls);
+    try { document.startViewTransition(render).finished.finally(done); } catch (e) { render(); done(); return; }
+    setTimeout(done, 1200);   // страховка: если переход не завершился (скрытая вкладка), снять класс всё равно
   },
 
   /* ---------- боковая колонка: стеклянные иконки страниц, подписи всплывают ---------- */
@@ -92,10 +107,18 @@ const App = {
       <button class="btn" title="Чат страницы: открывается поверх контента справа" data-chat-toggle>${ic('chat', 'sm')}Чат${pg.unread ? `<span class="badge-n">${pg.unread}</span>` : ''}</button>`;
   },
 
-  renderGrid() {
+  renderGrid(animate = false) {
     const pg = this.page();
     this.el.grid.classList.toggle('single', pg.id === 'supply');
     this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+    if (animate) this.animateIn();
+  },
+
+  /* каскад появления: модули — по порядку, строки внутри — следом */
+  animateIn() {
+    const g = this.el.grid;
+    [...g.querySelectorAll(':scope > .mod, :scope > .span-4 > .mod')].forEach((m, i) => { m.classList.add('ani'); m.style.setProperty('--i', Math.min(i, 8)); });
+    g.querySelectorAll('.recs, .tbl').forEach(list => [...list.children].forEach((r, i) => { if (r.classList.contains('th')) return; r.classList.add('ani'); r.style.setProperty('--d', '100ms'); r.style.setProperty('--i', Math.min(i, 14)); }));
   },
 
   /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом */
@@ -110,7 +133,7 @@ const App = {
     const s = this.state, q = s.q.trim().toLowerCase();
     const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
     const cols = '78px 76px 104px 114px minmax(0,1.3fr) 34px 90px minmax(0,1.7fr)';
-    const head = `<div class="tr th" style="grid-template-columns:${cols}"><div>Заказ клиента</div><div>Заявка</div><div>Статус</div><div>Изменён</div><div>Поставщик · ИНН</div><div></div><div>Срок доставки</div><div>Комментарий</div></div>`;
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>Заказ клиента</div><div>Заявка</div><div>Статус</div><div>Изменён</div><div>Поставщик · ИНН</div><div></div><div>Срок доставки</div><div>Комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
       const [stName, stCls] = SUP_ST[r.st], last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
       const hist = `<span class="hp"><span class="num hp-trg">${last[1]}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px"><span class="chip ${SUP_ST[st][1]}">${SUP_ST[st][0]}</span><span class="num mute small">${at}</span></div>`).join('')}</div></span>`;
@@ -125,10 +148,10 @@ const App = {
           <div class="num">${r.eta}</div>
           <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
         </div>`;
-      return xp({ id: 'sup-' + r.id, head: headRow, panel: this.orderCard(r), place: 'under', cls: 'trw' });
+      return xp({ id: 'sup-' + r.id, head: `<div class="rec-card">${headRow}</div>`, panel: this.orderCard(r), place: 'under', cls: 'rec' });
     }).join('');
-    const body = `<div class="sup-list">${head}${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div>`;
-    return mod({ span: 12, cls: 'fill', title: 'Заявки на снабжение', sub: `${list.length} из ${SUPPLY.length} · по клику под строкой раскрывается карточка заказа`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
+    const body = `<div class="sup-list">${head}<div class="recs">${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div></div>`;
+    return mod({ span: 12, cls: 'fill', title: 'Заявки на снабжение', sub: `${list.length} из ${SUPPLY.length} · каждая запись в своём контейнере, по клику под ней раскрывается карточка заказа`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
   },
 
   /* карточка заказа: файлы (счёт, договор, УПД и прочее) и позиции */
@@ -255,7 +278,18 @@ const App = {
   onClick(e) {
     const t = e.target;
     const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');
-    if (themeBtn) { this.state.theme = themeBtn.dataset.themeSet || (this.state.theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('riva.theme', this.state.theme); document.documentElement.dataset.theme = this.state.theme; XP.closeAll(); this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat(); return; }
+    if (themeBtn) {
+      const r = themeBtn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, html = document.documentElement;
+      html.style.setProperty('--vt-x', x + 'px'); html.style.setProperty('--vt-y', y + 'px');
+      html.style.setProperty('--vt-r', Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 'px');
+      XP.closeAll();
+      this.transition('vt-theme', () => {
+        this.state.theme = themeBtn.dataset.themeSet || (this.state.theme === 'dark' ? 'light' : 'dark');
+        localStorage.setItem('riva.theme', this.state.theme); html.dataset.theme = this.state.theme;
+        this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
+      });
+      return;
+    }
     if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); return; }
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');

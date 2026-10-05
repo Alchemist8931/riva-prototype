@@ -165,7 +165,7 @@ const chipDir = (id, cls = '') => id === 'all'
   ? `<span class="chip all ${cls}">${ic('layers', 'xs')}Все направления</span>`
   : `<span class="chip dir ${cls}"><span class="dk">${DIR[id].k}</span>${DIR[id].short}</span>`;
 const chipDirs = dirs => dirs === 'all' ? chipDir('all') : dirs.map(d => chipDir(d)).join(' ');
-const ticks = (n, total, cls = '') => `<span class="ticks ${cls}" title="${n} из ${total}">${Array.from({ length: total }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
+const ticks = (n, total, cls = '') => `<span class="ticks ${cls}" title="${n} из ${total}">${Array.from({ length: total }, (_, i) => `<i class="${i < n ? 'on' : ''}" style="--j:${i}"></i>`).join('')}</span>`;
 const dot = cls => `<span class="dot ${cls}"></span>`;
 const nowTime = () => new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 const todayStr = () => new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -204,14 +204,17 @@ const XP = {
   toggle(el) { this.stack.includes(el) ? this.closeTo(el) : this.show(el); },
   show(el) {
     if (this.open && !this.open.contains(el)) this.closeAll();
+    clearTimeout(el._closing); el.classList.remove('closing');
     this.stack.push(el); el.classList.add('open');
     el.querySelector('.xp-panel').scrollIntoView({ block: 'nearest' });
     this.focus();
   },
-  /* закрывает верхний раскрытый элемент; вуаль переходит к нижележащему или гаснет */
+  /* закрывает верхний раскрытый элемент (с анимацией ухода); вуаль переходит к нижележащему или гаснет */
   close() {
     const el = this.stack.pop(); if (!el) return;
-    el.classList.remove('open');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) el.classList.remove('open');
+    else { el.classList.add('closing'); el._closing = setTimeout(() => el.classList.remove('open', 'closing'), 180); }
     if (this.open) this.focus(); else this.veil.classList.remove('on');
   },
   closeAll() { while (this.stack.length) this.close(); },
@@ -239,9 +242,9 @@ const CHAT = {
   render(pageId) {
     const page = PAGES.find(p => p.id === pageId);
     const st = this.get(pageId), members = this.members(pageId), online = members.filter(m => m.on);
-    const msgs = st.msgs.map(m => {
+    const msgs = st.msgs.map((m, i) => {
       const p = BY_ID[m.who], me = p.me;
-      return `<div class="msg ${me ? 'me' : ''}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
+      return `<div class="msg ani ${me ? 'me' : ''}" style="--i:${Math.min(i, 12)}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
     }).join('');
     const membersPanel = `<div class="ph"><span class="t">Участники чата</span><span class="mute small">${members.length} · доступ к странице «${page.name}»</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
       <div class="pb" style="max-height:320px;overflow:auto;display:flex;flex-direction:column;gap:6px">${members.map(m => `<div class="row">${av(m)}<div class="grow"><div class="ellip" style="font-weight:500">${m.name}</div><div class="mute xsmall ellip">${m.pos} · ${ROLES[m.role].pages[pageId] === 'full' ? 'работа' : 'просмотр'}</div></div>${chipDirs(m.dirs === 'all' ? 'all' : m.dirs)}</div>`).join('')}</div>`;
