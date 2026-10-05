@@ -178,7 +178,12 @@ const fileKind = name => /счет|счёт|invoice/i.test(name) ? 'счёт' : 
 /* поля форм */
 const fld = (label, inner, cls = '') => `<label class="fld ${cls}"><span class="fl">${label}</span>${inner}</label>`;
 const inp = (name, attrs = '') => `<input class="in" name="${name}" ${attrs}>`;
-const sel = (name, opts, val = '') => `<select class="in" name="${name}">${opts.map(([v, t]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+/* выпадающий список свой, а не системный: кнопка выглядит как поле ввода, список раскрывается как меню; значение — в скрытом поле */
+const sel = (name, opts, val = '') => {
+  const cur = opts.find(o => o[0] === val) || opts[0];
+  return `<div class="xp csel" data-xp="sel-${name}"><div class="xp-head" data-xp-toggle><button type="button" class="in sel-btn"><span class="lbl ellip">${cur[1]}</span>${icRaw('down', 'xs')}</button><input type="hidden" name="${name}" value="${cur[0]}"></div>
+    <div class="xp-panel below menu">${opts.map(([v, t]) => `<button type="button" class="${v === cur[0] ? 'on' : ''}" data-opt="${v}"><span class="grow">${t}</span>${v === cur[0] ? `<span class="chk">${icRaw('check', 'sm')}</span>` : ''}</button>`).join('')}</div></div>`;
+};
 
 /* иконки доступа к страницам: full — чётко, view — приглушённо, нет — почти прозрачно */
 const pageIcons = role => `<span class="pg-ics">${PAGES.map(p => {

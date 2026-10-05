@@ -122,7 +122,7 @@ const App = {
           ${fld('Телефон', inp('ctel', 'type="tel" placeholder="+7 …"'))}
           ${fld('Почта', inp('cmail', 'type="email" placeholder="name@company.ru"'))}
           ${fld('Срок доставки', inp('eta', 'type="date"'))}
-          ${fld('Комментарий', '<textarea class="in" name="comment" rows="3" placeholder="Что закупаем и под какой заказ клиента"></textarea>', 'full')}
+          ${fld('Комментарий', '<textarea class="in" name="comment" rows="6" placeholder="Что закупаем и под какой заказ клиента"></textarea>', 'full')}
           <div class="fld full"><span class="fl">Файлы</span><div class="row"><label class="btn sm">${ic('clip', 'xs')}Прикрепить<input type="file" multiple hidden data-attach></label><span class="mute small ellip" data-attach-list>счёт, договор, УПД и прочее — можно добавить и позже в карточке заказа</span></div></div>
         </div>
         <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать заявку</button></div>
@@ -209,8 +209,8 @@ const App = {
     const s = this.state, q = s.q.trim().toLowerCase();
     const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
     /* колонки: номера, статус, дата изменения (вправо), поставщик, контакт, срок (вправо), комментарий — на 100px шире прежнего */
-    const cols = '72px 76px 112px 164px minmax(0,1fr) 34px 122px minmax(0,2.25fr)';
-    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div>поставщик · ИНН</div><div></div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
+    const cols = '72px 76px 112px 164px minmax(0,1fr) 34px 122px minmax(0,1.78fr)';
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="sup"><span class="inn">ИНН</span><span>поставщик</span></div><div></div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
       const [stName, stCls] = SUP_ST[r.st], last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
       const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px"><span class="chip ${SUP_ST[st][1]}">${SUP_ST[st][0]}</span><span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
@@ -220,7 +220,7 @@ const App = {
           <div class="no">${r.id}</div>
           <div><span class="chip ${stCls}">${stName}</span></div>
           <div class="r">${hist}</div>
-          <div><div class="t ellip">${r.supplier}</div><div class="s num">ИНН ${r.inn}</div></div>
+          <div class="sup"><span class="inn num">${r.inn}</span><span class="t ellip" title="${esc(r.supplier)}">${r.supplier}</span></div>
           <div>${contact}</div>
           <div class="r num">${fmtDate(r.eta)}</div>
           <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
@@ -354,6 +354,17 @@ const App = {
 
   onClick(e) {
     const t = e.target;
+    // открытый выпадающий список закрывается кликом мимо него (даже внутри формы)
+    if (XP.open && XP.open.classList.contains('csel') && !XP.open.contains(t)) XP.close();
+    const opt = t.closest('[data-opt]');
+    if (opt) {
+      const x = opt.closest('.csel');
+      x.querySelector('input[type=hidden]').value = opt.dataset.opt;
+      x.querySelector('.sel-btn .lbl').textContent = opt.querySelector('.grow').textContent;
+      x.querySelectorAll('[data-opt]').forEach(b => { b.classList.toggle('on', b === opt); const c = b.querySelector('.chk'); if (c) c.remove(); });
+      opt.insertAdjacentHTML('beforeend', `<span class="chk">${icRaw('check', 'sm')}</span>`);
+      XP.close(); return;
+    }
     const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');
     if (themeBtn) {
       const r = themeBtn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, html = document.documentElement;
@@ -380,7 +391,7 @@ const App = {
     if (t.closest('[data-clear-dept]')) { this.state.dept = null; XP.close(); this.renderGrid(); return; }
     if (t.closest('[data-show-all]')) { this.state.all = true; this.renderGrid(); return; }
     const tg = t.closest('[data-xp-toggle]');
-    if (tg) { if (t.closest('a,button') && !t.closest('.xp-head > .company, .xp-head > .btn, .xp-head > .avs')) return; XP.toggle(tg.closest('.xp')); return; }
+    if (tg) { if (t.closest('a,button') && !t.closest('.xp-head > .company, .xp-head > .btn, .xp-head > .avs, .xp-head > .sel-btn')) return; XP.toggle(tg.closest('.xp')); return; }
     if (!t.closest('.xp-panel')) XP.closeAll();
   },
 
