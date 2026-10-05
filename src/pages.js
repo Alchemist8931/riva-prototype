@@ -15,6 +15,7 @@ const App = {
     theme: localStorage.getItem('riva.theme') || 'light',
   },
   el: {},
+  seen: {},   // страницы, уже показанные с каскадом появления
 
   init() {
     this.el = { side: document.getElementById('side'), topbar: document.getElementById('topbar'), grid: document.getElementById('grid'), chatcol: document.getElementById('chatcol') };
@@ -39,7 +40,8 @@ const App = {
     const render = () => {
       this.state.page = next;
       this.state.q = ''; this.state.dept = null; this.state.all = false;
-      this.renderSide(); this.renderTopbar(); this.renderGrid(true); this.renderChat();
+      // каскад появления — только при первом показе страницы; дальше страницы сменяются перекрёстным затуханием без перерисовки каскадом
+      this.renderSide(); this.renderTopbar(); this.renderGrid(!this.seen[next]); this.seen[next] = true; this.renderChat();
       this.el.grid.scrollTo({ top: 0, behavior: 'instant' });   // у сетки scroll-behavior: smooth, сброс должен быть мгновенным
     };
     XP.closeAll();
@@ -117,10 +119,9 @@ const App = {
 
   /* каскад появления: модули — по порядку, строки внутри — следом */
   animateIn() {
-    const g = this.el.grid, calm = XP.calm(g);   // мерить до каскада: сдвиг элементов на 8px сам включает полосу прокрутки
+    const g = this.el.grid;
     [...g.querySelectorAll(':scope > .mod, :scope > .span-4 > .mod')].forEach((m, i) => { m.classList.add('ani'); m.style.setProperty('--i', Math.min(i, 8)); });
-    g.querySelectorAll('.recs, .tbl').forEach(list => [...list.children].forEach((r, i) => { if (r.classList.contains('th')) return; r.classList.add('ani'); r.style.setProperty('--d', '100ms'); r.style.setProperty('--i', Math.min(i, 14)); }));
-    XP.calmUntilDone(calm, g);
+    g.querySelectorAll('.recs, .tbl').forEach(list => [...list.children].forEach((r, i) => { if (r.classList.contains('th')) return; r.classList.add('ani'); r.style.setProperty('--d', '80ms'); r.style.setProperty('--i', Math.min(i, 14)); }));
   },
 
   /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом; при отправке панель не пересобирается (CHAT.refresh) */

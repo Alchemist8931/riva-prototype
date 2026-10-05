@@ -207,9 +207,7 @@ const XP = {
     if (this.open && !this.open.contains(el)) this.closeAll();
     el._closeToken = null; el.classList.remove('closing');
     this.stack.push(el); el.classList.add('open');
-    const panel = this.panelOf(el);
-    this.reveal(panel);
-    this.calmUntilDone(this.calm(panel), panel);
+    this.reveal(this.panelOf(el));
     this.focus();
   },
   /* закрывает верхний раскрытый элемент: панель прячется по завершению анимации ухода, не по таймеру; вуаль переходит к нижележащему или гаснет */
@@ -247,20 +245,6 @@ const XP = {
     if (bottom > h - pad) dy = bottom - (h - pad);
     if (top - dy < pad) dy = top - pad;
     if (Math.abs(dy) > .5) sc.scrollBy({ top: dy, behavior: 'smooth' });
-  },
-  /* контейнеры внутри root, которым прокрутка в покое не нужна (мерить до каскада!) */
-  calm(root) {
-    const sel = '.grid, .sup-list, .chat-msgs';
-    return [...(root.matches(sel) ? [root] : []), ...root.querySelectorAll(sel)].filter(c => c.scrollHeight <= c.clientHeight);
-  },
-  /* на время анимаций появления внутри root таким контейнерам прячем полосу прокрутки: сдвиг элементов на 8px включал её, а в конце выключал — контент дёргался на её ширину */
-  calmUntilDone(list, root) {
-    if (!list.length) return;
-    list.forEach(c => c.style.overflow = 'hidden');
-    const anims = root.getAnimations({ subtree: true }).filter(a => a.effect.getTiming().iterations !== Infinity);
-    const done = () => list.forEach(c => c.style.overflow = '');
-    Promise.allSettled(anims.map(a => a.finished)).then(done);
-    setTimeout(done, 3000);   // страховка (скрытая вкладка): иначе ждём именно завершения анимаций
   },
   /* маска: полный блюр у границ раскрытой панели, затухание с удалением; геометрия по раскладке */
   focus() {

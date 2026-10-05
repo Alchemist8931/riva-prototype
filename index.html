@@ -170,9 +170,8 @@ svg.i.xs { width: 11px; height: 11px; }
 .logo-tile { width: 32px; height: 32px; border-radius: 10px; background: var(--logo-bg); color: var(--logo-fg); display: grid; place-items: center; font-weight: 800; font-size: 16px; letter-spacing: -.03em; text-decoration: none; }
 .dock { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .dk-item { position: relative; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: var(--frame); opacity: .55; text-decoration: none; transition: opacity .15s, background .15s; }
-.dk-item { transition: opacity .15s ease, background .2s ease, transform .18s cubic-bezier(.2, .8, .2, 1); }
+.dk-item { transition: opacity .15s ease, background .2s ease; }   /* без подъёма при наведении: любой transform заново растрирует иконку по окончании */
 .dk-item:hover { opacity: 1; }
-.dk-item:not(.active):hover { transform: translateY(-1px); }   /* активная плитка без подъёма: её снимок переезжает в View Transition и в конце должен совпасть с покоем */
 .dk-item.active { opacity: 1; background: #fff; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
 .dk-item .n { position: absolute; top: -4px; right: -4px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px; background: #fff; color: #111; font-size: 9px; font-weight: 700; display: grid; place-items: center; border: 2px solid var(--frame); font-variant-numeric: tabular-nums; line-height: 1; }
 .dk-item.active .n { background: #111; color: #fff; border-color: #fff; }
@@ -183,8 +182,7 @@ svg.i.xs { width: 11px; height: 11px; }
 .side-foot { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 [data-tip] { position: relative; }
 [data-tip]:hover { z-index: 80; }
-[data-tip]:hover::after, [data-tip]:hover::before { animation: tip-in .14s ease-out both; }
-@keyframes tip-in { from { opacity: 0; transform: translate(-4px, -50%); } to { opacity: 1; transform: translate(0, -50%); } }
+[data-tip]:hover::after, [data-tip]:hover::before { opacity: var(--o); animation: fade-in .14s ease-out both; }
 [data-tip]:hover::after { content: attr(data-tip); position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%); background: var(--fg); color: var(--panel); padding: 5px 9px; border-radius: 7px; font-size: 11px; font-weight: 500; white-space: nowrap; z-index: 80; pointer-events: none; box-shadow: var(--shadow); line-height: 1.3; }
 [data-tip]:hover::before { content: ""; position: absolute; left: calc(100% + 6px); top: 50%; transform: translateY(-50%); border: 4px solid transparent; border-right-color: var(--fg); z-index: 80; pointer-events: none; }
 
@@ -224,9 +222,10 @@ svg.i.xs { width: 11px; height: 11px; }
 
 /* ---------- кнопки, чипы, точки, аватары ---------- */
 .btn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--fg); font-weight: 500; cursor: pointer; white-space: nowrap; }
-.btn { transition: background .15s ease, transform .12s ease, border-color .15s ease; }
+.btn { transition: background .15s ease, border-color .15s ease; }
 .btn:hover { background: var(--surface-2); }
-.btn:active { transform: scale(.97); }
+.btn:active { background: var(--surface-3); }   /* нажатие — цветом, не масштабом: иначе иконка внутри прыгает после отпускания */
+.btn.primary:active { background: var(--fg-2); border-color: var(--fg-2); }
 .btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
 .btn.primary:hover { opacity: .9; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--fg-2); }
@@ -261,8 +260,7 @@ svg.i.xs { width: 11px; height: 11px; }
 /* тик-прогресс (образец -49) */
 .ticks { display: inline-flex; gap: 2px; align-items: center; }
 .ticks i { display: block; width: 3px; height: 10px; border-radius: 1.5px; background: var(--line-2); }
-.ticks i.on { background: var(--ok); transform-origin: bottom; animation: tick .35s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: calc(var(--j, 0) * 18ms); }
-@keyframes tick { from { transform: scaleY(.2); opacity: .3; } to { transform: none; opacity: 1; } }
+.ticks i.on { background: var(--ok); opacity: var(--o); animation: fade-in .3s ease-out backwards; animation-delay: calc(var(--j, 0) * 18ms); }
 .ticks.fg i.on { background: var(--fg); }
 .ticks.sm { gap: 2px; } .ticks.sm i { width: 2px; height: 9px; }
 .xp-head .b { white-space: nowrap; }
@@ -324,7 +322,7 @@ svg.i.xs { width: 11px; height: 11px; }
 .hp-pop { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 70; background: var(--surface); border: 1px solid var(--line-2); border-radius: 9px; box-shadow: var(--shadow); padding: 8px 10px; min-width: 190px; white-space: nowrap; font-size: 11.5px; }
 .hp-pop.up { top: auto; bottom: calc(100% + 6px); }
 .hp:hover { z-index: 70; }
-.hp:hover .hp-pop { display: block; animation: xp-in .14s ease-out; }
+.hp:hover .hp-pop { display: block; opacity: var(--o); animation: fade-in .14s ease-out; }
 .ic-btn { width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); color: var(--surface-2); display: grid; place-items: center; cursor: default; }
 .xp-panel.under { top: calc(100% + 6px); left: 0; right: 0; }
 .files { display: flex; flex-direction: column; gap: 4px; }
@@ -388,10 +386,10 @@ svg.i.xs { width: 11px; height: 11px; }
 .xp-head { cursor: pointer; }
 .xp-panel { display: none; position: absolute; z-index: 5; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow); }
 .xp.open { z-index: 60; }
-.xp.open > .xp-panel { display: block; transform-origin: top center; animation: xp-in .22s cubic-bezier(.2, .8, .2, 1); }
-.xp.open.closing > .xp-panel { animation: xp-out .16s ease-in forwards; pointer-events: none; }
-.xp.open > .xp-panel.chat-pop { display: flex; animation: chat-in .3s cubic-bezier(.2, .8, .2, 1); transform-origin: right center; }
-.xp.open.closing > .xp-panel.chat-pop { animation: chat-out .18s ease-in forwards; }
+.xp.open > .xp-panel { display: block; opacity: var(--o); animation: fade-in .16s ease-out; }
+.xp.open.closing > .xp-panel { animation: fade-out .12s ease-in forwards; pointer-events: none; }
+.xp.open > .xp-panel.chat-pop { display: flex; animation-duration: .2s; }
+.xp.open.closing > .xp-panel.chat-pop { animation-duration: .14s; }
 .xp-panel.over { top: -1px; left: -1px; right: -1px; }
 .xp-panel.over-wide { top: -6px; left: -6px; right: -6px; }
 .xp-panel.below { top: calc(100% + 5px); left: 0; min-width: 100%; }
@@ -399,11 +397,13 @@ svg.i.xs { width: 11px; height: 11px; }
 .xp-panel.side-up { bottom: 0; left: 0; right: 0; }
 .xp-panel.roles-panel { left: auto; right: -6px; }
 .xp-panel.tasks-panel { left: auto; right: -6px; width: max(calc(100% + 12px), 320px); }
-@keyframes xp-in { from { opacity: 0; transform: translateY(-6px) scale(.985); } to { opacity: 1; transform: none; } }
-@keyframes xp-out { to { opacity: 0; transform: translateY(-4px) scale(.99); } }
-/* сдвиг не больше отступа панели от края (10px): панель ни на одном кадре не выходит за край окна страницы */
-@keyframes chat-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
-@keyframes chat-out { to { opacity: 0; transform: translateX(10px); } }
+/* Все появления — только прозрачностью и через зарегистрированное свойство --o (opacity: var(--o)).
+   Прямая анимация opacity/transform уходит в композитор: элемент на время получает отдельный слой, а по окончании
+   перерисовывается на своём месте — иконки и текст на дробных позициях «прыгают» на доли пикселя (правка владельца 05.10.2026).
+   Анимация переменной идёт в основном потоке, слоя нет, пиксели до и после одинаковые. */
+@property --o { syntax: '<number>'; inherits: false; initial-value: 1; }
+@keyframes fade-in { from { --o: 0; } }
+@keyframes fade-out { to { --o: 0; } }
 .veil {
   position: absolute; inset: 0; border-radius: inherit; z-index: 50;
   background: var(--veil);
@@ -454,14 +454,10 @@ svg.i.xs { width: 11px; height: 11px; }
 .stub ul { margin: 5px 0 0; padding-left: 16px; color: var(--fg-2); display: grid; gap: 3px; }
 
 /* ---------- появление элементов (каскадом) и переходы между страницами ---------- */
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-/* fill-mode backwards, не both: анимация с заполнением вперёд навсегда оставляет элемент контекстом наложения (Chromium),
-   и раскрытие внутри модуля (z-index 60) не могло подняться над вуалью (50) — вуаль накрывала раскрытую запись */
-.ani { animation: rise .38s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: calc(var(--d, 0ms) + var(--i, 0) * 26ms); }
-/* сообщения чата: сжатие внутри своей рамки, а не сдвиг — список прокручен к концу, сдвиг удлинял бы прокрутку и в конце возвращал её скачком */
-@keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
-.chat-msgs .msg.ani { --d: 90ms; animation-name: pop; animation-duration: .3s; transform-origin: left bottom; }
-.chat-msgs .msg.me.ani { transform-origin: right bottom; }
+/* каскад появления: быстрое затухание без сдвига (fade-in через --o, см. выше); fill-mode backwards, не both —
+   заполнение вперёд навсегда оставляло бы элемент контекстом наложения, и раскрытие внутри модуля не поднималось над вуалью */
+.ani { opacity: var(--o); animation: fade-in .2s ease-out backwards; animation-delay: calc(var(--d, 0ms) + var(--i, 0) * 20ms); }
+.chat-msgs .msg.ani { --d: 60ms; }
 /* View Transitions: страница уезжает и въезжает, белая плитка активного раздела переезжает по колонке */
 html.vt-nav #grid { view-transition-name: page; }
 html.vt-nav .dk-item.active { view-transition-name: nav; }
@@ -469,12 +465,9 @@ html.vt-nav .dk-item.active { view-transition-name: nav; }
 html.vt-nav .tb-ic { view-transition-name: tbic; }
 ::view-transition-old(tbic) { display: none; }
 ::view-transition-new(tbic) { animation: none; }
-::view-transition-group(page) { animation-duration: .32s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
-::view-transition-old(page) { animation: vt-out .16s ease-in both; }
-::view-transition-new(page) { animation: vt-in .32s cubic-bezier(.2, .8, .2, 1) both; }
-::view-transition-group(nav) { animation-duration: .36s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
-@keyframes vt-out { to { opacity: 0; transform: translateY(-6px); } }
-@keyframes vt-in { from { opacity: 0; transform: translateY(10px); } }
+/* страница: встроенное перекрёстное затухание без сдвига (старый снимок гаснет, новый проявляется на том же месте) */
+::view-transition-group(page) { animation-duration: .24s; }
+::view-transition-group(nav) { animation-duration: .3s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
 /* смена темы: новая тема раскрывается кругом от кнопки */
 html.vt-theme::view-transition-old(root) { animation: none; mix-blend-mode: normal; }
 html.vt-theme::view-transition-new(root) { animation: reveal .55s ease-in both; mix-blend-mode: normal; }
@@ -869,9 +862,7 @@ const XP = {
     if (this.open && !this.open.contains(el)) this.closeAll();
     el._closeToken = null; el.classList.remove('closing');
     this.stack.push(el); el.classList.add('open');
-    const panel = this.panelOf(el);
-    this.reveal(panel);
-    this.calmUntilDone(this.calm(panel), panel);
+    this.reveal(this.panelOf(el));
     this.focus();
   },
   /* закрывает верхний раскрытый элемент: панель прячется по завершению анимации ухода, не по таймеру; вуаль переходит к нижележащему или гаснет */
@@ -909,20 +900,6 @@ const XP = {
     if (bottom > h - pad) dy = bottom - (h - pad);
     if (top - dy < pad) dy = top - pad;
     if (Math.abs(dy) > .5) sc.scrollBy({ top: dy, behavior: 'smooth' });
-  },
-  /* контейнеры внутри root, которым прокрутка в покое не нужна (мерить до каскада!) */
-  calm(root) {
-    const sel = '.grid, .sup-list, .chat-msgs';
-    return [...(root.matches(sel) ? [root] : []), ...root.querySelectorAll(sel)].filter(c => c.scrollHeight <= c.clientHeight);
-  },
-  /* на время анимаций появления внутри root таким контейнерам прячем полосу прокрутки: сдвиг элементов на 8px включал её, а в конце выключал — контент дёргался на её ширину */
-  calmUntilDone(list, root) {
-    if (!list.length) return;
-    list.forEach(c => c.style.overflow = 'hidden');
-    const anims = root.getAnimations({ subtree: true }).filter(a => a.effect.getTiming().iterations !== Infinity);
-    const done = () => list.forEach(c => c.style.overflow = '');
-    Promise.allSettled(anims.map(a => a.finished)).then(done);
-    setTimeout(done, 3000);   // страховка (скрытая вкладка): иначе ждём именно завершения анимаций
   },
   /* маска: полный блюр у границ раскрытой панели, затухание с удалением; геометрия по раскладке */
   focus() {
@@ -1008,6 +985,7 @@ const App = {
     theme: localStorage.getItem('riva.theme') || 'light',
   },
   el: {},
+  seen: {},   // страницы, уже показанные с каскадом появления
 
   init() {
     this.el = { side: document.getElementById('side'), topbar: document.getElementById('topbar'), grid: document.getElementById('grid'), chatcol: document.getElementById('chatcol') };
@@ -1032,7 +1010,8 @@ const App = {
     const render = () => {
       this.state.page = next;
       this.state.q = ''; this.state.dept = null; this.state.all = false;
-      this.renderSide(); this.renderTopbar(); this.renderGrid(true); this.renderChat();
+      // каскад появления — только при первом показе страницы; дальше страницы сменяются перекрёстным затуханием без перерисовки каскадом
+      this.renderSide(); this.renderTopbar(); this.renderGrid(!this.seen[next]); this.seen[next] = true; this.renderChat();
       this.el.grid.scrollTo({ top: 0, behavior: 'instant' });   // у сетки scroll-behavior: smooth, сброс должен быть мгновенным
     };
     XP.closeAll();
@@ -1110,10 +1089,9 @@ const App = {
 
   /* каскад появления: модули — по порядку, строки внутри — следом */
   animateIn() {
-    const g = this.el.grid, calm = XP.calm(g);   // мерить до каскада: сдвиг элементов на 8px сам включает полосу прокрутки
+    const g = this.el.grid;
     [...g.querySelectorAll(':scope > .mod, :scope > .span-4 > .mod')].forEach((m, i) => { m.classList.add('ani'); m.style.setProperty('--i', Math.min(i, 8)); });
-    g.querySelectorAll('.recs, .tbl').forEach(list => [...list.children].forEach((r, i) => { if (r.classList.contains('th')) return; r.classList.add('ani'); r.style.setProperty('--d', '100ms'); r.style.setProperty('--i', Math.min(i, 14)); }));
-    XP.calmUntilDone(calm, g);
+    g.querySelectorAll('.recs, .tbl').forEach(list => [...list.children].forEach((r, i) => { if (r.classList.contains('th')) return; r.classList.add('ani'); r.style.setProperty('--d', '80ms'); r.style.setProperty('--i', Math.min(i, 14)); }));
   },
 
   /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом; при отправке панель не пересобирается (CHAT.refresh) */
