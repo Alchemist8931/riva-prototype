@@ -282,14 +282,25 @@ const CHAT = {
     return this.state[pageId];
   },
   members(pageId) { return STAFF.filter(s => ROLES[s.role].pages[pageId]); },
-  /* from — с какого сообщения анимировать появление: при открытии чата каскадом идут все, после отправки — только новое */
-  render(pageId, from = 0) {
-    const page = PAGES.find(p => p.id === pageId);
-    const st = this.get(pageId), members = this.members(pageId), online = members.filter(m => m.on);
+  /* список сообщений; from — с какого анимировать появление: при открытии чата каскадом идут все, после отправки — только новое */
+  msgsHtml(pageId, from = 0) {
+    const st = this.get(pageId);
     const msgs = st.msgs.map((m, i) => {
       const p = BY_ID[m.who], me = p.me;
       return `<div class="msg ${i >= from ? 'ani' : ''} ${me ? 'me' : ''}" style="--i:${Math.min(Math.max(i - from, 0), 12)}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
     }).join('');
+    return `<div class="msg sys"><div class="msg-t">Сегодня, ${todayStr()}</div></div>${msgs}${st.typing ? `<div class="typing">${shortName(BY_ID[REPLIES[pageId]?.who || 1].name)} печатает <i></i><i></i><i></i></div>` : ''}`;
+  },
+  /* обновить только список: пересборка всей панели заново проигрывала её появление — чат дёргался при каждой отправке */
+  refresh(pageId, from) {
+    if (App.state.page !== pageId) return;   // ответ пришёл, когда открыта другая страница: покажется при следующем открытии чата
+    const m = document.getElementById('chat-msgs'); if (!m) return;
+    m.innerHTML = this.msgsHtml(pageId, from);
+    m.scrollTo({ top: m.scrollHeight, behavior: 'smooth' });
+  },
+  render(pageId) {
+    const page = PAGES.find(p => p.id === pageId);
+    const st = this.get(pageId), members = this.members(pageId), online = members.filter(m => m.on);
     const membersPanel = `<div class="ph"><span class="t">Участники чата</span><span class="mute small">${members.length} · доступ к странице «${page.name}»</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
       <div class="pb" style="max-height:320px;overflow:auto;display:flex;flex-direction:column;gap:6px">${members.map(m => `<div class="row">${av(m)}<div class="grow"><div class="ellip" style="font-weight:500">${m.name}</div><div class="mute xsmall ellip">${m.pos} · ${ROLES[m.role].pages[pageId] === 'full' ? 'работа' : 'просмотр'}</div></div>${chipDirs(m.dirs === 'all' ? 'all' : m.dirs)}</div>`).join('')}</div>`;
     const body = `<div class="chat">
@@ -298,11 +309,7 @@ const CHAT = {
         <div class="grow"><div class="b small">Чат · ${page.name}</div><div class="mute xsmall">${online.length} онлайн из ${members.length}</div></div>
         <button class="btn ghost sm icon" title="Свернуть чат" data-chat-toggle>${ic('x', 'sm')}</button>
       </div>
-      <div class="chat-msgs" id="chat-msgs">
-        <div class="msg sys"><div class="msg-t">Сегодня, ${todayStr()}</div></div>
-        ${msgs}
-        ${st.typing ? `<div class="typing">${shortName(BY_ID[REPLIES[pageId]?.who || 1].name)} печатает <i></i><i></i><i></i></div>` : ''}
-      </div>
+      <div class="chat-msgs" id="chat-msgs">${this.msgsHtml(pageId)}</div>
       <form class="chat-form" data-chat-form="${pageId}">
         <button type="button" class="btn ghost icon" title="Прикрепить файл">${ic('clip')}</button>
         <input class="chat-in" placeholder="Сообщение участникам…" autocomplete="off">
@@ -316,8 +323,8 @@ const CHAT = {
     st.msgs.push({ who: ME.id, t: nowTime(), text });
     if (!st.replied && REPLIES[pageId]) {
       st.replied = true; st.typing = true;
-      setTimeout(() => { st.typing = false; st.msgs.push({ who: REPLIES[pageId].who, t: nowTime(), text: REPLIES[pageId].text.replace(/^[^:]+:\s*/, '') }); App.renderChat(st.msgs.length - 1); }, 2400);
+      setTimeout(() => { st.typing = false; st.msgs.push({ who: REPLIES[pageId].who, t: nowTime(), text: REPLIES[pageId].text.replace(/^[^:]+:\s*/, '') }); this.refresh(pageId, st.msgs.length - 1); }, 2400);
     }
-    App.renderChat(st.msgs.length - 1);
+    this.refresh(pageId, st.msgs.length - 1);
   },
 };

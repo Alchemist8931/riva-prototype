@@ -43,7 +43,8 @@ const App = {
       this.el.grid.scrollTo({ top: 0, behavior: 'instant' });   // у сетки scroll-behavior: smooth, сброс должен быть мгновенным
     };
     XP.closeAll();
-    this.transition('vt-nav', render, this.started && next !== this.state.page);
+    // строго boolean: undefined на первом вызове включал бы значение по умолчанию (true) — переход срабатывал при загрузке
+    this.transition('vt-nav', render, !!(this.started && next !== this.state.page));
     this.started = true;
   },
 
@@ -95,7 +96,7 @@ const App = {
     const primary = { supply: 'Заявка', staff: 'Сотрудник' }[pg.id] || 'Запись';
     const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
     this.el.topbar.innerHTML = `
-      <div class="tb-ic">${ic(pg.icon)}</div>
+      <div class="tb-ic">${glassIcon(pg.icon, themeVar())}</div>
       <div><div class="tb-title">${pg.name}</div><div class="tb-sub">${pg.sub}</div></div>
       <div style="width:6px"></div>
       ${xp({ id: 'company', head: `<button class="btn ghost" title="Предприятие">${ic('building', 'sm')}${COMPANY.name}${ic('down', 'sm')}</button>`, panel: this.companyPanel(), place: 'below' })}
@@ -122,10 +123,10 @@ const App = {
     XP.calmUntilDone(calm, g);
   },
 
-  /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом; from — см. CHAT.render */
-  renderChat(from = 0) {
+  /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом; при отправке панель не пересобирается (CHAT.refresh) */
+  renderChat() {
     const pg = this.page();
-    this.el.chatcol.innerHTML = `<div class="xp-panel chat-pop">${CHAT.render(pg.id, from)}</div>`;
+    this.el.chatcol.innerHTML = `<div class="xp-panel chat-pop">${CHAT.render(pg.id)}</div>`;
     this.chatToEnd();
   },
   chatToEnd() { const m = document.getElementById('chat-msgs'); if (m) m.scrollTo({ top: m.scrollHeight, behavior: 'instant' }); },
@@ -309,8 +310,9 @@ const App = {
     const f = e.target.closest('[data-chat-form]'); if (!f) return;
     e.preventDefault();
     const inp = f.querySelector('input'), text = inp.value.trim(); if (!text) return;
+    inp.value = '';
     CHAT.send(f.dataset.chatForm, text);
-    document.querySelector('.chat-in')?.focus();
+    inp.focus();
   },
 
   /* загрузка файлов в карточку заказа: имена добавляются в список заявки */

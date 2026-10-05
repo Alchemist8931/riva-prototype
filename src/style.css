@@ -177,7 +177,9 @@ svg.i.xs { width: 11px; height: 11px; }
 [data-tip]:hover::before { content: ""; position: absolute; left: calc(100% + 6px); top: 50%; transform: translateY(-50%); border: 4px solid transparent; border-right-color: var(--fg); z-index: 80; pointer-events: none; }
 
 /* верхняя полоса страницы */
-.topbar { height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); flex: none; }
+/* линия снизу — внутренней тенью, не рамкой: содержимое 48px, плитки 28px встают на целые пиксели (с рамкой было 47px и сдвиг 9,5px) */
+.topbar { height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 8px; box-shadow: inset 0 -1px 0 var(--line); flex: none; }
+/* плитка 28px с иконкой 20px: иконка на сетке 4px (88/40 от края окна) — целые пиксели устройства при масштабе 125/150/175/200 % */
 .tb-ic { width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; color: var(--surface-2); }
 .tb-title { font-size: 14px; font-weight: 600; letter-spacing: -.01em; line-height: 1.15; }
 .tb-sub { color: var(--mute); font-size: 11px; }
@@ -247,7 +249,7 @@ svg.i.xs { width: 11px; height: 11px; }
 /* тик-прогресс (образец -49) */
 .ticks { display: inline-flex; gap: 2px; align-items: center; }
 .ticks i { display: block; width: 3px; height: 10px; border-radius: 1.5px; background: var(--line-2); }
-.ticks i.on { background: var(--ok); transform-origin: bottom; animation: tick .35s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--j, 0) * 18ms); }
+.ticks i.on { background: var(--ok); transform-origin: bottom; animation: tick .35s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: calc(var(--j, 0) * 18ms); }
 @keyframes tick { from { transform: scaleY(.2); opacity: .3; } to { transform: none; opacity: 1; } }
 .ticks.fg i.on { background: var(--fg); }
 .ticks.sm { gap: 2px; } .ticks.sm i { width: 2px; height: 9px; }
@@ -350,7 +352,7 @@ svg.i.xs { width: 11px; height: 11px; }
 /* чат страницы */
 .chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .chat-head { display: flex; align-items: center; gap: 7px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
-.chat-msgs { flex: 1; min-height: 0; overflow: auto; padding: 8px 2px; display: flex; flex-direction: column; gap: 8px; }
+.chat-msgs { flex: 1; min-height: 0; overflow: auto; scrollbar-gutter: stable; padding: 8px 2px; display: flex; flex-direction: column; gap: 8px; }   /* место под полосу зарезервировано: появление полосы не меняет ширину пузырей */
 .msg { display: flex; gap: 7px; align-items: flex-end; }
 .msg .av { margin-bottom: 2px; }
 .msg-b { max-width: 82%; }
@@ -441,7 +443,9 @@ svg.i.xs { width: 11px; height: 11px; }
 
 /* ---------- появление элементов (каскадом) и переходы между страницами ---------- */
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.ani { animation: rise .38s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--d, 0ms) + var(--i, 0) * 26ms); }
+/* fill-mode backwards, не both: анимация с заполнением вперёд навсегда оставляет элемент контекстом наложения (Chromium),
+   и раскрытие внутри модуля (z-index 60) не могло подняться над вуалью (50) — вуаль накрывала раскрытую запись */
+.ani { animation: rise .38s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: calc(var(--d, 0ms) + var(--i, 0) * 26ms); }
 /* сообщения чата: сжатие внутри своей рамки, а не сдвиг — список прокручен к концу, сдвиг удлинял бы прокрутку и в конце возвращал её скачком */
 @keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 .chat-msgs .msg.ani { --d: 90ms; animation-name: pop; animation-duration: .3s; transform-origin: left bottom; }
@@ -449,6 +453,10 @@ svg.i.xs { width: 11px; height: 11px; }
 /* View Transitions: страница уезжает и въезжает, белая плитка активного раздела переезжает по колонке */
 html.vt-nav #grid { view-transition-name: page; }
 html.vt-nav .dk-item.active { view-transition-name: nav; }
+/* иконка страницы в шапке: своя группа, старая не показывается, новая без анимации — мгновенная смена на своём месте, без наложения двух фигур */
+html.vt-nav .tb-ic { view-transition-name: tbic; }
+::view-transition-old(tbic) { display: none; }
+::view-transition-new(tbic) { animation: none; }
 ::view-transition-group(page) { animation-duration: .32s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
 ::view-transition-old(page) { animation: vt-out .16s ease-in both; }
 ::view-transition-new(page) { animation: vt-in .32s cubic-bezier(.2, .8, .2, 1) both; }
