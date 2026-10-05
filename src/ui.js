@@ -202,27 +202,70 @@ const XP = {
     window.addEventListener('resize', () => { if (this.open) this.focus(); });
   },
   toggle(el) { this.stack.includes(el) ? this.closeTo(el) : this.show(el); },
+  panelOf(el) { return el.querySelector(':scope > .xp-panel'); },
   show(el) {
     if (this.open && !this.open.contains(el)) this.closeAll();
-    clearTimeout(el._closing); el.classList.remove('closing');
+    el._closeToken = null; el.classList.remove('closing');
     this.stack.push(el); el.classList.add('open');
-    el.querySelector('.xp-panel').scrollIntoView({ block: 'nearest' });
+    const panel = this.panelOf(el);
+    this.reveal(panel);
+    this.calmUntilDone(this.calm(panel), panel);
     this.focus();
   },
-  /* закрывает верхний раскрытый элемент (с анимацией ухода); вуаль переходит к нижележащему или гаснет */
+  /* закрывает верхний раскрытый элемент: панель прячется по завершению анимации ухода, не по таймеру; вуаль переходит к нижележащему или гаснет */
   close() {
     const el = this.stack.pop(); if (!el) return;
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) el.classList.remove('open');
-    else { el.classList.add('closing'); el._closing = setTimeout(() => el.classList.remove('open', 'closing'), 180); }
+    const token = el._closeToken = {};
+    const finish = () => { if (el._closeToken === token) el.classList.remove('open', 'closing'); };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) finish();
+    else {
+      el.classList.add('closing');
+      const anims = this.panelOf(el).getAnimations();
+      if (!anims.length) finish(); else { Promise.allSettled(anims.map(a => a.finished)).then(finish); setTimeout(finish, 600); }
+    }
     if (this.open) this.focus(); else this.veil.classList.remove('on');
   },
   closeAll() { while (this.stack.length) this.close(); },
   closeTo(el) { while (this.stack.length && this.open !== el) this.close(); this.close(); },
-  /* маска: полный блюр у границ раскрытой панели, затухание с удалением */
+  /* прямоугольник элемента по раскладке, без transform: на первых кадрах анимация появления сдвигает элемент, и getBoundingClientRect врёт */
+  layoutRect(el) {
+    let x = 0, y = 0;
+    for (let n = el; n && n !== this.frame; n = n.offsetParent) { x += n.offsetLeft; y += n.offsetTop; const p = n.offsetParent; if (p && p !== this.frame) { x += p.clientLeft; y += p.clientTop; } }
+    for (let n = el.parentElement; n && n !== this.frame; n = n.parentElement) { x -= n.scrollLeft; y -= n.scrollTop; }
+    const fr = this.frame.getBoundingClientRect();
+    return { left: fr.left + x, top: fr.top + y, width: el.offsetWidth, height: el.offsetHeight };
+  },
+  /* показать панель в ближайшем прокручиваемом контейнере (overflow auto/scroll); контейнеры с clip/hidden не трогаем —
+     scrollIntoView прокручивал бы и их, сдвигая всю страницу */
+  reveal(panel) {
+    let sc = panel.parentElement;
+    while (sc && sc !== document.body && !/auto|scroll/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
+    if (!sc || sc === document.body) return;
+    const r = this.layoutRect(panel), c = sc.getBoundingClientRect(), pad = 8, h = sc.clientHeight;
+    const top = r.top - (c.top + sc.clientTop), bottom = top + r.height;
+    let dy = 0;
+    if (bottom > h - pad) dy = bottom - (h - pad);
+    if (top - dy < pad) dy = top - pad;
+    if (Math.abs(dy) > .5) sc.scrollBy({ top: dy, behavior: 'smooth' });
+  },
+  /* контейнеры внутри root, которым прокрутка в покое не нужна (мерить до каскада!) */
+  calm(root) {
+    const sel = '.grid, .sup-list, .chat-msgs';
+    return [...(root.matches(sel) ? [root] : []), ...root.querySelectorAll(sel)].filter(c => c.scrollHeight <= c.clientHeight);
+  },
+  /* на время анимаций появления внутри root таким контейнерам прячем полосу прокрутки: сдвиг элементов на 8px включал её, а в конце выключал — контент дёргался на её ширину */
+  calmUntilDone(list, root) {
+    if (!list.length) return;
+    list.forEach(c => c.style.overflow = 'hidden');
+    const anims = root.getAnimations({ subtree: true }).filter(a => a.effect.getTiming().iterations !== Infinity);
+    const done = () => list.forEach(c => c.style.overflow = '');
+    Promise.allSettled(anims.map(a => a.finished)).then(done);
+    setTimeout(done, 3000);   // страховка (скрытая вкладка): иначе ждём именно завершения анимаций
+  },
+  /* маска: полный блюр у границ раскрытой панели, затухание с удалением; геометрия по раскладке */
   focus() {
-    const panel = this.open.querySelector('.xp-panel');
-    const fr = this.frame.getBoundingClientRect(), r = panel.getBoundingClientRect();
+    const panel = this.panelOf(this.open);
+    const fr = this.frame.getBoundingClientRect(), r = this.layoutRect(panel);
     const cx = r.left + r.width / 2 - fr.left, cy = r.top + r.height / 2 - fr.top;
     const rx = r.width / 2 + 320, ry = r.height / 2 + 260;
     const g = `radial-gradient(ellipse ${rx}px ${ry}px at ${cx}px ${cy}px, #000 34%, rgba(0,0,0,.6) 60%, transparent 100%)`;
@@ -239,12 +282,13 @@ const CHAT = {
     return this.state[pageId];
   },
   members(pageId) { return STAFF.filter(s => ROLES[s.role].pages[pageId]); },
-  render(pageId) {
+  /* from — с какого сообщения анимировать появление: при открытии чата каскадом идут все, после отправки — только новое */
+  render(pageId, from = 0) {
     const page = PAGES.find(p => p.id === pageId);
     const st = this.get(pageId), members = this.members(pageId), online = members.filter(m => m.on);
     const msgs = st.msgs.map((m, i) => {
       const p = BY_ID[m.who], me = p.me;
-      return `<div class="msg ani ${me ? 'me' : ''}" style="--i:${Math.min(i, 12)}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
+      return `<div class="msg ${i >= from ? 'ani' : ''} ${me ? 'me' : ''}" style="--i:${Math.min(Math.max(i - from, 0), 12)}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
     }).join('');
     const membersPanel = `<div class="ph"><span class="t">Участники чата</span><span class="mute small">${members.length} · доступ к странице «${page.name}»</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
       <div class="pb" style="max-height:320px;overflow:auto;display:flex;flex-direction:column;gap:6px">${members.map(m => `<div class="row">${av(m)}<div class="grow"><div class="ellip" style="font-weight:500">${m.name}</div><div class="mute xsmall ellip">${m.pos} · ${ROLES[m.role].pages[pageId] === 'full' ? 'работа' : 'просмотр'}</div></div>${chipDirs(m.dirs === 'all' ? 'all' : m.dirs)}</div>`).join('')}</div>`;
@@ -272,8 +316,8 @@ const CHAT = {
     st.msgs.push({ who: ME.id, t: nowTime(), text });
     if (!st.replied && REPLIES[pageId]) {
       st.replied = true; st.typing = true;
-      setTimeout(() => { st.typing = false; st.msgs.push({ who: REPLIES[pageId].who, t: nowTime(), text: REPLIES[pageId].text.replace(/^[^:]+:\s*/, '') }); App.renderChat(); }, 2400);
+      setTimeout(() => { st.typing = false; st.msgs.push({ who: REPLIES[pageId].who, t: nowTime(), text: REPLIES[pageId].text.replace(/^[^:]+:\s*/, '') }); App.renderChat(st.msgs.length - 1); }, 2400);
     }
-    App.renderChat();
+    App.renderChat(st.msgs.length - 1);
   },
 };

@@ -40,7 +40,7 @@ const App = {
       this.state.page = next;
       this.state.q = ''; this.state.dept = null; this.state.all = false;
       this.renderSide(); this.renderTopbar(); this.renderGrid(true); this.renderChat();
-      this.el.grid.scrollTop = 0;
+      this.el.grid.scrollTo({ top: 0, behavior: 'instant' });   // у сетки scroll-behavior: smooth, сброс должен быть мгновенным
     };
     XP.closeAll();
     this.transition('vt-nav', render, this.started && next !== this.state.page);
@@ -54,7 +54,7 @@ const App = {
     html.classList.add(cls);
     const done = () => html.classList.remove(cls);
     try { document.startViewTransition(render).finished.finally(done); } catch (e) { render(); done(); return; }
-    setTimeout(done, 1200);   // страховка: если переход не завершился (скрытая вкладка), снять класс всё равно
+    setTimeout(done, 5000);   // страховка на случай, если finished так и не разрешится; раньше снимать нельзя — на медленной машине снимок ещё не сделан
   },
 
   /* ---------- боковая колонка: стеклянные иконки страниц, подписи всплывают ---------- */
@@ -116,17 +116,19 @@ const App = {
 
   /* каскад появления: модули — по порядку, строки внутри — следом */
   animateIn() {
-    const g = this.el.grid;
+    const g = this.el.grid, calm = XP.calm(g);   // мерить до каскада: сдвиг элементов на 8px сам включает полосу прокрутки
     [...g.querySelectorAll(':scope > .mod, :scope > .span-4 > .mod')].forEach((m, i) => { m.classList.add('ani'); m.style.setProperty('--i', Math.min(i, 8)); });
     g.querySelectorAll('.recs, .tbl').forEach(list => [...list.children].forEach((r, i) => { if (r.classList.contains('th')) return; r.classList.add('ani'); r.style.setProperty('--d', '100ms'); r.style.setProperty('--i', Math.min(i, 14)); }));
+    XP.calmUntilDone(calm, g);
   },
 
-  /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом */
-  renderChat() {
+  /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом; from — см. CHAT.render */
+  renderChat(from = 0) {
     const pg = this.page();
-    this.el.chatcol.innerHTML = `<div class="xp-panel chat-pop">${CHAT.render(pg.id)}</div>`;
-    const m = document.getElementById('chat-msgs'); if (m) m.scrollTop = m.scrollHeight;
+    this.el.chatcol.innerHTML = `<div class="xp-panel chat-pop">${CHAT.render(pg.id, from)}</div>`;
+    this.chatToEnd();
   },
+  chatToEnd() { const m = document.getElementById('chat-msgs'); if (m) m.scrollTo({ top: m.scrollHeight, behavior: 'instant' }); },
 
   /* ---------- Снабжение: один список с прокруткой, карточка заказа раскрывается под строкой ---------- */
   supply() {
@@ -290,7 +292,7 @@ const App = {
       });
       return;
     }
-    if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); return; }
+    if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); if (XP.stack.includes(this.el.chatcol)) this.chatToEnd(); return; }
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');
     if (dirBtn) { this.state.dir = dirBtn.dataset.dir; XP.close(); this.renderTopbar(); this.renderGrid(); return; }

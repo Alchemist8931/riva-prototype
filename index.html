@@ -87,7 +87,7 @@
   --bad-bg: rgba(240, 106, 106, .14);
   --veil: rgba(0, 0, 0, .38);
   --shadow: 0 12px 30px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .5);
-  --frame-shadow: 0 30px 80px rgba(0, 0, 0, .8), 0 0 0 7px #262626;
+  --frame-shadow: 0 30px 80px rgba(0, 0, 0, .8), 0 0 0 1px #262626;
   --logo-bg: #ffffff;
   --logo-fg: #111111;
 }
@@ -131,23 +131,39 @@ svg.i.xs { width: 11px; height: 11px; }
 
 /* ---------- оболочка: рамка 20px от края, контент 6px сверху/справа/снизу ---------- */
 .frame {
+  --side-w: 52px; --gap: 6px;
   position: fixed; inset: 20px;
   background: transparent;
   border-radius: 18px;
-  display: grid; grid-template-columns: 52px minmax(0, 1fr);
+  box-shadow: var(--frame-shadow);
+  display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr);
   color: var(--fg);
+}
+/* чёрное окно — один слой с прямоугольным вырезом под панель страницы (углы выреза закрывает кольцо панели):
+   стекло панели видит сквозь вырез фон окна, а не чёрный; слева кольцо сливается с колонкой меню без зазоров */
+.frame::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--frame);
+  -webkit-mask: linear-gradient(#000 0 0) var(--side-w) var(--gap) / calc(100% - var(--side-w) - var(--gap)) calc(100% - 2 * var(--gap)) no-repeat, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) var(--side-w) var(--gap) / calc(100% - var(--side-w) - var(--gap)) calc(100% - 2 * var(--gap)) no-repeat, linear-gradient(#000 0 0);
+  mask-composite: exclude;
 }
 /* панель страницы: почти прозрачное стекло поверх фона окна; чёрное кольцо 6px рисует box-shadow */
 .content {
   position: relative;
-  margin: 6px 6px 6px 0;
+  margin: var(--gap) var(--gap) var(--gap) 0;
   background: transparent;
   border-radius: 13px;
-  box-shadow: 0 0 0 6px var(--frame), var(--frame-shadow);
+  box-shadow: 0 0 0 var(--gap) var(--frame);
   display: flex; flex-direction: column; min-height: 0; min-width: 0;
-  overflow: hidden;
+  overflow: clip;   /* обрезает, но не прокручивается: ни scrollIntoView, ни анимации не сдвинут содержимое */
 }
-.content::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+/* стекло ниже чёрного слоя окна (z -2 и -1 в контексте .frame): размытие берёт только фон окна */
+.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+@supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .frame { background: var(--frame); }
+  .frame::before { display: none; }
+}
 
 /* боковая колонка: иконки 20px в плитках 32px, отступы 10px, подписи всплывают справа */
 .side { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px 0; min-height: 0; background: var(--frame); border-radius: 18px 0 0 18px; }
@@ -155,7 +171,8 @@ svg.i.xs { width: 11px; height: 11px; }
 .dock { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .dk-item { position: relative; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: var(--frame); opacity: .55; text-decoration: none; transition: opacity .15s, background .15s; }
 .dk-item { transition: opacity .15s ease, background .2s ease, transform .18s cubic-bezier(.2, .8, .2, 1); }
-.dk-item:hover { opacity: 1; transform: translateY(-1px); }
+.dk-item:hover { opacity: 1; }
+.dk-item:not(.active):hover { transform: translateY(-1px); }   /* активная плитка без подъёма: её снимок переезжает в View Transition и в конце должен совпасть с покоем */
 .dk-item.active { opacity: 1; background: #fff; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
 .dk-item .n { position: absolute; top: -4px; right: -4px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px; background: #fff; color: #111; font-size: 9px; font-weight: 700; display: grid; place-items: center; border: 2px solid var(--frame); font-variant-numeric: tabular-nums; line-height: 1; }
 .dk-item.active .n { background: #111; color: #fff; border-color: #fff; }
@@ -382,8 +399,9 @@ svg.i.xs { width: 11px; height: 11px; }
 .xp-panel.tasks-panel { left: auto; right: -6px; width: max(calc(100% + 12px), 320px); }
 @keyframes xp-in { from { opacity: 0; transform: translateY(-6px) scale(.985); } to { opacity: 1; transform: none; } }
 @keyframes xp-out { to { opacity: 0; transform: translateY(-4px) scale(.99); } }
-@keyframes chat-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
-@keyframes chat-out { to { opacity: 0; transform: translateX(12px); } }
+/* сдвиг не больше отступа панели от края (10px): панель ни на одном кадре не выходит за край окна страницы */
+@keyframes chat-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@keyframes chat-out { to { opacity: 0; transform: translateX(10px); } }
 .veil {
   position: absolute; inset: 0; border-radius: inherit; z-index: 50;
   background: var(--veil);
@@ -436,10 +454,14 @@ svg.i.xs { width: 11px; height: 11px; }
 /* ---------- появление элементов (каскадом) и переходы между страницами ---------- */
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .ani { animation: rise .38s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--d, 0ms) + var(--i, 0) * 26ms); }
-.chat-msgs .msg.ani { --d: 90ms; animation-duration: .3s; }
+/* сообщения чата: сжатие внутри своей рамки, а не сдвиг — список прокручен к концу, сдвиг удлинял бы прокрутку и в конце возвращал её скачком */
+@keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+.chat-msgs .msg.ani { --d: 90ms; animation-name: pop; animation-duration: .3s; transform-origin: left bottom; }
+.chat-msgs .msg.me.ani { transform-origin: right bottom; }
 /* View Transitions: страница уезжает и въезжает, белая плитка активного раздела переезжает по колонке */
 html.vt-nav #grid { view-transition-name: page; }
 html.vt-nav .dk-item.active { view-transition-name: nav; }
+::view-transition-group(page) { animation-duration: .32s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
 ::view-transition-old(page) { animation: vt-out .16s ease-in both; }
 ::view-transition-new(page) { animation: vt-in .32s cubic-bezier(.2, .8, .2, 1) both; }
 ::view-transition-group(nav) { animation-duration: .36s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
@@ -834,27 +856,70 @@ const XP = {
     window.addEventListener('resize', () => { if (this.open) this.focus(); });
   },
   toggle(el) { this.stack.includes(el) ? this.closeTo(el) : this.show(el); },
+  panelOf(el) { return el.querySelector(':scope > .xp-panel'); },
   show(el) {
     if (this.open && !this.open.contains(el)) this.closeAll();
-    clearTimeout(el._closing); el.classList.remove('closing');
+    el._closeToken = null; el.classList.remove('closing');
     this.stack.push(el); el.classList.add('open');
-    el.querySelector('.xp-panel').scrollIntoView({ block: 'nearest' });
+    const panel = this.panelOf(el);
+    this.reveal(panel);
+    this.calmUntilDone(this.calm(panel), panel);
     this.focus();
   },
-  /* закрывает верхний раскрытый элемент (с анимацией ухода); вуаль переходит к нижележащему или гаснет */
+  /* закрывает верхний раскрытый элемент: панель прячется по завершению анимации ухода, не по таймеру; вуаль переходит к нижележащему или гаснет */
   close() {
     const el = this.stack.pop(); if (!el) return;
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) el.classList.remove('open');
-    else { el.classList.add('closing'); el._closing = setTimeout(() => el.classList.remove('open', 'closing'), 180); }
+    const token = el._closeToken = {};
+    const finish = () => { if (el._closeToken === token) el.classList.remove('open', 'closing'); };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) finish();
+    else {
+      el.classList.add('closing');
+      const anims = this.panelOf(el).getAnimations();
+      if (!anims.length) finish(); else { Promise.allSettled(anims.map(a => a.finished)).then(finish); setTimeout(finish, 600); }
+    }
     if (this.open) this.focus(); else this.veil.classList.remove('on');
   },
   closeAll() { while (this.stack.length) this.close(); },
   closeTo(el) { while (this.stack.length && this.open !== el) this.close(); this.close(); },
-  /* маска: полный блюр у границ раскрытой панели, затухание с удалением */
+  /* прямоугольник элемента по раскладке, без transform: на первых кадрах анимация появления сдвигает элемент, и getBoundingClientRect врёт */
+  layoutRect(el) {
+    let x = 0, y = 0;
+    for (let n = el; n && n !== this.frame; n = n.offsetParent) { x += n.offsetLeft; y += n.offsetTop; const p = n.offsetParent; if (p && p !== this.frame) { x += p.clientLeft; y += p.clientTop; } }
+    for (let n = el.parentElement; n && n !== this.frame; n = n.parentElement) { x -= n.scrollLeft; y -= n.scrollTop; }
+    const fr = this.frame.getBoundingClientRect();
+    return { left: fr.left + x, top: fr.top + y, width: el.offsetWidth, height: el.offsetHeight };
+  },
+  /* показать панель в ближайшем прокручиваемом контейнере (overflow auto/scroll); контейнеры с clip/hidden не трогаем —
+     scrollIntoView прокручивал бы и их, сдвигая всю страницу */
+  reveal(panel) {
+    let sc = panel.parentElement;
+    while (sc && sc !== document.body && !/auto|scroll/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
+    if (!sc || sc === document.body) return;
+    const r = this.layoutRect(panel), c = sc.getBoundingClientRect(), pad = 8, h = sc.clientHeight;
+    const top = r.top - (c.top + sc.clientTop), bottom = top + r.height;
+    let dy = 0;
+    if (bottom > h - pad) dy = bottom - (h - pad);
+    if (top - dy < pad) dy = top - pad;
+    if (Math.abs(dy) > .5) sc.scrollBy({ top: dy, behavior: 'smooth' });
+  },
+  /* контейнеры внутри root, которым прокрутка в покое не нужна (мерить до каскада!) */
+  calm(root) {
+    const sel = '.grid, .sup-list, .chat-msgs';
+    return [...(root.matches(sel) ? [root] : []), ...root.querySelectorAll(sel)].filter(c => c.scrollHeight <= c.clientHeight);
+  },
+  /* на время анимаций появления внутри root таким контейнерам прячем полосу прокрутки: сдвиг элементов на 8px включал её, а в конце выключал — контент дёргался на её ширину */
+  calmUntilDone(list, root) {
+    if (!list.length) return;
+    list.forEach(c => c.style.overflow = 'hidden');
+    const anims = root.getAnimations({ subtree: true }).filter(a => a.effect.getTiming().iterations !== Infinity);
+    const done = () => list.forEach(c => c.style.overflow = '');
+    Promise.allSettled(anims.map(a => a.finished)).then(done);
+    setTimeout(done, 3000);   // страховка (скрытая вкладка): иначе ждём именно завершения анимаций
+  },
+  /* маска: полный блюр у границ раскрытой панели, затухание с удалением; геометрия по раскладке */
   focus() {
-    const panel = this.open.querySelector('.xp-panel');
-    const fr = this.frame.getBoundingClientRect(), r = panel.getBoundingClientRect();
+    const panel = this.panelOf(this.open);
+    const fr = this.frame.getBoundingClientRect(), r = this.layoutRect(panel);
     const cx = r.left + r.width / 2 - fr.left, cy = r.top + r.height / 2 - fr.top;
     const rx = r.width / 2 + 320, ry = r.height / 2 + 260;
     const g = `radial-gradient(ellipse ${rx}px ${ry}px at ${cx}px ${cy}px, #000 34%, rgba(0,0,0,.6) 60%, transparent 100%)`;
@@ -871,12 +936,13 @@ const CHAT = {
     return this.state[pageId];
   },
   members(pageId) { return STAFF.filter(s => ROLES[s.role].pages[pageId]); },
-  render(pageId) {
+  /* from — с какого сообщения анимировать появление: при открытии чата каскадом идут все, после отправки — только новое */
+  render(pageId, from = 0) {
     const page = PAGES.find(p => p.id === pageId);
     const st = this.get(pageId), members = this.members(pageId), online = members.filter(m => m.on);
     const msgs = st.msgs.map((m, i) => {
       const p = BY_ID[m.who], me = p.me;
-      return `<div class="msg ani ${me ? 'me' : ''}" style="--i:${Math.min(i, 12)}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
+      return `<div class="msg ${i >= from ? 'ani' : ''} ${me ? 'me' : ''}" style="--i:${Math.min(Math.max(i - from, 0), 12)}">${me ? '' : av(p)}<div class="msg-b"><div class="msg-meta"><span>${me ? 'Вы' : shortName(p.name)}</span><span>${m.t}</span></div><div class="msg-t">${esc(m.text)}</div></div></div>`;
     }).join('');
     const membersPanel = `<div class="ph"><span class="t">Участники чата</span><span class="mute small">${members.length} · доступ к странице «${page.name}»</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
       <div class="pb" style="max-height:320px;overflow:auto;display:flex;flex-direction:column;gap:6px">${members.map(m => `<div class="row">${av(m)}<div class="grow"><div class="ellip" style="font-weight:500">${m.name}</div><div class="mute xsmall ellip">${m.pos} · ${ROLES[m.role].pages[pageId] === 'full' ? 'работа' : 'просмотр'}</div></div>${chipDirs(m.dirs === 'all' ? 'all' : m.dirs)}</div>`).join('')}</div>`;
@@ -904,9 +970,9 @@ const CHAT = {
     st.msgs.push({ who: ME.id, t: nowTime(), text });
     if (!st.replied && REPLIES[pageId]) {
       st.replied = true; st.typing = true;
-      setTimeout(() => { st.typing = false; st.msgs.push({ who: REPLIES[pageId].who, t: nowTime(), text: REPLIES[pageId].text.replace(/^[^:]+:\s*/, '') }); App.renderChat(); }, 2400);
+      setTimeout(() => { st.typing = false; st.msgs.push({ who: REPLIES[pageId].who, t: nowTime(), text: REPLIES[pageId].text.replace(/^[^:]+:\s*/, '') }); App.renderChat(st.msgs.length - 1); }, 2400);
     }
-    App.renderChat();
+    App.renderChat(st.msgs.length - 1);
   },
 };
 
@@ -952,7 +1018,7 @@ const App = {
       this.state.page = next;
       this.state.q = ''; this.state.dept = null; this.state.all = false;
       this.renderSide(); this.renderTopbar(); this.renderGrid(true); this.renderChat();
-      this.el.grid.scrollTop = 0;
+      this.el.grid.scrollTo({ top: 0, behavior: 'instant' });   // у сетки scroll-behavior: smooth, сброс должен быть мгновенным
     };
     XP.closeAll();
     this.transition('vt-nav', render, this.started && next !== this.state.page);
@@ -966,7 +1032,7 @@ const App = {
     html.classList.add(cls);
     const done = () => html.classList.remove(cls);
     try { document.startViewTransition(render).finished.finally(done); } catch (e) { render(); done(); return; }
-    setTimeout(done, 1200);   // страховка: если переход не завершился (скрытая вкладка), снять класс всё равно
+    setTimeout(done, 5000);   // страховка на случай, если finished так и не разрешится; раньше снимать нельзя — на медленной машине снимок ещё не сделан
   },
 
   /* ---------- боковая колонка: стеклянные иконки страниц, подписи всплывают ---------- */
@@ -1028,17 +1094,19 @@ const App = {
 
   /* каскад появления: модули — по порядку, строки внутри — следом */
   animateIn() {
-    const g = this.el.grid;
+    const g = this.el.grid, calm = XP.calm(g);   // мерить до каскада: сдвиг элементов на 8px сам включает полосу прокрутки
     [...g.querySelectorAll(':scope > .mod, :scope > .span-4 > .mod')].forEach((m, i) => { m.classList.add('ani'); m.style.setProperty('--i', Math.min(i, 8)); });
     g.querySelectorAll('.recs, .tbl').forEach(list => [...list.children].forEach((r, i) => { if (r.classList.contains('th')) return; r.classList.add('ani'); r.style.setProperty('--d', '100ms'); r.style.setProperty('--i', Math.min(i, 14)); }));
+    XP.calmUntilDone(calm, g);
   },
 
-  /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом */
-  renderChat() {
+  /* чат открывается кнопкой «Чат» в шапке и раскрывается поверх контента справа с блюр-фокусом; from — см. CHAT.render */
+  renderChat(from = 0) {
     const pg = this.page();
-    this.el.chatcol.innerHTML = `<div class="xp-panel chat-pop">${CHAT.render(pg.id)}</div>`;
-    const m = document.getElementById('chat-msgs'); if (m) m.scrollTop = m.scrollHeight;
+    this.el.chatcol.innerHTML = `<div class="xp-panel chat-pop">${CHAT.render(pg.id, from)}</div>`;
+    this.chatToEnd();
   },
+  chatToEnd() { const m = document.getElementById('chat-msgs'); if (m) m.scrollTo({ top: m.scrollHeight, behavior: 'instant' }); },
 
   /* ---------- Снабжение: один список с прокруткой, карточка заказа раскрывается под строкой ---------- */
   supply() {
@@ -1202,7 +1270,7 @@ const App = {
       });
       return;
     }
-    if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); return; }
+    if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); if (XP.stack.includes(this.el.chatcol)) this.chatToEnd(); return; }
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');
     if (dirBtn) { this.state.dir = dirBtn.dataset.dir; XP.close(); this.renderTopbar(); this.renderGrid(); return; }
