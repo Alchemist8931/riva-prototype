@@ -11,14 +11,15 @@ const todayShort = () => new Date().toLocaleDateString('ru-RU');
 
 const App = {
   state: {
-    page: 'supply', dir: 'all', dept: null, q: '',
+    page: 'supply', dir: 'all', dept: null, q: '', company: 'bereg',
     theme: localStorage.getItem('riva.theme') || 'light',
   },
   el: {},
-  seen: {},   // страницы, уже показанные с каскадом появления
+  seen: {},     // страницы, уже показанные с каскадом появления
+  pending: [],  // файлы, прикреплённые в форме новой заявки до её создания
 
   init() {
-    this.el = { side: document.getElementById('side'), topbar: document.getElementById('topbar'), grid: document.getElementById('grid'), chatcol: document.getElementById('chatcol') };
+    this.el = { side: document.getElementById('side'), topbar: document.getElementById('topbar'), grid: document.getElementById('grid'), chatcol: document.getElementById('chatcol'), notifcol: document.getElementById('notifcol') };
     document.documentElement.dataset.theme = this.state.theme;
     XP.init();
     window.addEventListener('hashchange', () => this.route());
@@ -39,9 +40,9 @@ const App = {
     const next = PAGES.some(p => p.id === id) ? id : 'supply';
     const render = () => {
       this.state.page = next;
-      this.state.q = ''; this.state.dept = null; this.state.all = false;
+      this.state.q = ''; this.state.dept = null; this.state.all = false; this.pending = [];
       // каскад появления — только при первом показе страницы; дальше страницы сменяются перекрёстным затуханием без перерисовки каскадом
-      this.renderSide(); this.renderTopbar(); this.renderGrid(!this.seen[next]); this.seen[next] = true; this.renderChat();
+      this.renderSide(); this.renderTopbar(); this.renderGrid(!this.seen[next]); this.seen[next] = true; this.renderChat(); this.renderNotifs();
       this.el.grid.scrollTo({ top: 0, behavior: 'instant' });   // у сетки scroll-behavior: smooth, сброс должен быть мгновенным
     };
     XP.closeAll();
@@ -61,18 +62,6 @@ const App = {
   },
 
   /* ---------- боковая колонка: стеклянные иконки страниц, подписи всплывают ---------- */
-  companyPanel() {
-    return `<div class="ph"><span class="t">${COMPANY.name}</span><span class="mute small">структура предприятия</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${ic('x', 'sm')}</button></div>
-      <div class="pb" style="display:grid;gap:7px;width:310px">
-        ${DIRS.map(d => {
-          const n = STAFF.filter(p => Array.isArray(p.dirs) && p.dirs.includes(d.id)).length;
-          return `<div class="tile"><div class="row between"><span class="t">${d.name}</span><span class="mute xsmall">${n} чел.</span></div>
-            <div class="row small mute" style="margin-top:4px;gap:6px">${ic('wh', 'xs')}${DEPTS[2].names[d.id]} <span>·</span> ${ic('factory', 'xs')}${DEPTS[3].names[d.id]} <span>·</span> ${ic('tag', 'xs')}${DEPTS[4].names[d.id].replace('Продажи · ', 'продажи ')}</div></div>`;
-        }).join('')}
-        <div class="tile" style="background:repeating-linear-gradient(135deg,var(--surface-2) 0 10px,var(--surface-3) 10px 11px)"><div class="t">Общие службы на все направления</div><div class="small mute" style="margin-top:3px">Руководство · Логистика · Финансы · Клиентский сервис · Кадры · ${STAFF.filter(p => p.dirs === 'all').length} чел.</div></div>
-      </div>`;
-  },
-
   renderSide() {
     const s = this.state, dark = s.theme === 'dark';
     this.el.side.innerHTML = `
@@ -84,30 +73,113 @@ const App = {
       </div>`;
   },
 
-  /* ---------- верхняя полоса: заголовок, направление, поиск, действия ---------- */
+  /* ---------- верхняя полоса: заголовок, два одинаковых переключателя (организация, направление), поиск, действия ---------- */
   renderTopbar() {
-    const s = this.state, pg = this.page();
-    const dirLabel = s.dir === 'all' ? 'Все направления' : DIR[s.dir].name;
-    const dirBtn = `<button class="btn" title="Направление деятельности">${s.dir === 'all' ? ic('layers', 'sm') : `<span class="chip dir" style="height:18px;padding:0;border:0;background:none"><span class="dk">${DIR[s.dir].k}</span></span>`}${dirLabel}${ic('down', 'sm')}</button>`;
+    const s = this.state, pg = this.page(), co = COMPANIES.find(c => c.id === s.company) || COMPANIES[0];
+    const sw = (icon, label, title) => `<button class="btn sw" title="${title}">${icon}<span class="lbl ellip">${label}</span>${ic('down', 'sm')}</button>`;
+    const dirIcon = id => id === 'all' ? ic('layers', 'sm') : `<span class="chip dir" style="height:18px;padding:0;border:0;background:none"><span class="dk">${DIR[id].k}</span></span>`;
+    const coPanel = `<div class="menu" style="width:260px">
+      <div class="lbl">Организация</div>
+      ${COMPANIES.map(c => `<button class="co ${c.id === co.id ? 'on' : ''}" data-company="${c.id}">${ic('building', 'sm')}<span class="grow" style="text-align:left"><span style="display:block">${c.name}</span><span class="mute xsmall" style="display:block;font-weight:400">${c.sub}</span></span>${c.id === co.id ? `<span class="chk">${ic('check', 'sm')}</span>` : ''}</button>`).join('')}
+      <div class="sep"></div>
+      <div class="mute small" style="padding:4px 9px 6px">У каждой организации свои направления, склады и учёт. Общие службы видят все организации, к которым им открыт доступ.</div>
+    </div>`;
     const dirPanel = `<div class="menu" style="width:260px">
       <div class="lbl">Направление деятельности</div>
-      ${['all', ...DIRS.map(d => d.id)].map(id => `<button class="${id === s.dir ? 'on' : ''}" data-dir="${id}">${id === 'all' ? ic('layers', 'sm') : `<span class="chip dir" style="height:18px;padding:0;border:0;background:none"><span class="dk">${DIR[id].k}</span></span>`}${id === 'all' ? 'Все направления' : DIR[id].name}${id === s.dir ? `<span class="chk">${ic('check', 'sm')}</span>` : ''}</button>`).join('')}
+      ${['all', ...DIRS.map(d => d.id)].map(id => `<button class="${id === s.dir ? 'on' : ''}" data-dir="${id}">${dirIcon(id)}${id === 'all' ? 'Все направления' : DIR[id].name}${id === s.dir ? `<span class="chk">${ic('check', 'sm')}</span>` : ''}</button>`).join('')}
       <div class="sep"></div>
-      <div class="mute small" style="padding:4px 9px 6px">Общие службы (логистика, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
+      <div class="mute small" style="padding:4px 9px 6px">Общие службы (снабжение, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
     </div>`;
     const primary = { supply: 'Заявка', staff: 'Сотрудник' }[pg.id] || 'Запись';
     const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
+    const unread = NOTIFS.filter(n => n.unread).length;
     this.el.topbar.innerHTML = `
       <div class="tb-ic">${glassIcon(pg.icon, themeVar())}</div>
-      <div><div class="tb-title">${pg.name}</div><div class="tb-sub">${pg.sub}</div></div>
+      <div class="tb-title">${pg.name}</div>
       <div style="width:6px"></div>
-      ${xp({ id: 'company', head: `<button class="btn ghost" title="Предприятие">${ic('building', 'sm')}${COMPANY.name}${ic('down', 'sm')}</button>`, panel: this.companyPanel(), place: 'below' })}
-      ${xp({ id: 'dir', head: dirBtn, panel: dirPanel, place: 'below' })}
+      ${xp({ id: 'company', head: sw(ic('building', 'sm'), co.name, 'Организация'), panel: coPanel, place: 'below' })}
+      ${xp({ id: 'dir', head: sw(dirIcon(s.dir), s.dir === 'all' ? 'Все направления' : DIR[s.dir].name, 'Направление деятельности'), panel: dirPanel, place: 'below' })}
       <div class="grow"></div>
       <label class="search">${ic('search', 'sm')}<input placeholder="${ph}" data-search value="${esc(s.q)}"><kbd>/</kbd></label>
-      <button class="btn primary">${glassIcon('plus', themeInv(), 'sm')}${primary}</button>
-      <button class="btn icon" title="Уведомления">${ic('bell', 'sm')}<i class="dot-n"></i></button>
+      ${xp({ id: 'new', head: `<button class="btn primary">${glassIcon('plus', themeInv(), 'sm')}${primary}</button>`, panel: this.newForm(pg), place: 'below-r' })}
+      <button class="btn icon" title="Уведомления" data-notif-toggle>${ic('bell', 'sm')}${unread ? '<i class="dot-n"></i>' : ''}</button>
       <button class="btn" title="Чат страницы: открывается поверх контента справа" data-chat-toggle>${ic('chat', 'sm')}Чат${pg.unread ? `<span class="badge-n">${pg.unread}</span>` : ''}</button>`;
+  },
+
+  /* форма новой записи под кнопкой в шапке: заявка на снабжение, сотрудник; на страницах-эскизах — заглушка */
+  newForm(pg) {
+    const close = `<button type="button" class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button>`;
+    if (pg.id === 'supply') {
+      const nextId = 'СН-' + (Math.max(...SUPPLY.map(r => +r.id.replace(/\D/g, ''))) + 1), nextOrder = 'З-' + (Math.max(...SUPPLY.map(r => +r.order.replace(/\D/g, ''))) + 1);
+      return `<form data-new="supply" style="width:660px">
+        <div class="ph"><span class="t">Новая заявка на снабжение</span><span class="mute small">${nextId} · статус «заявка», дата и время — текущие</span>${close}</div>
+        <div class="pb frm">
+          ${fld('№ заказа клиента', inp('order', `value="${nextOrder}" required`))}
+          ${fld('Направление', sel('dir', DIRS.map(d => [d.id, d.name])))}
+          ${fld('Поставщик', inp('supplier', 'placeholder="ООО «…»" required'))}
+          ${fld('ИНН поставщика', inp('inn', 'placeholder="10 или 12 цифр" inputmode="numeric" pattern="[0-9]{10}|[0-9]{12}"'))}
+          ${fld('Контактное лицо', inp('cname', 'placeholder="Фамилия Имя Отчество"'))}
+          ${fld('Телефон', inp('ctel', 'type="tel" placeholder="+7 …"'))}
+          ${fld('Почта', inp('cmail', 'type="email" placeholder="name@company.ru"'))}
+          ${fld('Срок доставки', inp('eta', 'type="date"'))}
+          ${fld('Комментарий', '<textarea class="in" name="comment" rows="3" placeholder="Что закупаем и под какой заказ клиента"></textarea>', 'full')}
+          <div class="fld full"><span class="fl">Файлы</span><div class="row"><label class="btn sm">${ic('clip', 'xs')}Прикрепить<input type="file" multiple hidden data-attach></label><span class="mute small ellip" data-attach-list>счёт, договор, УПД и прочее — можно добавить и позже в карточке заказа</span></div></div>
+        </div>
+        <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать заявку</button></div>
+      </form>`;
+    }
+    if (pg.id === 'staff') {
+      return `<form data-new="staff" style="width:600px">
+        <div class="ph"><span class="t">Новый сотрудник</span><span class="mute small">доступ к страницам откроется по роли</span>${close}</div>
+        <div class="pb frm">
+          ${fld('Фамилия Имя Отчество', inp('name', 'required placeholder="Иванов Иван Иванович"'), 'full')}
+          ${fld('Должность', inp('pos', 'required placeholder="Кладовщик"'))}
+          ${fld('Подразделение', sel('dept', DEPTS.map(d => [d.id, d.name])))}
+          ${fld('Направление', sel('dirs', [['all', 'Все направления'], ...DIRS.map(d => [d.id, d.name])]))}
+          ${fld('Роль в RIVA', sel('role', Object.entries(ROLES).map(([k, r]) => [k, r.name])))}
+          ${fld('Телефон', inp('tel', 'type="tel" placeholder="+7 …"'))}
+          ${fld('Почта', inp('mail', 'type="email" placeholder="name@bereg.ru"'))}
+          ${fld('Дата выхода', inp('start', 'type="date"'))}
+          ${fld('Статус', sel('st', Object.entries(ST).map(([k, v]) => [k, v.name])))}
+        </div>
+        <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Добавить сотрудника</button></div>
+      </form>`;
+    }
+    return `<div style="width:320px"><div class="ph"><span class="t">Новая запись</span>${close}</div><div class="pb mute small">Форма появится вместе с проектированием страницы «${pg.name}»: её поля зависят от модулей страницы.</div></div>`;
+  },
+
+  /* создание записи из формы: заявка встаёт первой в списке и раскрывается, сотрудник — в конец таблицы и в адаптацию */
+  createRecord(form) {
+    const fd = new FormData(form), v = k => (fd.get(k) || '').toString().trim();
+    if (form.dataset.new === 'supply') {
+      const id = 'СН-' + (Math.max(...SUPPLY.map(r => +r.id.replace(/\D/g, ''))) + 1);
+      const eta = v('eta') ? v('eta').split('-').reverse().join('.') : '—';
+      SUPPLY.unshift({ id, order: v('order'), dir: v('dir'), st: 'req', hist: [['req', nowStamp()]], supplier: v('supplier'), inn: v('inn') || '—', contact: { name: v('cname') || '—', tel: v('ctel') || '—', mail: v('cmail') || '—' }, eta, comment: v('comment'), files: this.pending.splice(0), items: [] });
+      XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('sup-' + id);
+      return;
+    }
+    if (form.dataset.new === 'staff') {
+      const id = Math.max(...STAFF.map(p => p.id)) + 1, dirs = v('dirs');
+      const p = { id, name: v('name'), pos: v('pos'), dept: v('dept'), dirs: dirs === 'all' ? 'all' : [dirs], role: v('role'), st: v('st') || 'office', on: false, tel: v('tel') || '—', mail: v('mail'), newbie: true };
+      STAFF.push(p); BY_ID[id] = p;
+      ONBOARDING.push({ who: id, steps: ['Документы и договор', 'Доступы в RIVA', 'Инструктаж по ТБ', 'Наставник и план', 'Испытательный срок'], done: 0, cur: 0 });
+      XP.closeAll(); this.state.all = true; this.renderTopbar(); this.renderGrid();
+    }
+  },
+
+  /* уведомления: панель раскрывается поверх контента справа, как чат */
+  renderNotifs() {
+    const unread = NOTIFS.filter(n => n.unread).length, dayName = { today: 'Сегодня', yesterday: 'Вчера' };
+    const groups = ['today', 'yesterday'].map(d => {
+      const items = NOTIFS.filter(n => n.day === d); if (!items.length) return '';
+      return `<div class="sec-t" style="margin:6px 4px 4px">${dayName[d]}</div>` + items.map(n => `<div class="ntf ${n.unread ? 'unread' : ''}"><span class="ic">${ic(n.kind, 'sm')}</span><div class="grow"><div class="t">${esc(n.text)}</div><div class="m">${n.t}${n.who ? ' · ' + esc(n.who) : ''} · <a href="#${n.page}">${PAGES.find(p => p.id === n.page).name}</a></div></div>${n.unread ? '<i class="dot fg"></i>' : ''}</div>`).join('');
+    }).join('');
+    const body = `<div class="chat">
+      <div class="chat-head"><div class="grow"><div class="b small">Уведомления</div><div class="mute xsmall">${unread ? unread + ' непрочитанных' : 'все прочитаны'}</div></div>${unread ? `<button class="btn ghost sm" data-notif-read>${ic('check', 'xs')}Прочитать всё</button>` : ''}<button class="btn ghost sm icon" title="Свернуть" data-notif-toggle>${icRaw('x', 'sm')}</button></div>
+      <div class="chat-msgs" style="gap:2px">${groups}</div>
+      <div class="chat-form" style="align-items:center;justify-content:space-between"><span class="mute small">Дубли на почту и в Telegram — в настройках профиля</span><button type="button" class="btn ghost sm">${ic('gear', 'xs')}Настроить</button></div>
+    </div>`;
+    this.el.notifcol.innerHTML = `<div class="xp-panel chat-pop">${mod({ title: 'Уведомления', sub: 'события по страницам, к которым у вас есть доступ', body, cls: 'chat-mod' })}</div>`;
   },
 
   renderGrid(animate = false) {
@@ -136,20 +208,21 @@ const App = {
   supply() {
     const s = this.state, q = s.q.trim().toLowerCase();
     const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
-    const cols = '78px 76px 104px 114px minmax(0,1.3fr) 34px 90px minmax(0,1.7fr)';
-    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>Заказ клиента</div><div>Заявка</div><div>Статус</div><div>Изменён</div><div>Поставщик · ИНН</div><div></div><div>Срок доставки</div><div>Комментарий</div></div></div>`;
+    /* колонки: номера, статус, дата изменения (вправо), поставщик, контакт, срок (вправо), комментарий — на 100px шире прежнего */
+    const cols = '72px 76px 112px 164px minmax(0,1fr) 34px 122px minmax(0,2.25fr)';
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div>поставщик · ИНН</div><div></div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
       const [stName, stCls] = SUP_ST[r.st], last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
-      const hist = `<span class="hp"><span class="num hp-trg">${last[1]}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px"><span class="chip ${SUP_ST[st][1]}">${SUP_ST[st][0]}</span><span class="num mute small">${at}</span></div>`).join('')}</div></span>`;
+      const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px"><span class="chip ${SUP_ST[st][1]}">${SUP_ST[st][0]}</span><span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
       const contact = `<span class="hp"><span class="ic-btn">${ic('user', 'sm')}</span><div class="hp-pop ${up}"><div class="b">${r.contact.name}</div><div class="num" style="margin-top:3px">${r.contact.tel}</div><div class="mute small">${r.contact.mail}</div></div></span>`;
       const headRow = `<div class="tr clickable" style="grid-template-columns:${cols}">
-          <div class="t num">${r.order}</div>
-          <div class="num">${r.id}</div>
+          <div class="no">${r.order}</div>
+          <div class="no">${r.id}</div>
           <div><span class="chip ${stCls}">${stName}</span></div>
-          <div>${hist}</div>
+          <div class="r">${hist}</div>
           <div><div class="t ellip">${r.supplier}</div><div class="s num">ИНН ${r.inn}</div></div>
           <div>${contact}</div>
-          <div class="num">${r.eta}</div>
+          <div class="r num">${fmtDate(r.eta)}</div>
           <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
         </div>`;
       return xp({ id: 'sup-' + r.id, head: `<div class="rec-card">${headRow}</div>`, panel: this.orderCard(r), place: 'under', cls: 'rec' });
@@ -162,14 +235,14 @@ const App = {
   orderCard(r) {
     const [stName, stCls] = SUP_ST[r.st], icols = '104px minmax(0,2fr) minmax(0,1fr) 112px 104px 112px';
     const total = r.items.reduce((a, it) => a + it[4] * it[5], 0);
-    const files = r.files.map(([name, kind, size, at]) => `<div class="file"><span class="fi">${ic('file', 'sm')}</span><span class="grow ellip">${esc(name)}</span><span class="chip ${kind === 'прочее' ? 'line' : ''}">${kind}</span><span class="mute small num">${size}</span><span class="mute small num">${at}</span><button class="btn ghost sm icon" title="Скачать">${icRaw('down', 'xs')}</button></div>`).join('');
+    const files = r.files.map(([name, kind, size, at]) => `<div class="file"><span class="fi">${ic('file', 'sm')}</span><span class="grow ellip">${esc(name)}</span><span class="chip ${kind === 'прочее' ? 'line' : ''}">${kind}</span><span class="mute small num">${size}</span><span class="mute small num">${fmtDate(at)}</span><button class="btn ghost sm icon" title="Скачать">${icRaw('down', 'xs')}</button></div>`).join('');
     return `<div class="ph">${chipDir(r.dir)}<span class="t num">Заказ клиента ${r.order}</span><span class="mute small ellip">заявка ${r.id} · ${r.supplier}</span><span class="chip ${stCls}">${stName}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
       <div class="pb">
         <div class="row between" style="margin-bottom:6px"><div class="sec-t" style="margin:0">Файлы заказа · ${r.files.length}</div><label class="btn sm">${ic('clip', 'xs')}Загрузить файл<input type="file" multiple hidden data-upload="${r.id}"></label></div>
         <div class="files">${files || '<div class="mute small" style="padding:4px 2px">Файлов пока нет: счёт, договор, УПД и прочее появятся здесь списком</div>'}</div>
         <div class="sec-t" style="margin-top:12px">Позиции заказа · ${r.items.length}</div>
         <div class="tbl items">
-          <div class="tr th" style="grid-template-columns:${icols}"><div>Артикул</div><div>Наименование</div><div>Категория</div><div>Кол-во, ед. изм.</div><div style="text-align:right">Цена за ед.</div><div style="text-align:right">Сумма</div></div>
+          <div class="tr th" style="grid-template-columns:${icols}"><div>артикул</div><div>наименование</div><div>категория</div><div>кол-во, ед. изм.</div><div style="text-align:right">цена за ед.</div><div style="text-align:right">сумма</div></div>
           ${r.items.map(([sku, name, cat, unit, qty, price]) => `<div class="tr" style="grid-template-columns:${icols};min-height:30px"><div class="num mute">${sku}</div><div class="ellip">${name}</div><div class="small">${cat}</div><div class="num">${fmtMoney(qty)} ${unit}</div><div class="num" style="text-align:right">${fmtMoney(price)} ₽</div><div class="num b" style="text-align:right">${fmtMoney(qty * price)} ₽</div></div>`).join('')}
           <div class="tr" style="grid-template-columns:${icols};min-height:30px"><div></div><div class="b">Итого</div><div></div><div></div><div></div><div class="num b" style="text-align:right">${fmtMoney(total)} ₽</div></div>
         </div>
@@ -182,7 +255,7 @@ const App = {
     const inDir = p => s.dir === 'all' || p.dirs === 'all' || p.dirs.includes(s.dir);
     const inDept = p => !s.dept || (p.dept === s.dept.id && (!s.dept.dir || p.dirs === 'all' || p.dirs.includes(s.dept.dir)));
     const people = STAFF.filter(p => inDir(p) && inDept(p) && hit(q, p.name, p.pos, DEPTS.find(d => d.id === p.dept).name));
-    const deptName = p => { const d = DEPTS.find(x => x.id === p.dept); return d.perDir ? d.names[p.dirs[0]] : d.name; };
+    const deptName = p => { const d = DEPTS.find(x => x.id === p.dept); return d.perDir ? d.names[Array.isArray(p.dirs) ? p.dirs[0] : DIRS[0].id] : d.name; };
 
     /* карта подразделений: общие службы — на все направления, остальные — по каждому */
     const cells = DEPTS.map(d => {
@@ -196,7 +269,7 @@ const App = {
         return `<div class="dcell ${sel ? 'sel' : ''}" data-dcell="${d.id}" data-ddir="${dir.id}"><div class="t">${d.names[dir.id]}</div><div class="s">${ps.length} чел. · ${ps.filter(p => p.on).length} онлайн</div></div>`;
       }).join('');
     }).join('');
-    const dmap = `<div class="dmap"><div class="hd">Подразделение</div>${DIRS.map(d => `<div class="hd dir">${chipDir(d.id)}</div>`).join('')}${cells}</div>`;
+    const dmap = `<div class="dmap"><div class="hd">подразделение</div>${DIRS.map(d => `<div class="hd dir">${chipDir(d.id)}</div>`).join('')}${cells}</div>`;
 
     /* сегодня */
     const c = st => STAFF.filter(p => p.st === st).length;
@@ -244,7 +317,7 @@ const App = {
     }).join('');
     const filterChip = s.dept ? `<span class="chip line">${DEPTS.find(d => d.id === s.dept.id).name}${s.dept.dir ? ' · ' + DIR[s.dept.dir].short : ''}<button class="btn ghost sm icon" data-clear-dept style="width:18px;height:18px;margin:-2px -6px -2px 0">${ic('x', 'xs')}</button></span>` : '';
     const more = shown.length < people.length ? `<div class="row" style="padding:8px 6px 4px"><button class="btn sm ghost" data-show-all>${ic('down', 'xs')}Показать всех · ${people.length}</button></div>` : '';
-    const table = `<div class="tbl"><div class="tr th" style="grid-template-columns:${cols}"><div>Сотрудник</div><div>Подразделение</div><div>Направления</div><div>Доступ к страницам</div><div>Статус</div></div>${rows || '<div class="mute small" style="padding:14px 10px">Никого не найдено</div>'}</div>${more}`;
+    const table = `<div class="tbl"><div class="tr th" style="grid-template-columns:${cols}"><div>сотрудник</div><div>подразделение</div><div>направления</div><div>доступ к страницам</div><div>статус</div></div>${rows || '<div class="mute small" style="padding:14px 10px">Никого не найдено</div>'}</div>${more}`;
 
     /* адаптация — дорожная карта */
     const onb = ONBOARDING.map(o => { const p = BY_ID[o.who]; return `<div class="rm" style="margin-bottom:8px">
@@ -290,11 +363,15 @@ const App = {
       this.transition('vt-theme', () => {
         this.state.theme = themeBtn.dataset.themeSet || (this.state.theme === 'dark' ? 'light' : 'dark');
         localStorage.setItem('riva.theme', this.state.theme); html.dataset.theme = this.state.theme;
-        this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat();
+        this.renderSide(); this.renderTopbar(); this.renderGrid(); this.renderChat(); this.renderNotifs();
       });
       return;
     }
     if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); if (XP.stack.includes(this.el.chatcol)) this.chatToEnd(); return; }
+    if (t.closest('[data-notif-toggle]')) { XP.toggle(this.el.notifcol); return; }
+    if (t.closest('[data-notif-read]')) { NOTIFS.forEach(n => n.unread = false); this.renderNotifs(); this.renderTopbar(); XP.focus(); return; }
+    const coBtn = t.closest('[data-company]');
+    if (coBtn) { this.state.company = coBtn.dataset.company; XP.close(); this.renderTopbar(); return; }
     if (t.closest('[data-xp-close]')) { XP.close(); return; }
     const dirBtn = t.closest('[data-dir]');
     if (dirBtn) { this.state.dir = dirBtn.dataset.dir; XP.close(); this.renderTopbar(); this.renderGrid(); return; }
@@ -308,6 +385,8 @@ const App = {
   },
 
   onSubmit(e) {
+    const nf = e.target.closest('[data-new]');
+    if (nf) { e.preventDefault(); this.createRecord(nf); return; }
     const f = e.target.closest('[data-chat-form]'); if (!f) return;
     e.preventDefault();
     const inp = f.querySelector('input'), text = inp.value.trim(); if (!text) return;
@@ -318,9 +397,12 @@ const App = {
 
   /* загрузка файлов в карточку заказа: имена добавляются в список заявки */
   onChange(e) {
+    const toRow = f => [f.name.replace(/\.[^.]+$/, ''), fileKind(f.name), fmtSize(f.size), todayShort()];
+    const att = e.target.closest('[data-attach]');   // файлы в форме новой заявки: копятся до создания
+    if (att && att.files.length) { this.pending.push(...[...att.files].map(toRow)); const l = att.closest('.fld').querySelector('[data-attach-list]'); if (l) l.textContent = this.pending.map(f => f[0]).join(', '); return; }
     const inp = e.target.closest('[data-upload]'); if (!inp || !inp.files.length) return;
     const r = SUPPLY.find(x => x.id === inp.dataset.upload);
-    [...inp.files].forEach(f => r.files.push([f.name.replace(/\.[^.]+$/, ''), /счет|счёт|invoice/i.test(f.name) ? 'счёт' : /договор|contract/i.test(f.name) ? 'договор' : /упд/i.test(f.name) ? 'УПД' : 'прочее', fmtSize(f.size), todayShort()]));
+    [...inp.files].forEach(f => r.files.push(toRow(f)));
     this.renderGrid(); this.reopen('sup-' + r.id);
   },
 

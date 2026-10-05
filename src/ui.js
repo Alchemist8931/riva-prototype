@@ -169,6 +169,16 @@ const ticks = (n, total, cls = '') => `<span class="ticks ${cls}" title="${n} и
 const dot = cls => `<span class="dot ${cls}"></span>`;
 const nowTime = () => new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 const todayStr = () => new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+/* даты в данных — «дд.мм.гггг» и «дд.мм.гггг чч:мм»; показываем «04 ноября 2026» и «04 ноября 2026 / 08:20» (формат владельца) */
+const MONTHS_G = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const fmtDate = s => { const m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(s || ''); return m ? `${m[1]} ${MONTHS_G[+m[2] - 1]} ${m[3]}` : (s || ''); };
+const fmtDT = s => { const m = /^(\d{2}\.\d{2}\.\d{4}) (\d{2}:\d{2})$/.exec(s || ''); return m ? `${fmtDate(m[1])} / ${m[2]}` : fmtDate(s); };
+const nowStamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const fileKind = name => /счет|счёт|invoice/i.test(name) ? 'счёт' : /договор|contract/i.test(name) ? 'договор' : /упд/i.test(name) ? 'УПД' : 'прочее';
+/* поля форм */
+const fld = (label, inner, cls = '') => `<label class="fld ${cls}"><span class="fl">${label}</span>${inner}</label>`;
+const inp = (name, attrs = '') => `<input class="in" name="${name}" ${attrs}>`;
+const sel = (name, opts, val = '') => `<select class="in" name="${name}">${opts.map(([v, t]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
 
 /* иконки доступа к страницам: full — чётко, view — приглушённо, нет — почти прозрачно */
 const pageIcons = role => `<span class="pg-ics">${PAGES.map(p => {

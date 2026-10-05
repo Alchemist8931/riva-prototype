@@ -181,7 +181,11 @@ svg.i.xs { width: 11px; height: 11px; }
 .tb-ic { width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; color: var(--surface-2); }
 .tb-title { font-size: 14px; font-weight: 600; letter-spacing: -.01em; line-height: 1.15; }
 .tb-sub { color: var(--mute); font-size: 11px; }
-.search { display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--mute); width: 220px; }
+.search { display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--mute); width: 330px; }
+/* два одинаковых переключателя в шапке: организация и направление — одна ширина, подпись слева, стрелка справа */
+.btn.sw { width: 200px; justify-content: flex-start; }
+.btn.sw .lbl { flex: 1; min-width: 0; text-align: left; }
+.menu button.co { height: auto; padding: 6px 8px; }
 .search input { border: 0; background: transparent; outline: 0; color: var(--fg); width: 100%; font-size: 11.5px; }
 .search input::placeholder { color: var(--mute); }
 .search kbd { font: 10px/1 "SN Pro", "SN Pro Local", sans-serif; border: 1px solid var(--line-2); border-radius: 4px; padding: 2px 4px; color: var(--mute); }
@@ -192,8 +196,8 @@ svg.i.xs { width: 11px; height: 11px; }
 .grid { flex: 1; min-width: 0; overflow: auto; padding: 10px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px; align-content: start; grid-auto-rows: min-content; }
 .grid > * { min-width: 0; }
 /* чат: полосы нет, панель раскрывается по кнопке в шапке поверх контента справа */
-.chatcol { width: 0; flex: none; position: relative; min-height: 0; }
-.chat-pop { top: 10px; bottom: 10px; right: 10px; width: 360px; padding: 0; background: transparent; border: 0; box-shadow: var(--shadow); border-radius: 14px; }
+.chatcol, .notifcol { width: 0; flex: none; position: relative; min-height: 0; }
+.chat-pop { top: 10px; bottom: 10px; right: 10px; width: 540px; padding: 0; background: transparent; border: 0; box-shadow: var(--shadow); border-radius: 14px; }
 .chat-pop .mod { flex: 1; min-height: 0; }
 
 /* ---------- модуль: поверхность + подпись снизу (образец -48) ---------- */
@@ -232,6 +236,13 @@ svg.i.xs { width: 11px; height: 11px; }
 .chip.dir { background: transparent; border-color: var(--line-2); font-weight: 600; letter-spacing: .01em; }
 .chip.dir .dk { width: 12px; height: 12px; border-radius: 3px; background: var(--fg); color: var(--panel); display: grid; place-items: center; font-size: 8px; font-weight: 700; }
 .chip.all { background: var(--surface-3); border-color: transparent; }
+/* статус заявки: чип-стекло — полупрозрачный тонированный фон, размывающий то, что под ним (размытие именно фона чипа) */
+.chip.st { --st: #9a9a9a; font-weight: 600; color: var(--fg-2); background: color-mix(in srgb, var(--st) 14%, transparent); border-color: color-mix(in srgb, var(--st) 30%, transparent); -webkit-backdrop-filter: blur(10px) saturate(1.4); backdrop-filter: blur(10px) saturate(1.4); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55); }
+.chip.st-ord { --st: var(--fg); color: var(--fg); }
+.chip.st-tr { background: color-mix(in srgb, var(--fg) 84%, transparent); border-color: transparent; color: var(--primary-fg); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18); }
+.chip.st-done { --st: var(--ok); color: var(--ok); }
+:root[data-theme="dark"] .chip.st { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); }
+:root[data-theme="dark"] .chip.st-tr { background: color-mix(in srgb, var(--fg) 86%, transparent); }
 .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); flex: none; }
 .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.fg { background: var(--fg); }
 .av { width: 22px; height: 22px; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--line); display: grid; place-items: center; font-size: 9px; font-weight: 600; color: var(--fg-2); flex: none; letter-spacing: .02em; position: relative; }
@@ -297,8 +308,12 @@ svg.i.xs { width: 11px; height: 11px; }
 .sup-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; scroll-behavior: smooth; }
 .sup-head { position: sticky; top: 0; z-index: 2; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; }
 .recs { display: flex; flex-direction: column; gap: 8px; }
-.rec { background: var(--shell); border-radius: 12px; padding: 4px; }
-.rec-card { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; transition: border-color .15s ease, box-shadow .2s ease; }
+/* запись — один контейнер с одной рамкой (без подложки, как у модуля: двойная рамка — перебор) */
+.rec { background: transparent; border-radius: 10px; padding: 0; }
+.rec-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; transition: border-color .15s ease, box-shadow .2s ease; }
+.rec .no { font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .01em; }   /* № заказа и № заявки — один шрифт и жирность */
+.tr .r { text-align: right; padding-right: 10px; }  /* даты и время — по правому краю поля, с отступом от следующей колонки */
+.hp.r .hp-pop { left: auto; right: 0; }
 .rec:hover .rec-card { border-color: var(--line-2); }
 .rec.open .rec-card { border-color: var(--fg); }
 .rec .tr { min-height: 44px; border-radius: 9px; }
@@ -434,6 +449,28 @@ svg.i.xs { width: 11px; height: 11px; }
 .matrix .mc { height: 22px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; color: var(--fg); }
 .matrix .mc.no { opacity: .3; }
 .matrix .mc.view { color: var(--mute); font-size: 9.5px; }
+
+/* форма новой записи (под кнопкой в шапке) */
+.frm { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fld.full { grid-column: 1 / -1; }
+.fl { font-size: 10.5px; color: var(--mute); }
+.in { width: 100%; height: 28px; border: 1px solid var(--line-2); border-radius: 8px; padding: 0 9px; background: var(--surface); color: var(--fg); font: inherit; outline: 0; }
+.in:focus { border-color: var(--fg); }
+.in::placeholder { color: var(--mute); }
+textarea.in { height: auto; min-height: 64px; padding: 6px 9px; resize: vertical; line-height: 1.4; }
+input[type="date"].in { font-variant-numeric: tabular-nums; }
+:root[data-theme="dark"] input[type="date"].in { color-scheme: dark; }
+
+/* уведомления: список в панели, как чат */
+.ntf { display: flex; gap: 9px; align-items: flex-start; padding: 8px; border-radius: 9px; }
+.ntf.unread { background: var(--surface-2); }
+.ntf .ic { width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; color: var(--surface-2); flex: none; }
+.ntf.unread .ic { background: var(--surface); }
+.ntf .t { font-size: 11.5px; line-height: 1.35; }
+.ntf .m { font-size: 10.5px; color: var(--mute); margin-top: 2px; }
+.ntf .m a { color: var(--fg-2); text-decoration: none; border-bottom: 1px dashed var(--line-2); }
+.ntf .dot { margin-top: 6px; }
 
 /* заглушка страниц, которые ещё не спроектированы */
 .stub { display: flex; flex-direction: column; gap: 8px; padding: 22px 18px; align-items: flex-start; }

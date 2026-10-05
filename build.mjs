@@ -33,6 +33,7 @@ ${r('style.css')}
     <div class="body">
       <div class="grid" id="grid"></div>
       <div class="chatcol xp" id="chatcol" data-xp="chat"></div>
+      <div class="notifcol xp" id="notifcol" data-xp="notifs"></div>
     </div>
   </main>
   <div class="veil"></div>
