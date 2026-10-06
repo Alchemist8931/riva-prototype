@@ -125,7 +125,9 @@ svg.i.xs { width: 11px; height: 11px; }
 .ellip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- фон приложения: слои под рамкой (штриховка, волны на canvas), выбранный проявляется, остальные гаснут ---------- */
-.bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .7s ease; }
+/* width/height 100% обязательны: canvas — замещаемый элемент, и при inset: 0 без размеров он показывается в собственном размере
+   (innerWidth × devicePixelRatio), при масштабе экрана 150–200 % поле точек целиком уходило за нижний край окна */
+.bg-layer { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .7s ease; }
 .bg-hatch { background-image: repeating-linear-gradient(135deg, var(--page-hatch) 0 1px, transparent 1px 9px); }
 html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .xp-panel.rail { left: calc(100% + 10px); bottom: 0; }

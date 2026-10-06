@@ -1,11 +1,13 @@
 // Сборка единого index.html из src/ (стили и скрипты встраиваются целиком).
 import { readFileSync, writeFileSync } from 'node:fs';
 const r = f => readFileSync(new URL('./src/' + f, import.meta.url), 'utf8');
+// отметка сборки в заголовке вкладки (московское время): по ней владелец сверяет, что видит свежую выкладку, а не кэш
+const stamp = new Date(Date.now() + 3 * 3600e3).toISOString().replace(/^\d{4}-(\d\d)-(\d\d)T(\d\d):(\d\d).*$/, '$2.$1 $3:$4');
 const html = `<!doctype html>
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>RIVA · прототип интерфейса для ПК</title>
+<title>RIVA · прототип интерфейса для ПК · сборка ${stamp}</title>
 <meta name="viewport" content="width=1280">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23111%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial%27 font-weight=%27800%27 font-size=%2718%27 fill=%27%23fff%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
