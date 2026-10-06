@@ -12,9 +12,10 @@
   /* светлая бело-чёрная тема */
   --page: #ffffff;
   --page-hatch: rgba(0, 0, 0, .045);
-  --glass: rgba(255, 255, 255, .42);
-  --mod-bg: rgba(0, 0, 0, .035);          /* модуль на стекле: лёгкая тонировка, фон просвечивает */
-  --mod-surface: rgba(255, 255, 255, .42);
+  --glass: rgba(255, 255, 255, .36);       /* тонированное стекло панели без размытия: поле точек фона читается сквозь него */
+  --mod-bg: rgba(0, 0, 0, .035);           /* модуль на стекле: лёгкая тонировка, фон просвечивает */
+  --mod-surface: rgba(255, 255, 255, .3);
+  --card: rgba(255, 255, 255, .6);         /* запись списка полупрозрачная: фон виден и под списком */
   --frame: #141414;
   --frame-2: #202020;
   --frame-fg: #f4f4f4;
@@ -44,16 +45,17 @@
   --frame-shadow: 0 30px 80px rgba(0, 0, 0, .28);
   --logo-bg: #ffffff;
   --logo-fg: #111111;
-  --bg-dot: rgba(17, 17, 17, .8);
+  --bg-dot: rgba(17, 17, 17, .85);
 }
 
 :root[data-theme="dark"] {
   /* тёмная чёрно-белая тема */
   --page: #0a0a0a;
   --page-hatch: rgba(255, 255, 255, .05);
-  --glass: rgba(10, 10, 10, .5);
+  --glass: rgba(10, 10, 10, .45);
   --mod-bg: rgba(255, 255, 255, .03);
-  --mod-surface: rgba(10, 10, 10, .45);
+  --mod-surface: rgba(10, 10, 10, .35);
+  --card: rgba(13, 13, 13, .62);
   --frame: #171717;
   --frame-2: #222222;
   --frame-fg: #f2f2f2;
@@ -83,7 +85,7 @@
   --frame-shadow: 0 30px 80px rgba(0, 0, 0, .8), 0 0 0 1px #262626;
   --logo-bg: #ffffff;
   --logo-fg: #111111;
-  --bg-dot: rgba(240, 240, 240, .6);
+  --bg-dot: rgba(240, 240, 240, .7);
 }
 
 * { box-sizing: border-box; }
@@ -160,7 +162,7 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 }
 /* стекло ниже чёрного слоя окна (z -2 и -1 в контексте .frame): размытие берёт только фон окна */
 /* размытие 6px (было 16): сильнее — и фон приложения (волны) сквозь стекло превращается в ровную дымку */
-.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }   /* 3px: сильнее — точки фона сквозь стекло расплываются в дымку */
+.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); }   /* без backdrop-filter: любое размытие превращает точки фона в дымку, а пересчёт размытия под анимацией грузит GPU */
 @supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
   .frame { background: var(--frame); }
   .frame::before { display: none; }
@@ -338,7 +340,7 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .recs { display: flex; flex-direction: column; gap: 8px; }
 /* запись — один контейнер с одной рамкой (без подложки, как у модуля: двойная рамка — перебор) */
 .rec { background: transparent; border-radius: 10px; padding: 0; }
-.rec-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; transition: border-color .15s ease, box-shadow .2s ease; }
+.rec-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; transition: border-color .15s ease, box-shadow .2s ease; }
 .rec .no { font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .01em; }   /* № заказа и № заявки — один шрифт и жирность */
 .tr .r { text-align: right; padding-right: 10px; }  /* даты и время — по правому краю поля, с отступом от следующей колонки */
 .hp.r .hp-pop { left: auto; right: 0; }

@@ -17,7 +17,9 @@ ${r('style.css')}
 </style>
 </head>
 <body>
-<script>document.documentElement.dataset.theme = localStorage.getItem('riva.theme') || 'light'; document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves';</script>
+<script>document.documentElement.dataset.theme = localStorage.getItem('riva.theme') || 'light';
+if (localStorage.getItem('riva.bg.v') !== '2') { localStorage.setItem('riva.bg', 'waves'); localStorage.setItem('riva.bg.v', '2'); }   /* один раз вернуть волны: до этой сборки фон мог быть переключён, пока волны не было видно */
+document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves';</script>
 <div class="bg-layer bg-hatch"></div>
 <canvas class="bg-layer" id="bg-wave" aria-hidden="true"></canvas>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>

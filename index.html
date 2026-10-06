@@ -24,9 +24,10 @@
   /* светлая бело-чёрная тема */
   --page: #ffffff;
   --page-hatch: rgba(0, 0, 0, .045);
-  --glass: rgba(255, 255, 255, .42);
-  --mod-bg: rgba(0, 0, 0, .035);          /* модуль на стекле: лёгкая тонировка, фон просвечивает */
-  --mod-surface: rgba(255, 255, 255, .42);
+  --glass: rgba(255, 255, 255, .36);       /* тонированное стекло панели без размытия: поле точек фона читается сквозь него */
+  --mod-bg: rgba(0, 0, 0, .035);           /* модуль на стекле: лёгкая тонировка, фон просвечивает */
+  --mod-surface: rgba(255, 255, 255, .3);
+  --card: rgba(255, 255, 255, .6);         /* запись списка полупрозрачная: фон виден и под списком */
   --frame: #141414;
   --frame-2: #202020;
   --frame-fg: #f4f4f4;
@@ -56,16 +57,17 @@
   --frame-shadow: 0 30px 80px rgba(0, 0, 0, .28);
   --logo-bg: #ffffff;
   --logo-fg: #111111;
-  --bg-dot: rgba(17, 17, 17, .8);
+  --bg-dot: rgba(17, 17, 17, .85);
 }
 
 :root[data-theme="dark"] {
   /* тёмная чёрно-белая тема */
   --page: #0a0a0a;
   --page-hatch: rgba(255, 255, 255, .05);
-  --glass: rgba(10, 10, 10, .5);
+  --glass: rgba(10, 10, 10, .45);
   --mod-bg: rgba(255, 255, 255, .03);
-  --mod-surface: rgba(10, 10, 10, .45);
+  --mod-surface: rgba(10, 10, 10, .35);
+  --card: rgba(13, 13, 13, .62);
   --frame: #171717;
   --frame-2: #222222;
   --frame-fg: #f2f2f2;
@@ -95,7 +97,7 @@
   --frame-shadow: 0 30px 80px rgba(0, 0, 0, .8), 0 0 0 1px #262626;
   --logo-bg: #ffffff;
   --logo-fg: #111111;
-  --bg-dot: rgba(240, 240, 240, .6);
+  --bg-dot: rgba(240, 240, 240, .7);
 }
 
 * { box-sizing: border-box; }
@@ -172,7 +174,7 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 }
 /* стекло ниже чёрного слоя окна (z -2 и -1 в контексте .frame): размытие берёт только фон окна */
 /* размытие 6px (было 16): сильнее — и фон приложения (волны) сквозь стекло превращается в ровную дымку */
-.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }   /* 3px: сильнее — точки фона сквозь стекло расплываются в дымку */
+.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); }   /* без backdrop-filter: любое размытие превращает точки фона в дымку, а пересчёт размытия под анимацией грузит GPU */
 @supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
   .frame { background: var(--frame); }
   .frame::before { display: none; }
@@ -350,7 +352,7 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .recs { display: flex; flex-direction: column; gap: 8px; }
 /* запись — один контейнер с одной рамкой (без подложки, как у модуля: двойная рамка — перебор) */
 .rec { background: transparent; border-radius: 10px; padding: 0; }
-.rec-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; transition: border-color .15s ease, box-shadow .2s ease; }
+.rec-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; transition: border-color .15s ease, box-shadow .2s ease; }
 .rec .no { font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .01em; }   /* № заказа и № заявки — один шрифт и жирность */
 .tr .r { text-align: right; padding-right: 10px; }  /* даты и время — по правому краю поля, с отступом от следующей колонки */
 .hp.r .hp-pop { left: auto; right: 0; }
@@ -554,7 +556,9 @@ html.vt-theme::view-transition-new(root) { animation: reveal .55s ease-in both; 
 </style>
 </head>
 <body>
-<script>document.documentElement.dataset.theme = localStorage.getItem('riva.theme') || 'light'; document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves';</script>
+<script>document.documentElement.dataset.theme = localStorage.getItem('riva.theme') || 'light';
+if (localStorage.getItem('riva.bg.v') !== '2') { localStorage.setItem('riva.bg', 'waves'); localStorage.setItem('riva.bg.v', '2'); }   /* один раз вернуть волны: до этой сборки фон мог быть переключён, пока волны не было видно */
+document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves';</script>
 <div class="bg-layer bg-hatch"></div>
 <canvas class="bg-layer" id="bg-wave" aria-hidden="true"></canvas>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -1058,12 +1062,13 @@ const BG = {
     this.draw();
     this.raf = requestAnimationFrame(tt => this.frame(tt));
   },
-  /* камера образца: точка (0, 355, 122), взгляд вдоль −Z, угол 65°; точки на сетке 40×60 с шагом 200 */
+  /* камера образца: точка (0, 355, 122), взгляд вдоль −Z, угол 65°; точки на сетке 40×60 с шагом 200;
+     радиус точек в 1,3 раза больше образца и не меньше 1px — сквозь тонированное стекло панели мелкие точки у горизонта иначе пропадают */
   draw() {
     const ctx = this.ctx, W = innerWidth, H = innerHeight;
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-dot').trim() || 'rgba(17,17,17,.55)';
-    const SEP = 200, AX = 40, AY = 60, tanHalf = Math.tan(32.5 * Math.PI / 180), aspect = W / H, camY = 355, camZ = 122, k = H / (4 * tanHalf), cnt = this.count;
+    const SEP = 200, AX = 40, AY = 60, tanHalf = Math.tan(32.5 * Math.PI / 180), aspect = W / H, camY = 355, camZ = 122, k = 1.3 * H / (4 * tanHalf), cnt = this.count;
     ctx.beginPath();
     for (let ix = 0; ix < AX; ix++) {
       const sx = Math.sin((ix + cnt) * 0.3), x = ix * SEP - AX * SEP / 2;
@@ -1072,7 +1077,7 @@ const BG = {
         const sy = Math.sin((iy + cnt) * 0.5), y = sx * 50 + sy * 50, scale = (sx + 1) * 4 + (sy + 1) * 4;
         const nx = x / d / (tanHalf * aspect), ny = (y - camY) / d / tanHalf;
         if (nx < -1.05 || nx > 1.05 || ny < -1.05 || ny > 1.05) continue;
-        const r = scale * k / d; if (r < 0.35) continue;
+        const r = Math.max(1, scale * k / d);
         const px = (nx + 1) * W / 2, py = (1 - ny) * H / 2;
         ctx.moveTo(px + r, py); ctx.arc(px, py, r, 0, 6.2832);
       }

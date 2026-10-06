@@ -309,12 +309,13 @@ const BG = {
     this.draw();
     this.raf = requestAnimationFrame(tt => this.frame(tt));
   },
-  /* камера образца: точка (0, 355, 122), взгляд вдоль −Z, угол 65°; точки на сетке 40×60 с шагом 200 */
+  /* камера образца: точка (0, 355, 122), взгляд вдоль −Z, угол 65°; точки на сетке 40×60 с шагом 200;
+     радиус точек в 1,3 раза больше образца и не меньше 1px — сквозь тонированное стекло панели мелкие точки у горизонта иначе пропадают */
   draw() {
     const ctx = this.ctx, W = innerWidth, H = innerHeight;
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-dot').trim() || 'rgba(17,17,17,.55)';
-    const SEP = 200, AX = 40, AY = 60, tanHalf = Math.tan(32.5 * Math.PI / 180), aspect = W / H, camY = 355, camZ = 122, k = H / (4 * tanHalf), cnt = this.count;
+    const SEP = 200, AX = 40, AY = 60, tanHalf = Math.tan(32.5 * Math.PI / 180), aspect = W / H, camY = 355, camZ = 122, k = 1.3 * H / (4 * tanHalf), cnt = this.count;
     ctx.beginPath();
     for (let ix = 0; ix < AX; ix++) {
       const sx = Math.sin((ix + cnt) * 0.3), x = ix * SEP - AX * SEP / 2;
@@ -323,7 +324,7 @@ const BG = {
         const sy = Math.sin((iy + cnt) * 0.5), y = sx * 50 + sy * 50, scale = (sx + 1) * 4 + (sy + 1) * 4;
         const nx = x / d / (tanHalf * aspect), ny = (y - camY) / d / tanHalf;
         if (nx < -1.05 || nx > 1.05 || ny < -1.05 || ny > 1.05) continue;
-        const r = scale * k / d; if (r < 0.35) continue;
+        const r = Math.max(1, scale * k / d);
         const px = (nx + 1) * W / 2, py = (1 - ny) * H / 2;
         ctx.moveTo(px + r, py); ctx.arc(px, py, r, 0, 6.2832);
       }
