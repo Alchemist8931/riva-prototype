@@ -13,6 +13,8 @@
   --page: #ffffff;
   --page-hatch: rgba(0, 0, 0, .045);
   --glass: rgba(255, 255, 255, .42);
+  --mod-bg: rgba(0, 0, 0, .035);          /* модуль на стекле: лёгкая тонировка, фон просвечивает */
+  --mod-surface: rgba(255, 255, 255, .42);
   --frame: #141414;
   --frame-2: #202020;
   --frame-fg: #f4f4f4;
@@ -50,6 +52,8 @@
   --page: #0a0a0a;
   --page-hatch: rgba(255, 255, 255, .05);
   --glass: rgba(10, 10, 10, .5);
+  --mod-bg: rgba(255, 255, 255, .03);
+  --mod-surface: rgba(10, 10, 10, .45);
   --frame: #171717;
   --frame-2: #222222;
   --frame-fg: #f2f2f2;
@@ -156,7 +160,7 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 }
 /* стекло ниже чёрного слоя окна (z -2 и -1 в контексте .frame): размытие берёт только фон окна */
 /* размытие 6px (было 16): сильнее — и фон приложения (волны) сквозь стекло превращается в ровную дымку */
-.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }   /* 3px: сильнее — точки фона сквозь стекло расплываются в дымку */
 @supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
   .frame { background: var(--frame); }
   .frame::before { display: none; }
@@ -207,11 +211,12 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 /* чат: полосы нет, панель раскрывается по кнопке в шапке поверх контента справа */
 .chatcol, .notifcol { width: 0; flex: none; position: relative; min-height: 0; }
 .chat-pop { top: 10px; bottom: 10px; right: 10px; width: 540px; padding: 0; background: transparent; border: 0; box-shadow: var(--shadow); border-radius: 14px; }
-.chat-pop .mod { flex: 1; min-height: 0; }
+.chat-pop .mod { flex: 1; min-height: 0; background: var(--shell); }   /* панели поверх страницы (чат, уведомления) непрозрачные */
+.chat-pop .mod-surface { background: var(--surface); }
 
 /* ---------- модуль: поверхность + подпись снизу (образец -48) ---------- */
-.mod { background: var(--shell); border-radius: 14px; padding: 5px; display: flex; flex-direction: column; min-width: 0; }
-.mod-surface { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 11px; flex: 1; min-height: 0; position: relative; }
+.mod { background: var(--mod-bg); border-radius: 14px; padding: 5px; display: flex; flex-direction: column; min-width: 0; }   /* модули на странице полупрозрачные: фон приложения виден сквозь них */
+.mod-surface { background: var(--mod-surface); border: 1px solid var(--line); border-radius: 10px; padding: 11px; flex: 1; min-height: 0; position: relative; }
 .mod-surface.tight { padding: 6px; }
 .mod-cap { display: flex; align-items: center; gap: 8px; padding: 7px 7px 3px; }
 .mod-cap .t { font-weight: 600; font-size: 12px; line-height: 1.25; }
@@ -245,19 +250,20 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.dir { background: transparent; border-color: var(--line-2); font-weight: 600; letter-spacing: .01em; }
 .chip.dir .dk { width: 12px; height: 12px; border-radius: 3px; background: var(--fg); color: var(--panel); display: grid; place-items: center; font-size: 8px; font-weight: 700; }
 .chip.all { background: var(--surface-3); border-color: transparent; }
-/* статус заявки: чип в стиле стеклянных иконок — подложка с градиентом (те же цвета, что у фигур иконок), поверх матовое стекло
-   (белый градиент .38→.94, как у иконок), блик по краю и мягкая тень; одна ширина, текст слева, строчными, жирнее, углы 6px */
-.chip.st { --b1: #4b4b4b; --b2: #0d0d0d; --g1: rgba(255, 255, 255, .38); --g2: rgba(255, 255, 255, .94); --edge: rgba(255, 255, 255, .9); --sh: rgba(0, 0, 0, .22); --tx: #111;
+/* статус заявки: матовое стекло в духе иконок, но лёгкое — ровная тонированная подложка под почти однородным белым стеклом,
+   светлый блик по внутреннему краю, тонкая внешняя линия, мягкая тень внизу внутри (как размытая задняя фигура у иконок) и
+   едва заметная тень снаружи; одна ширина, текст слева, строчными, жирнее, углы 6px. Тяжёлый градиент и глянец — несуразны */
+.chip.st { --base: #a4a4a4; --ov1: rgba(255, 255, 255, .68); --ov2: rgba(255, 255, 255, .52); --edge: rgba(255, 255, 255, .92); --ln: rgba(0, 0, 0, .1); --sh: rgba(0, 0, 0, .1); --in: rgba(0, 0, 0, .22); --tx: #111;
   width: 100px; justify-content: flex-start; border-radius: 6px; border: 0; font-weight: 700; text-transform: lowercase; color: var(--tx);
-  background: linear-gradient(180deg, var(--g1), var(--g2)), linear-gradient(180deg, var(--b1), var(--b2));
-  box-shadow: inset 0 0 0 1px var(--edge), 0 2px 4px var(--sh); }
-.chip.st-req { --b1: #b4b4b4; --b2: #7a7a7a; }
-.chip.st-tr { --b1: #5a5a5a; --b2: #cfcfcf; --g1: rgba(16, 16, 16, .9); --g2: rgba(16, 16, 16, .55); --edge: rgba(255, 255, 255, .42); --sh: rgba(0, 0, 0, .6); --tx: #fff; }   /* дымчатое стекло, как обратный вариант иконок */
-.chip.st-done { --b1: #3fae6e; --b2: #0d5a32; --tx: #0d5a32; }
-:root[data-theme="dark"] .chip.st { --b1: #5a5a5a; --b2: #cfcfcf; --g1: rgba(16, 16, 16, .9); --g2: rgba(16, 16, 16, .55); --edge: rgba(255, 255, 255, .42); --sh: rgba(0, 0, 0, .6); --tx: #f0f0f0; }
-:root[data-theme="dark"] .chip.st-req { --g1: rgba(16, 16, 16, .82); --g2: rgba(16, 16, 16, .45); }
-:root[data-theme="dark"] .chip.st-tr { --b1: #4b4b4b; --b2: #0d0d0d; --g1: rgba(255, 255, 255, .38); --g2: rgba(255, 255, 255, .94); --edge: rgba(255, 255, 255, .9); --sh: rgba(0, 0, 0, .5); --tx: #111; }
-:root[data-theme="dark"] .chip.st-done { --b1: #2f9e5f; --b2: #7fd9a6; --g1: rgba(16, 16, 16, .7); --tx: #bfffd9; }
+  background: linear-gradient(180deg, var(--ov1), var(--ov2)), var(--base);
+  box-shadow: inset 0 0 0 1px var(--edge), inset 0 -10px 14px -12px var(--in), 0 0 0 1px var(--ln), 0 1px 2px var(--sh); }
+.chip.st-ord { --base: #5c5c5c; }
+.chip.st-tr { --base: #3a3a3a; --ov1: rgba(255, 255, 255, .09); --ov2: rgba(0, 0, 0, .12); --edge: rgba(255, 255, 255, .3); --ln: rgba(0, 0, 0, .3); --in: rgba(0, 0, 0, .5); --tx: #fff; }   /* дымчатое стекло */
+.chip.st-done { --base: #1f9d55; --tx: #0d5a32; }
+:root[data-theme="dark"] .chip.st { --base: #5a5a5a; --ov1: rgba(16, 16, 16, .45); --ov2: rgba(16, 16, 16, .6); --edge: rgba(255, 255, 255, .2); --ln: rgba(255, 255, 255, .1); --sh: rgba(0, 0, 0, .5); --in: rgba(0, 0, 0, .6); --tx: #f0f0f0; }
+:root[data-theme="dark"] .chip.st-ord { --base: #8c8c8c; }
+:root[data-theme="dark"] .chip.st-tr { --base: #cfcfcf; --ov1: rgba(255, 255, 255, .62); --ov2: rgba(255, 255, 255, .42); --edge: rgba(255, 255, 255, .95); --ln: rgba(0, 0, 0, .25); --in: rgba(0, 0, 0, .25); --tx: #111; }   /* светлое стекло — обратный вариант */
+:root[data-theme="dark"] .chip.st-done { --base: #2f9e5f; --ov1: rgba(16, 16, 16, .4); --ov2: rgba(16, 16, 16, .55); --tx: #bfffd9; }
 .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); flex: none; }
 .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.fg { background: var(--fg); }
 .av { width: 22px; height: 22px; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--line); display: grid; place-items: center; font-size: 9px; font-weight: 600; color: var(--fg-2); flex: none; letter-spacing: .02em; position: relative; }
