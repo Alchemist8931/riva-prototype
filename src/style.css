@@ -42,6 +42,7 @@
   --frame-shadow: 0 30px 80px rgba(0, 0, 0, .28);
   --logo-bg: #ffffff;
   --logo-fg: #111111;
+  --bg-dot: rgba(17, 17, 17, .55);
 }
 
 :root[data-theme="dark"] {
@@ -78,13 +79,13 @@
   --frame-shadow: 0 30px 80px rgba(0, 0, 0, .8), 0 0 0 1px #262626;
   --logo-bg: #ffffff;
   --logo-fg: #111111;
+  --bg-dot: rgba(240, 240, 240, .45);
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
   background-color: var(--page);
-  background-image: repeating-linear-gradient(135deg, var(--page-hatch) 0 1px, transparent 1px 9px);
   color: var(--fg);
   font: 12px/1.4 "SN Pro", "SN Pro Local", Inter, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -117,6 +118,13 @@ svg.i.xs { width: 11px; height: 11px; }
 .grow { flex: 1; min-width: 0; }
 .ellip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ---------- фон приложения: слои под рамкой (штриховка, волны на canvas), выбранный проявляется, остальные гаснут ---------- */
+.bg-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .7s ease; }
+.bg-hatch { background-image: repeating-linear-gradient(135deg, var(--page-hatch) 0 1px, transparent 1px 9px); }
+html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
+.xp-panel.rail { left: calc(100% + 10px); bottom: 0; }
+.xp.open [data-tip]:hover::after, .xp.open [data-tip]:hover::before { display: none; }
+
 /* ---------- оболочка: рамка 20px от края, контент 6px сверху/справа/снизу ---------- */
 .frame {
   --side-w: 52px; --gap: 6px;
@@ -147,7 +155,8 @@ svg.i.xs { width: 11px; height: 11px; }
   overflow: clip;   /* обрезает, но не прокручивается: ни scrollIntoView, ни анимации не сдвинут содержимое */
 }
 /* стекло ниже чёрного слоя окна (z -2 и -1 в контексте .frame): размытие берёт только фон окна */
-.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+/* размытие 6px (было 16): сильнее — и фон приложения (волны) сквозь стекло превращается в ровную дымку */
+.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 @supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
   .frame { background: var(--frame); }
   .frame::before { display: none; }
@@ -236,15 +245,19 @@ svg.i.xs { width: 11px; height: 11px; }
 .chip.dir { background: transparent; border-color: var(--line-2); font-weight: 600; letter-spacing: .01em; }
 .chip.dir .dk { width: 12px; height: 12px; border-radius: 3px; background: var(--fg); color: var(--panel); display: grid; place-items: center; font-size: 8px; font-weight: 700; }
 .chip.all { background: var(--surface-3); border-color: transparent; }
-/* статус заявки: чип-стекло — прозрачнее, тон темнее (не бледный), одна ширина, текст слева, строчными, жирнее, углы 6px */
-.chip.st { --st: #5f5f5f; width: 100px; justify-content: flex-start; border-radius: 6px; font-weight: 700; text-transform: lowercase; color: var(--fg-2); background: color-mix(in srgb, var(--st) 20%, transparent); border-color: color-mix(in srgb, var(--st) 40%, transparent); -webkit-backdrop-filter: blur(10px) saturate(1.4); backdrop-filter: blur(10px) saturate(1.4); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4); }
-.chip.st-ord { --st: var(--fg); color: var(--fg); }
-.chip.st-tr { background: color-mix(in srgb, var(--fg) 70%, transparent); border-color: transparent; color: var(--primary-fg); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18); }
-.chip.st-done { --st: #1b8a4b; color: #166e3c; }
-:root[data-theme="dark"] .chip.st { --st: #a0a0a0; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); }
-:root[data-theme="dark"] .chip.st-ord { --st: var(--fg); }
-:root[data-theme="dark"] .chip.st-tr { background: color-mix(in srgb, var(--fg) 74%, transparent); }
-:root[data-theme="dark"] .chip.st-done { --st: var(--ok); color: var(--ok); }
+/* статус заявки: чип в стиле стеклянных иконок — подложка с градиентом (те же цвета, что у фигур иконок), поверх матовое стекло
+   (белый градиент .38→.94, как у иконок), блик по краю и мягкая тень; одна ширина, текст слева, строчными, жирнее, углы 6px */
+.chip.st { --b1: #4b4b4b; --b2: #0d0d0d; --g1: rgba(255, 255, 255, .38); --g2: rgba(255, 255, 255, .94); --edge: rgba(255, 255, 255, .9); --sh: rgba(0, 0, 0, .22); --tx: #111;
+  width: 100px; justify-content: flex-start; border-radius: 6px; border: 0; font-weight: 700; text-transform: lowercase; color: var(--tx);
+  background: linear-gradient(180deg, var(--g1), var(--g2)), linear-gradient(180deg, var(--b1), var(--b2));
+  box-shadow: inset 0 0 0 1px var(--edge), 0 2px 4px var(--sh); }
+.chip.st-req { --b1: #b4b4b4; --b2: #7a7a7a; }
+.chip.st-tr { --b1: #5a5a5a; --b2: #cfcfcf; --g1: rgba(16, 16, 16, .9); --g2: rgba(16, 16, 16, .55); --edge: rgba(255, 255, 255, .42); --sh: rgba(0, 0, 0, .6); --tx: #fff; }   /* дымчатое стекло, как обратный вариант иконок */
+.chip.st-done { --b1: #3fae6e; --b2: #0d5a32; --tx: #0d5a32; }
+:root[data-theme="dark"] .chip.st { --b1: #5a5a5a; --b2: #cfcfcf; --g1: rgba(16, 16, 16, .9); --g2: rgba(16, 16, 16, .55); --edge: rgba(255, 255, 255, .42); --sh: rgba(0, 0, 0, .6); --tx: #f0f0f0; }
+:root[data-theme="dark"] .chip.st-req { --g1: rgba(16, 16, 16, .82); --g2: rgba(16, 16, 16, .45); }
+:root[data-theme="dark"] .chip.st-tr { --b1: #4b4b4b; --b2: #0d0d0d; --g1: rgba(255, 255, 255, .38); --g2: rgba(255, 255, 255, .94); --edge: rgba(255, 255, 255, .9); --sh: rgba(0, 0, 0, .5); --tx: #111; }
+:root[data-theme="dark"] .chip.st-done { --b1: #2f9e5f; --b2: #7fd9a6; --g1: rgba(16, 16, 16, .7); --tx: #bfffd9; }
 .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); flex: none; }
 .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.fg { background: var(--fg); }
 .av { width: 22px; height: 22px; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--line); display: grid; place-items: center; font-size: 9px; font-weight: 600; color: var(--fg-2); flex: none; letter-spacing: .02em; position: relative; }

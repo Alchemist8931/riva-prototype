@@ -21,7 +21,7 @@ const App = {
   init() {
     this.el = { side: document.getElementById('side'), topbar: document.getElementById('topbar'), grid: document.getElementById('grid'), chatcol: document.getElementById('chatcol'), notifcol: document.getElementById('notifcol') };
     document.documentElement.dataset.theme = this.state.theme;
-    XP.init();
+    XP.init(); BG.init();
     window.addEventListener('hashchange', () => this.route());
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));
@@ -68,6 +68,7 @@ const App = {
       <a class="logo-tile" href="#supply" data-tip="RIVA · прототип для ПК">R</a>
       <nav class="dock">${PAGES.map(pg => `<a href="#${pg.id}" class="dk-item ${pg.id === s.page ? 'active' : ''}" data-tip="${pg.name}${pg.ready ? '' : ' · эскиз'}">${glassIcon(pg.icon, pg.id === s.page ? 'n' : 'i')}${pg.unread ? `<span class="n">${pg.unread}</span>` : ''}</a>`).join('')}</nav>
       <div class="side-foot">
+        ${xp({ id: 'bg', head: `<button class="rail-btn" data-tip="Фон приложения">${glassIcon('wave', 'i')}</button>`, panel: `<div class="menu" style="width:250px"><div class="lbl">Фон приложения</div>${BG.modes.map(([id, name, sub]) => `<button class="co ${id === BG.mode ? 'on' : ''}" data-bg-set="${id}"><span class="grow" style="text-align:left"><span style="display:block">${name}</span><span class="mute xsmall" style="display:block;font-weight:400">${sub}</span></span>${id === BG.mode ? `<span class="chk">${icRaw('check', 'sm')}</span>` : ''}</button>`).join('')}<div class="sep"></div><div class="mute small" style="padding:4px 9px 6px">Выбор сохраняется в этом браузере. Фон виден вокруг окна и сквозь стекло страницы.</div></div>`, place: 'rail' })}
         <button class="rail-btn" data-theme-toggle data-tip="${dark ? 'Светлая тема' : 'Тёмная тема'}">${glassIcon(dark ? 'sun' : 'moon', 'i')}</button>
         <div class="rail-me" data-tip="${ME.name} · ${ME.pos}">${glassIcon('user', 'i')}<i class="on"></i></div>
       </div>`;
@@ -380,6 +381,8 @@ const App = {
     }
     if (t.closest('[data-chat-toggle]')) { XP.toggle(this.el.chatcol); if (XP.stack.includes(this.el.chatcol)) this.chatToEnd(); return; }
     if (t.closest('[data-notif-toggle]')) { XP.toggle(this.el.notifcol); return; }
+    const bgBtn = t.closest('[data-bg-set]');
+    if (bgBtn) { BG.set(bgBtn.dataset.bgSet); XP.close(); this.renderSide(); return; }
     if (t.closest('[data-notif-read]')) { NOTIFS.forEach(n => n.unread = false); this.renderNotifs(); this.renderTopbar(); XP.focus(); return; }
     const coBtn = t.closest('[data-company]');
     if (coBtn) { this.state.company = coBtn.dataset.company; XP.close(); this.renderTopbar(); return; }
@@ -391,7 +394,7 @@ const App = {
     if (t.closest('[data-clear-dept]')) { this.state.dept = null; XP.close(); this.renderGrid(); return; }
     if (t.closest('[data-show-all]')) { this.state.all = true; this.renderGrid(); return; }
     const tg = t.closest('[data-xp-toggle]');
-    if (tg) { if (t.closest('a,button') && !t.closest('.xp-head > .company, .xp-head > .btn, .xp-head > .avs, .xp-head > .sel-btn')) return; XP.toggle(tg.closest('.xp')); return; }
+    if (tg) { if (t.closest('a,button') && !t.closest('.xp-head > .company, .xp-head > .btn, .xp-head > .avs, .xp-head > .sel-btn, .xp-head > .rail-btn')) return; XP.toggle(tg.closest('.xp')); return; }
     if (!t.closest('.xp-panel')) XP.closeAll();
   },
 

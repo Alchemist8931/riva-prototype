@@ -17,7 +17,9 @@ ${r('style.css')}
 </style>
 </head>
 <body>
-<script>document.documentElement.dataset.theme = localStorage.getItem('riva.theme') || 'light';</script>
+<script>document.documentElement.dataset.theme = localStorage.getItem('riva.theme') || 'light'; document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves';</script>
+<div class="bg-layer bg-hatch"></div>
+<canvas class="bg-layer" id="bg-wave" aria-hidden="true"></canvas>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <linearGradient id="gi-back" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b4b4b"/><stop offset="1" stop-color="#0d0d0d"/></linearGradient>
   <linearGradient id="gi-glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset="1" stop-color="#fff" stop-opacity=".94"/></linearGradient>

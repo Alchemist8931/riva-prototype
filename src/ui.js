@@ -125,6 +125,7 @@ Object.assign(GLASS, {
   clock: { back: '<circle cx="24" cy="24" r="19"/>', front: '<circle cx="24" cy="24" r="11"/>', extra: '<path d="M24 18v6.5l4.5 3" fill="none" stroke="var(--ico-edge)" stroke-width="2" stroke-linecap="round"/>' },
   alert: { back: '<path d="M21.4 6.5a3 3 0 0 1 5.2 0l16.4 28A3 3 0 0 1 40.4 39H7.6A3 3 0 0 1 5 34.5z"/>', front: '<rect x="20.5" y="14" width="7" height="13" rx="3.5"/><circle cx="24" cy="33" r="3.5"/>' },
   user: { back: '<circle cx="24" cy="14" r="9"/><path d="M6 42a18 18 0 0 1 36 0 3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z"/>', front: '<path d="M14 45a10 10 0 0 1 20 0z"/><circle cx="33" cy="20" r="6"/>' },
+  wave: { back: '<rect x="4" y="7" width="40" height="34" rx="8"/>', front: '<path d="M8 31c5-9 9-9 14 0s9 9 14 0c2-4 4-5 8-4v10a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z"/>', extra: '<circle cx="33" cy="17" r="4" fill="var(--ico-edge)" opacity=".7"/>' },
 });
 GLASS.wrench = GLASS.gear;
 const GLYPHS = new Set(['down', 'up', 'right', 'check', 'x', 'more', 'loader', 'arrow', 'panel']);
@@ -270,6 +271,64 @@ const XP = {
     const g = `radial-gradient(ellipse ${rx}px ${ry}px at ${cx}px ${cy}px, #000 34%, rgba(0,0,0,.6) 60%, transparent 100%)`;
     this.veil.style.webkitMaskImage = g; this.veil.style.maskImage = g;
     this.veil.classList.add('on');
+  },
+};
+
+/* ---------- фон приложения: слои под рамкой; «волны» — поле точек в перспективе (по образцу владельца, без Three.js),
+   скорость вдвое ниже образца (count += 0.05 за кадр 60 Гц), смена фона — перекрёстное затухание слоёв ---------- */
+const BG = {
+  modes: [['waves', 'Волны', 'поле точек в перспективе, медленное движение'], ['hatch', 'Штриховка', 'тонкая диагональная сетка'], ['none', 'Без рисунка', 'ровный фон']],
+  canvas: null, ctx: null, raf: 0, count: 0, last: 0, running: false,
+  get mode() { return document.documentElement.dataset.bg || 'waves'; },
+  init() {
+    this.canvas = document.getElementById('bg-wave'); this.ctx = this.canvas.getContext('2d');
+    addEventListener('resize', () => this.resize());
+    document.addEventListener('visibilitychange', () => this.sync());
+    this.canvas.addEventListener('transitionend', () => this.sync());
+    this.resize(); this.sync();
+  },
+  set(mode) { document.documentElement.dataset.bg = mode; localStorage.setItem('riva.bg', mode); this.sync(); setTimeout(() => this.sync(), 900); },   // повтор после затухания (0,7 с): если transitionend не пришёл, цикл всё равно остановится
+  /* рисуем, пока слой волн виден (в том числе пока гаснет); при «уменьшить движение» — один неподвижный кадр */
+  sync() {
+    const visible = this.mode === 'waves' || parseFloat(getComputedStyle(this.canvas).opacity) > 0;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const should = visible && !document.hidden && !reduced;
+    if (should && !this.running) { this.running = true; this.last = performance.now(); this.raf = requestAnimationFrame(t => this.frame(t)); }
+    if (!should) { this.running = false; cancelAnimationFrame(this.raf); if (visible) this.draw(); }
+  },
+  resize() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    this.canvas.width = Math.round(innerWidth * dpr); this.canvas.height = Math.round(innerHeight * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!this.running) this.draw();
+  },
+  frame(t) {
+    if (!this.running) return;
+    const dt = Math.min(50, t - this.last); this.last = t;
+    this.count += 0.05 * dt / 16.667;
+    this.draw();
+    this.raf = requestAnimationFrame(tt => this.frame(tt));
+  },
+  /* камера образца: точка (0, 355, 122), взгляд вдоль −Z, угол 65°; точки на сетке 40×60 с шагом 200 */
+  draw() {
+    const ctx = this.ctx, W = innerWidth, H = innerHeight;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-dot').trim() || 'rgba(17,17,17,.55)';
+    const SEP = 200, AX = 40, AY = 60, tanHalf = Math.tan(32.5 * Math.PI / 180), aspect = W / H, camY = 355, camZ = 122, k = H / (4 * tanHalf), cnt = this.count;
+    ctx.beginPath();
+    for (let ix = 0; ix < AX; ix++) {
+      const sx = Math.sin((ix + cnt) * 0.3), x = ix * SEP - AX * SEP / 2;
+      for (let iy = 0; iy < AY; iy++) {
+        const d = camZ - (iy * SEP - AY * SEP / 2); if (d < 1) continue;   // расстояние вдоль взгляда
+        const sy = Math.sin((iy + cnt) * 0.5), y = sx * 50 + sy * 50, scale = (sx + 1) * 4 + (sy + 1) * 4;
+        const nx = x / d / (tanHalf * aspect), ny = (y - camY) / d / tanHalf;
+        if (nx < -1.05 || nx > 1.05 || ny < -1.05 || ny > 1.05) continue;
+        const r = scale * k / d; if (r < 0.35) continue;
+        const px = (nx + 1) * W / 2, py = (1 - ny) * H / 2;
+        ctx.moveTo(px + r, py); ctx.arc(px, py, r, 0, 6.2832);
+      }
+    }
+    ctx.fill();
   },
 };
 
