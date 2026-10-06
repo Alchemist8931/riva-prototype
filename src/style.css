@@ -164,7 +164,7 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 }
 /* стекло ниже чёрного слоя окна (z -2 и -1 в контексте .frame): размытие берёт только фон окна */
 /* размытие 6px (было 16): сильнее — и фон приложения (волны) сквозь стекло превращается в ровную дымку */
-.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); }   /* без backdrop-filter: любое размытие превращает точки фона в дымку, а пересчёт размытия под анимацией грузит GPU */
+.content::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--glass); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }   /* 2px по просьбе владельца (19-й круг); сильнее — точки фона превращаются в дымку, а пересчёт размытия под анимацией грузит GPU */
 @supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
   .frame { background: var(--frame); }
   .frame::before { display: none; }
