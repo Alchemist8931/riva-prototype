@@ -311,12 +311,13 @@ const BG = {
   },
   /* камера образца: точка (0, 355, 122), взгляд вдоль −Z, угол 65°; точки на сетке 40×60 с шагом 200;
      радиус точек в 1,3 раза больше образца и не меньше 1px — сквозь тонированное стекло панели мелкие точки у горизонта иначе пропадают;
-     предел радиуса k/98 — треть прежнего максимума (16·k/522 у ближайшего видимого ряда): крупные пятна внизу владелец просил уменьшить втрое */
+     предел радиуса k/196 — шестая часть исходного максимума (16·k/522 у ближайшего видимого ряда): крупные пятна внизу владелец просил
+     уменьшить втрое, затем ещё вдвое (2,25px при высоте окна 864) */
   draw() {
     const ctx = this.ctx, W = innerWidth, H = innerHeight;
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-dot').trim() || 'rgba(17,17,17,.55)';
-    const SEP = 200, AX = 40, AY = 60, tanHalf = Math.tan(32.5 * Math.PI / 180), aspect = W / H, camY = 355, camZ = 122, k = 1.3 * H / (4 * tanHalf), rMax = k / 98, cnt = this.count;
+    const SEP = 200, AX = 40, AY = 60, tanHalf = Math.tan(32.5 * Math.PI / 180), aspect = W / H, camY = 355, camZ = 122, k = 1.3 * H / (4 * tanHalf), rMax = k / 196, cnt = this.count;
     ctx.beginPath();
     for (let ix = 0; ix < AX; ix++) {
       const sx = Math.sin((ix + cnt) * 0.3), x = ix * SEP - AX * SEP / 2;
