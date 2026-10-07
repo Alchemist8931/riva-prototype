@@ -266,6 +266,12 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.st-done { --stc: #2266CC; }
 .chip.pay-y { --stc: #1F9D6B; }   /* оплата (29-й круг): зелёная — оплачено, красная — не оплачено */
 .chip.pay-n { --stc: #C2453C; }
+.chip.st.w136, .chip.st.w136 .stg { width: 136px; }
+.chip.rk-item { --stc: #2266CC; }   /* производство (31-й круг): изделие — синяя метка, полуфабрикат — фиолетовая */
+.chip.rk-semi { --stc: #8A63D2; }
+.chip.pz-plan { --stc: #7B828C; }   /* заказ на производство: в плане — серая, в работе — оранжевая, готово — зелёная */
+.chip.pz-work { --stc: #CC6E19; }
+.chip.pz-done { --stc: #199948; }
 .stg .cl { fill: var(--stc); }
 .stg .glow { opacity: .55; }   /* размытая метка поверх тонировки стекла — цвет проступает сквозь плашку */
 .chip.dc { position: relative; width: 176px; height: 24px; padding: 5px 8px 0 38px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-size: 12px; font-weight: 700; text-transform: lowercase; color: var(--fg); flex: none; }
@@ -612,3 +618,37 @@ html.ruler-off .ruler { display: none; }
 .ruler .pm.hit span { background: #199948; }
 .ruler .rd { position: absolute; bottom: calc(100% + 4px); left: 12px; white-space: nowrap; padding: 4px 8px; border-radius: 6px; background: rgba(17, 17, 17, .82); color: #fff; font-size: 10.5px; }
 .ruler .rd.hit { background: #199948; }
+
+/* ---------- производство (31-й круг): вкладки «Рецепты / Заказы», дерево состава (матрёшка), итоги себестоимости ---------- */
+.seg-row { display: flex; align-items: center; gap: 12px; flex: none; padding: 2px 2px 8px; min-width: 0; }
+.seg-row > .mute { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); flex: none; }
+.seg button { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: var(--fg-2); font: inherit; font-weight: 500; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.seg button:hover { color: var(--fg); }
+.seg button.on { background: var(--surface); color: var(--fg); font-weight: 600; box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, .08); }
+.seg button .n { font-size: 10.5px; color: var(--mute); font-variant-numeric: tabular-nums; }
+/* уровни вложенности рецепта — стопка квадратиков, как матрёшка */
+.nest { display: inline-flex; gap: 2px; vertical-align: middle; }
+.nest i { width: 6px; height: 6px; border-radius: 2px; background: var(--fg-2); opacity: .75; }
+.nest i + i { opacity: .5; } .nest i + i + i { opacity: .3; }
+/* дерево состава: отступ по уровню, направляющая линия, полуфабрикат сворачивается */
+.tree .tnode .tname { display: flex; align-items: center; gap: 6px; padding-left: calc(var(--lv, 0) * 18px); }
+.tree .tnode:not(.semi) .tname { padding-left: calc(var(--lv, 0) * 18px + 22px); }
+.tree .tkids .tnode .tname { background: linear-gradient(var(--line-2), var(--line-2)) no-repeat calc(var(--lv, 0) * 18px - 9px) 0 / 1px 100%; }
+.tree .tnode.semi { font-weight: 600; }
+.tree .tdot { width: 5px; height: 5px; border-radius: 50%; background: var(--line-2); flex: none; }
+.tree .tg { width: 16px; height: 16px; flex: none; display: grid; place-items: center; border: 0; border-radius: 4px; background: var(--surface-2); color: var(--fg-2); cursor: pointer; padding: 0; }
+.tree .tg:hover { background: var(--surface-3); }
+.tree .tgroup.closed > .tkids { display: none; }
+.tree .tgroup.closed > .tnode .tg svg { transform: rotate(-90deg); }
+.lnk { border: 0; background: none; padding: 0; font: inherit; color: var(--fg); text-decoration: underline dashed var(--line-2); text-underline-offset: 3px; cursor: pointer; }
+.lnk:hover { text-decoration-color: var(--fg); }
+.ph .lnk { color: var(--fg-2); }
+.bad-t { color: var(--bad); }
+.cost-sum { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.cost-sum.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cost-sum > div { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.cost-sum span { font-size: 10px; color: var(--mute); }
+.cost-sum b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cost-sum .tot { background: var(--surface-2); }
+.of-row.pz { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr); }

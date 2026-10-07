@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>RIVA · прототип интерфейса для ПК · сборка 07.10 23:39</title>
+<title>RIVA · прототип интерфейса для ПК · сборка 08.10 01:13</title>
 <meta name="viewport" content="width=1280">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23111%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial%27 font-weight=%27800%27 font-size=%2718%27 fill=%27%23fff%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
@@ -278,6 +278,12 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.st-done { --stc: #2266CC; }
 .chip.pay-y { --stc: #1F9D6B; }   /* оплата (29-й круг): зелёная — оплачено, красная — не оплачено */
 .chip.pay-n { --stc: #C2453C; }
+.chip.st.w136, .chip.st.w136 .stg { width: 136px; }
+.chip.rk-item { --stc: #2266CC; }   /* производство (31-й круг): изделие — синяя метка, полуфабрикат — фиолетовая */
+.chip.rk-semi { --stc: #8A63D2; }
+.chip.pz-plan { --stc: #7B828C; }   /* заказ на производство: в плане — серая, в работе — оранжевая, готово — зелёная */
+.chip.pz-work { --stc: #CC6E19; }
+.chip.pz-done { --stc: #199948; }
 .stg .cl { fill: var(--stc); }
 .stg .glow { opacity: .55; }   /* размытая метка поверх тонировки стекла — цвет проступает сквозь плашку */
 .chip.dc { position: relative; width: 176px; height: 24px; padding: 5px 8px 0 38px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-size: 12px; font-weight: 700; text-transform: lowercase; color: var(--fg); flex: none; }
@@ -625,6 +631,40 @@ html.ruler-off .ruler { display: none; }
 .ruler .rd { position: absolute; bottom: calc(100% + 4px); left: 12px; white-space: nowrap; padding: 4px 8px; border-radius: 6px; background: rgba(17, 17, 17, .82); color: #fff; font-size: 10.5px; }
 .ruler .rd.hit { background: #199948; }
 
+/* ---------- производство (31-й круг): вкладки «Рецепты / Заказы», дерево состава (матрёшка), итоги себестоимости ---------- */
+.seg-row { display: flex; align-items: center; gap: 12px; flex: none; padding: 2px 2px 8px; min-width: 0; }
+.seg-row > .mute { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); flex: none; }
+.seg button { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: var(--fg-2); font: inherit; font-weight: 500; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.seg button:hover { color: var(--fg); }
+.seg button.on { background: var(--surface); color: var(--fg); font-weight: 600; box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, .08); }
+.seg button .n { font-size: 10.5px; color: var(--mute); font-variant-numeric: tabular-nums; }
+/* уровни вложенности рецепта — стопка квадратиков, как матрёшка */
+.nest { display: inline-flex; gap: 2px; vertical-align: middle; }
+.nest i { width: 6px; height: 6px; border-radius: 2px; background: var(--fg-2); opacity: .75; }
+.nest i + i { opacity: .5; } .nest i + i + i { opacity: .3; }
+/* дерево состава: отступ по уровню, направляющая линия, полуфабрикат сворачивается */
+.tree .tnode .tname { display: flex; align-items: center; gap: 6px; padding-left: calc(var(--lv, 0) * 18px); }
+.tree .tnode:not(.semi) .tname { padding-left: calc(var(--lv, 0) * 18px + 22px); }
+.tree .tkids .tnode .tname { background: linear-gradient(var(--line-2), var(--line-2)) no-repeat calc(var(--lv, 0) * 18px - 9px) 0 / 1px 100%; }
+.tree .tnode.semi { font-weight: 600; }
+.tree .tdot { width: 5px; height: 5px; border-radius: 50%; background: var(--line-2); flex: none; }
+.tree .tg { width: 16px; height: 16px; flex: none; display: grid; place-items: center; border: 0; border-radius: 4px; background: var(--surface-2); color: var(--fg-2); cursor: pointer; padding: 0; }
+.tree .tg:hover { background: var(--surface-3); }
+.tree .tgroup.closed > .tkids { display: none; }
+.tree .tgroup.closed > .tnode .tg svg { transform: rotate(-90deg); }
+.lnk { border: 0; background: none; padding: 0; font: inherit; color: var(--fg); text-decoration: underline dashed var(--line-2); text-underline-offset: 3px; cursor: pointer; }
+.lnk:hover { text-decoration-color: var(--fg); }
+.ph .lnk { color: var(--fg-2); }
+.bad-t { color: var(--bad); }
+.cost-sum { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.cost-sum.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cost-sum > div { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.cost-sum span { font-size: 10px; color: var(--mute); }
+.cost-sum b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cost-sum .tot { background: var(--surface-2); }
+.of-row.pz { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr); }
+
 </style>
 </head>
 <body>
@@ -643,6 +683,7 @@ document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves'
   <filter id="st-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
   <filter id="st-soft" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
   <clipPath id="st-clip"><rect x="6" y="4" width="118" height="16" rx="6"/></clipPath>
+  <clipPath id="st-clip-136"><rect x="6" y="4" width="130" height="16" rx="6"/></clipPath>
   <clipPath id="dc-clip"><rect x="7" y="5" width="169" height="19" rx="7"/></clipPath>
 </defs></svg>
 <div class="frame">
@@ -693,7 +734,7 @@ const DIR = Object.fromEntries(DIRS.map(d => [d.id, d]));
 const PAGES = [
   { id: 'supply',     name: 'Снабжение',    icon: 'box',     sub: 'общая служба · все направления', ready: true,  unread: 3 },
   { id: 'warehouse',  name: 'Склад',        icon: 'wh',      sub: 'по каждому направлению отдельно', ready: true , unread: 0 },
-  { id: 'production', name: 'Производство', icon: 'factory', sub: 'по каждому направлению отдельно', ready: false, unread: 1 },
+  { id: 'production', name: 'Производство', icon: 'factory', sub: 'по каждому направлению отдельно', ready: true , unread: 1 },
   { id: 'sales',      name: 'Продажи',      icon: 'tag',     sub: 'по каждому направлению отдельно', ready: false, unread: 0 },
   { id: 'clients',    name: 'Клиенты',      icon: 'users',   sub: 'общая база',                     ready: false, unread: 0 },
   { id: 'finance',    name: 'Финансы',      icon: 'money',   sub: 'общая служба · учёт по направлениям', ready: false, unread: 0 },
@@ -788,6 +829,56 @@ const SUPPLY = [
 
 /* склад (30-й круг): выдано со склада по артикулу — остаток = поступило − выдано; поступления = позиции завершённых заказов снабжения */
 const STOCK_ISSUED = { 'ПЭ-273': 2650, 'КР-ПЭ-З': 22, 'ПП-1500': 400, 'СТБ-УФ': 25, 'МБ-Б-70': 18, 'КР-2-ДС': 410, 'КР-04-Б': 900, 'КР-2-ГР': 120, 'КЛ-РАС': 14, 'ВВГ-3-2.5': 300, 'АВ-16': 12, 'АВ-32-3': 4, 'ЩР-24': 1, 'КЛ-WAGO': 64 };
+
+/* ---------- производство (31-й круг) ----------
+   справочник материалов — из позиций заказов снабжения (цена последней закупки);
+   рецепт: выход партии (out, unit), состав comps — ['m', артикул, кол-во на партию] (материал склада) или ['r', код рецепта, кол-во]
+   (полуфабрикат по другому рецепту — принцип матрёшки), работы works — [операция, нормо-часы на партию, ставка ₽/ч]; цех — по направлению */
+const MATERIALS = {};
+SUPPLY.forEach(r => r.items.forEach(([sku, name, cat, unit, qty, price, sub]) => { MATERIALS[sku] = { sku, name, cat, sub, unit, price }; }));
+const RECIPES = [
+  { id: 'РЦ-0001', name: 'Опора регулируемая М16', kind: 'semi', dir: 'metal', out: 1, unit: 'шт', upd: '28.09.2026',
+    comps: [['m', 'БМ-16-120', 1], ['m', 'ГМ-16', 2], ['m', 'МС-3-1500', 0.01]],
+    works: [['Резка пластины', 0.1, 900], ['Сварка', 0.2, 1100]] },
+  { id: 'РЦ-0002', name: 'Рама сварная 1500×600', kind: 'semi', dir: 'metal', out: 1, unit: 'шт', upd: '29.09.2026',
+    comps: [['m', 'ПР-40-3', 1.2], ['r', 'РЦ-0001', 2], ['m', 'ЭЛ-МР3-4', 0.6]],
+    works: [['Резка профиля', 0.5, 900], ['Сварка', 1.2, 1100], ['Зачистка швов', 0.4, 800]] },
+  { id: 'РЦ-0003', name: 'Стеллаж складской СТ-1500', kind: 'item', dir: 'metal', out: 1, unit: 'шт', upd: '01.10.2026',
+    comps: [['r', 'РЦ-0002', 2], ['m', 'ПР-40-3', 4], ['m', 'СМ-6-30', 24], ['m', 'ШБ-10', 24]],
+    works: [['Сборка', 1.5, 950], ['Порошковая покраска', 0.8, 1200]] },
+  { id: 'РЦ-0004', name: 'Навес для ферм Н-6', kind: 'item', dir: 'metal', out: 1, unit: 'шт', upd: '02.10.2026',
+    comps: [['m', 'ТП-60-3', 6], ['m', 'ТП-40-2', 10], ['r', 'РЦ-0001', 6], ['m', 'АН-12-150', 12], ['m', 'ЭЛ-МР3-4', 3]],
+    works: [['Резка трубы', 2, 900], ['Сварка', 6, 1100], ['Порошковая покраска', 3, 1200], ['Монтаж на объекте', 8, 1300]] },
+  { id: 'РЦ-0005', name: 'Корпус тумбы 450', kind: 'semi', dir: 'furn', out: 1, unit: 'шт', upd: '25.09.2026',
+    comps: [['m', 'ЛД-16-ДС', 0.35], ['m', 'КР-2-ДС', 4.2], ['m', 'ХД-3', 0.12], ['m', 'КЛ-РАС', 0.05]],
+    works: [['Раскрой', 0.3, 850], ['Кромление', 0.4, 850], ['Присадка', 0.3, 850]] },
+  { id: 'РЦ-0006', name: 'Ящик выдвижной 450', kind: 'semi', dir: 'furn', out: 1, unit: 'шт', upd: '25.09.2026',
+    comps: [['m', 'ЛД-16-ДС', 0.15], ['m', 'КР-04-Б', 2.6], ['m', 'ХД-3', 0.05], ['m', 'НП-450', 1], ['m', 'РЧ-128', 1]],
+    works: [['Раскрой', 0.15, 850], ['Кромление', 0.2, 850], ['Сборка ящика', 0.25, 850]] },
+  { id: 'РЦ-0007', name: 'Тумба офисная Т-3', kind: 'item', dir: 'furn', out: 1, unit: 'шт', upd: '30.09.2026',
+    comps: [['r', 'РЦ-0005', 1], ['r', 'РЦ-0006', 3], ['m', 'ГК-1200', 1], ['m', 'УГ-50', 2], ['m', 'СТ-500', 0.05]],
+    works: [['Сборка', 0.6, 850], ['Упаковка', 0.3, 700]] },
+  { id: 'РЦ-0008', name: 'Гранулят окрашенный зелёный', kind: 'semi', dir: 'poly', out: 100, unit: 'кг', upd: '27.09.2026',
+    comps: [['m', 'ПЭ-273', 97], ['m', 'КР-ПЭ-З', 2], ['m', 'СТБ-УФ', 1]],
+    works: [['Компаундирование', 1.5, 1000]] },
+  { id: 'РЦ-0009', name: 'Ящик овощной Агротех 600×400', kind: 'item', dir: 'poly', out: 100, unit: 'шт', upd: '02.10.2026',
+    comps: [['r', 'РЦ-0008', 180]],
+    works: [['Литьё под давлением', 5, 1000], ['Контроль качества', 1, 800]] },
+  { id: 'РЦ-0010', name: 'Ящик овощной белый 600×400', kind: 'item', dir: 'poly', out: 100, unit: 'шт', upd: '03.10.2026',
+    comps: [['m', 'ПП-1500', 176], ['m', 'МБ-Б-70', 4]],
+    works: [['Литьё под давлением', 5, 1000], ['Контроль качества', 1, 800]] },
+];
+const REC = Object.fromEntries(RECIPES.map(r => [r.id, r]));
+const REC_KIND = { item: ['изделие', 'rk-item'], semi: ['полуфабрикат', 'rk-semi'] };
+/* заказы на производство: выполненные дают готовые полуфабрикаты, которые расходуются в других заказах раньше, чем производятся новые */
+const PROD_ST = { plan: ['в плане', 'pz-plan'], work: ['в работе', 'pz-work'], done: ['готово', 'pz-done'] };
+const PROD_ORDERS = [
+  { id: 'ПЗ-0005', rec: 'РЦ-0009', qty: 1000, st: 'work', due: '14.10.2026', order: 'ЗК-0003', at: '03.10.2026 08:30' },
+  { id: 'ПЗ-0004', rec: 'РЦ-0007', qty: 20,   st: 'work', due: '16.10.2026', order: 'ЗК-0004', at: '02.10.2026 15:10' },
+  { id: 'ПЗ-0003', rec: 'РЦ-0003', qty: 6,    st: 'plan', due: '18.10.2026', order: 'ЗК-0012', at: '02.10.2026 11:00' },
+  { id: 'ПЗ-0002', rec: 'РЦ-0004', qty: 1,    st: 'plan', due: '25.10.2026', order: 'ЗК-0001', at: '01.10.2026 17:40' },
+  { id: 'ПЗ-0001', rec: 'РЦ-0008', qty: 600,  st: 'done', due: '05.10.2026', order: '—',       at: '29.09.2026 10:20' },
+];
 
 /* справочник поставщиков (для карточки заказа): ИНН и контакты; у каждого кроме менеджера — общий контакт отдела продаж */
 const SUPPLIERS = {};
@@ -1000,13 +1091,17 @@ const glassIcon = (name, variant = 'n', size = '', cls = '') => {
    (цвет --stc по классу st-<статус>), стеклянная плашка 118×16 со сдвигом вправо-вниз (6, 4) — внутри плашки основа, размытые копии
    обеих фигур, тонировка, свечение метки поверх тонировки (.glow, иначе белое стекло гасит цвет) и блик; тень под плашкой; текст с 48px, правее размытых фигур. Обрезка и фильтры — общие #st-clip,
    #st-blur, #st-soft в build.mjs (координаты в пространстве каждого чипа), цвета и тема — в style.css */
-const markChip = (cls, text) => {
+const markChip = (cls, text, w = 124) => {   // w: 124 — обычный, 136 — широкий (для «полуфабрикат», 31-й круг); у каждой ширины своя обрезка #st-clip / #st-clip-136
   const mark = cls => `<path class="cl bl${cls}" d="M32 6H42V11A5 5 0 0 1 32 11Z"/>`;   // метка 10×16, верх срезан на 6px (24-й круг): целиком под плашкой, видна только размытой
-  return `<span class="chip st ${cls}"><svg class="stg" viewBox="0 0 124 20" aria-hidden="true"><rect class="bk" width="26" height="16" rx="5"/><rect class="sh" x="6" y="5" width="118" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="124" height="20"/><rect class="bk bl" width="26" height="16" rx="5"/>${mark('')}<rect class="tint" y="4" width="124" height="16"/>${mark(' glow')}<rect class="edge" x="6" y="4" width="118" height="16" rx="6"/></g></svg><span class="tx">${text}</span></span>`;
+  const pw = w - 6, clip = w === 124 ? 'st-clip' : 'st-clip-' + w;
+  return `<span class="chip st ${cls} ${w === 124 ? '' : 'w' + w}"><svg class="stg" viewBox="0 0 ${w} 20" aria-hidden="true"><rect class="bk" width="26" height="16" rx="5"/><rect class="sh" x="6" y="5" width="${pw}" height="16" rx="6"/><g clip-path="url(#${clip})"><rect class="base" width="${w}" height="20"/><rect class="bk bl" width="26" height="16" rx="5"/>${mark('')}<rect class="tint" y="4" width="${w}" height="16"/>${mark(' glow')}<rect class="edge" x="6" y="4" width="${pw}" height="16" rx="6"/></g></svg><span class="tx">${text}</span></span>`;
 };
 const stChip = st => markChip('st-' + st, SUP_ST[st][0]);
 /* чип оплаты (29-й круг): та же конструкция, метка — зелёная «оплачено», красная «не оплачено» */
 const payChip = paid => markChip(paid ? 'pay-y' : 'pay-n', paid ? 'оплачено' : 'не оплачено');
+/* производство (31-й круг): тип рецепта — широкий чип; статус заказа на производство — обычный */
+const kindChip = k => markChip(REC_KIND[k][1], REC_KIND[k][0], 136);
+const pzChip = st => markChip(PROD_ST[st][1], PROD_ST[st][0]);
 
 /* чип направления (шапка карточки заказа, 28-й круг): тот же приём, что у чипа статуса, крупнее в 1,2 раза и без цветной метки —
    задняя фигура 31×19, плашка 169×19 со сдвигом (7, 5), текст 12px с 38px; одна ширина 176px под «полимерные изделия» (129px) */
@@ -1321,6 +1416,8 @@ const pct16 = (a, b) => b ? Math.round(16 * a / b) : 0;
 const rmIcon = (st, i) => st === 'done' ? ic('check', 'xs') : st === 'cur' ? ic('loader', 'sm spin') : st === 'bad' ? ic('alert', 'xs') : (i + 1);
 const hit = (q, ...fields) => !q || fields.join(' ').toLowerCase().includes(q);
 const fmtMoney = n => n.toLocaleString('ru-RU');
+const fmtQty = n => (Math.round(n * 100) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 2 });   // количество до сотых: 0,6 кг, 1 164 кг
+const rub = n => fmtMoney(Math.round(n)) + ' ₽';
 const fmtSize = b => b < 1024 * 1024 ? Math.max(1, Math.round(b / 1024)) + ' КБ' : (b / 1024 / 1024).toFixed(1).replace('.', ',') + ' МБ';
 const todayShort = () => new Date().toLocaleDateString('ru-RU');
 
@@ -1340,7 +1437,7 @@ const App = {
     window.addEventListener('hashchange', () => this.route());
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));
-    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-ocard] input.in')) e.target.blur(); });   // Enter в поле карточки заказа применяет значение
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-ocard] input.in, [data-pcard] input.in')) e.target.blur(); });   // Enter в поле карточки заказа применяет значение
     document.addEventListener('input', e => this.onInput(e));
     document.addEventListener('change', e => this.onChange(e));
     document.addEventListener('keydown', e => {
@@ -1407,8 +1504,8 @@ const App = {
       <div class="sep"></div>
       <div class="mute small" style="padding:4px 9px 6px">Общие службы (снабжение, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
     </div>`;
-    const primary = { supply: 'Заявка', staff: 'Сотрудник' }[pg.id] || 'Запись';
-    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', warehouse: 'Артикул, наименование, поставщик…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
+    const primary = { supply: 'Заявка', production: 'Заказ', staff: 'Сотрудник' }[pg.id] || 'Запись';
+    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', warehouse: 'Артикул, наименование, поставщик…', production: 'Рецепт, изделие, материал, заказ…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
     const unread = NOTIFS.filter(n => n.unread).length;
     this.el.topbar.innerHTML = `
       <div class="tb-ic">${glassIcon(pg.icon, themeVar())}</div>
@@ -1447,6 +1544,18 @@ const App = {
         <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать заявку</button></div>
       </form>`;
     }
+    if (pg.id === 'production') {
+      return `<form data-new="prod" style="width:560px">
+        <div class="ph"><span class="t">Новый заказ на производство</span><span class="mute small">${nextNo(PROD_ORDERS.map(o => o.id), 'ПЗ')} · статус «в плане»</span>${close}</div>
+        <div class="pb frm">
+          ${fld('Рецепт', sel('rec', RECIPES.map(r => [r.id, `${r.id} · ${r.name}`])), 'full')}
+          ${fld('Количество', inp('qty', 'type="number" min="0.01" step="any" required placeholder="в единицах выхода рецепта"'))}
+          ${fld('Срок', dsel('due'))}
+          ${fld('№ заказа клиента', inp('order', 'placeholder="ЗК-0000 — если под заказ" pattern="[А-ЯЁ]{2}-[0-9]{4}"'), 'full')}
+        </div>
+        <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать заказ</button></div>
+      </form>`;
+    }
     if (pg.id === 'staff') {
       return `<form data-new="staff" style="width:600px">
         <div class="ph"><span class="t">Новый сотрудник</span><span class="mute small">доступ к страницам откроется по роли</span>${close}</div>
@@ -1479,6 +1588,12 @@ const App = {
       XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('sup-' + id);
       return;
     }
+    if (form.dataset.new === 'prod') {
+      const id = nextNo(PROD_ORDERS.map(o => o.id), 'ПЗ'), rec = v('rec'), qty = parseFloat(v('qty').replace(',', '.'));
+      PROD_ORDERS.unshift({ id, rec, qty: qty > 0 ? qty : REC[rec].out, st: 'plan', due: v('due') ? isoToRu(v('due')) : '—', order: v('order') || '—', at: nowStamp() });
+      XP.closeAll(); this.state.prodTab = 'orders'; this.renderTopbar(); this.renderGrid(); this.reopen('pz-' + id);
+      return;
+    }
     if (form.dataset.new === 'staff') {
       const id = Math.max(...STAFF.map(p => p.id)) + 1, dirs = v('dirs');
       const p = { id, name: v('name'), pos: v('pos'), dept: v('dept'), dirs: dirs === 'all' ? 'all' : [dirs], role: v('role'), st: v('st') || 'office', on: false, tel: v('tel') || '—', mail: v('mail'), newbie: true };
@@ -1505,8 +1620,8 @@ const App = {
 
   renderGrid(animate = false) {
     const pg = this.page();
-    this.el.grid.classList.toggle('single', pg.id === 'supply' || pg.id === 'warehouse');
-    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'warehouse' ? this.warehouse() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+    this.el.grid.classList.toggle('single', pg.id === 'supply' || pg.id === 'warehouse' || pg.id === 'production');
+    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'warehouse' ? this.warehouse() : pg.id === 'production' ? this.production() : pg.id === 'staff' ? this.staff() : this.stub(pg);
     if (animate) this.animateIn();
   },
 
@@ -1663,6 +1778,158 @@ const App = {
     return mod({ span: 12, cls: 'fill', title: 'Поступления и остатки', sub: `${list.length} из ${all.length} позиций · ${where} · поступления из завершённых заказов снабжения · остаток на ${money(leftSum)}`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
   },
 
+  /* ---------- Производство (31-й круг): рецепты (материалы + работы) и подстраница заказов на производство.
+     Принцип матрёшки: полуфабрикат одного рецепта входит в другой как материал — себестоимость и потребность считаются
+     рекурсивно по всем уровням; выполненные заказы дают готовые полуфабрикаты, которые расходуются раньше, чем производятся новые ---------- */
+  recCols: '72px minmax(172px,1.6fr) 136px 136px 84px 150px 76px 116px minmax(130px,1fr)',
+  pzCols: '72px minmax(200px,1.6fr) 124px 84px 104px 170px 112px 72px 120px',
+  prodArea(dir) { return DEPTS.find(d => d.id === 'prod').names[dir]; },
+  recCost(id) {   // на партию и на единицу выхода: материалы + полуфабрикаты (по их рецептам) + работы
+    const r = REC[id]; let mat = 0, semi = 0, work = 0;
+    r.comps.forEach(([k, x, q]) => { if (k === 'm') mat += (MATERIALS[x] ? MATERIALS[x].price : 0) * q; else semi += this.recCost(x).unit * q; });
+    r.works.forEach(([, h, rate]) => { work += h * rate; });
+    const total = mat + semi + work; return { mat, semi, work, total, unit: total / r.out };
+  },
+  recDepth(id) { const subs = REC[id].comps.filter(c => c[0] === 'r'); return 1 + (subs.length ? Math.max(...subs.map(c => this.recDepth(c[1]))) : 0); },
+  recParents(id) { return RECIPES.filter(r => r.comps.some(c => c[0] === 'r' && c[1] === id)); },
+  semiReady() { const s = {}; PROD_ORDERS.forEach(o => { if (o.st === 'done') s[o.rec] = (s[o.rec] || 0) + o.qty; }); return s; },
+  stockBySku() { const s = {}; this.stockRows().forEach(x => { s[x.sku] = (s[x.sku] || 0) + x.left; }); return s; },
+  /* разворот заказа до сырья: по каждому полуфабрикату сначала берутся готовые (из выполненных заказов), недостающее раскладывается по его рецепту */
+  explode(recId, qty) {
+    const need = {}, semi = {}, works = {}, ready = this.semiReady();
+    const go = (id, units) => {
+      const r = REC[id], f = units / r.out, area = this.prodArea(r.dir);
+      r.works.forEach(([op, h, rate]) => { const k = op + '|' + area, w = works[k] || (works[k] = { op, area, h: 0, sum: 0 }); w.h += h * f; w.sum += h * f * rate; });
+      r.comps.forEach(([k, x, q]) => {
+        const n = q * f;
+        if (k === 'm') { need[x] = (need[x] || 0) + n; return; }
+        const sm = semi[x] || (semi[x] = { need: 0, ready: ready[x] || 0, used: 0, make: 0 });
+        const use = Math.min(Math.max(0, sm.ready - sm.used), n);
+        sm.need += n; sm.used += use; sm.make += n - use;
+        if (n - use > 0) go(x, n - use);
+      });
+    };
+    go(recId, qty);
+    const stock = this.stockBySku();
+    const mats = Object.entries(need).map(([sku, n]) => { const have = stock[sku] || 0; return { sku, m: MATERIALS[sku], need: n, have, short: Math.max(0, n - have) }; });
+    return { mats, semi, works: Object.values(works) };
+  },
+  production() {
+    const s = this.state, tab = s.prodTab || 'recipes', q = s.q.trim().toLowerCase(), inDir = d => s.dir === 'all' || d === s.dir;
+    const recs = RECIPES.filter(r => inDir(r.dir) && hit(q, r.id, r.name, DIR[r.dir].name, REC_KIND[r.kind][0], ...r.comps.map(c => c[0] === 'm' ? (MATERIALS[c[1]] || {}).name : REC[c[1]].name)));
+    const ords = PROD_ORDERS.filter(o => inDir(REC[o.rec].dir) && hit(q, o.id, o.rec, REC[o.rec].name, o.order, PROD_ST[o.st][0]));
+    const tabs = `<div class="seg-row"><div class="seg"><button type="button" class="${tab === 'recipes' ? 'on' : ''}" data-ptab="recipes">Рецепты <span class="n">${recs.length}</span></button><button type="button" class="${tab === 'orders' ? 'on' : ''}" data-ptab="orders">Заказы на производство <span class="n">${ords.length}</span></button></div>
+      <span class="mute small">${tab === 'recipes' ? 'рецепт — материалы и работы на партию; полуфабрикат одного рецепта входит в другой как материал' : 'потребность разворачивается по всем уровням рецептов и сверяется с остатками склада и готовыми полуфабрикатами'}</span></div>`;
+    const where = s.dir === 'all' ? 'цеха №1, №2, №3' : this.prodArea(s.dir).toLowerCase();
+    let head, rows, sub;
+    if (tab === 'recipes') {
+      head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${this.recCols}"><div>код</div><div>наименование</div><div>тип</div><div class="gl">направление</div><div>выход</div><div class="gl">состав</div><div>работы</div><div>себестоимость ед.</div><div class="gl">входит в</div></div></div>`;
+      rows = recs.map(r => xp({ id: 'rc-' + r.id, head: this.recRow(r), panel: this.recCard(r), place: 'under', cls: 'rec' })).join('');
+      sub = `${recs.length} из ${RECIPES.length} рецептов · ${where} · себестоимость — по ценам последних закупок, полуфабрикаты — по их рецептам`;
+    } else {
+      head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${this.pzCols}"><div>№ заказа</div><div>рецепт</div><div>статус</div><div class="gl">цех</div><div>количество</div><div class="gl">материалы</div><div>срок</div><div>заказ клиента</div><div>себестоимость</div></div></div>`;
+      rows = ords.map(o => xp({ id: 'pz-' + o.id, head: this.pzRow(o), panel: this.pzCard(o), place: 'under', cls: 'rec' })).join('');
+      const cnt = st => ords.filter(o => o.st === st).length;
+      sub = `${ords.length} заказов · ${where} · в работе ${cnt('work')} · в плане ${cnt('plan')} · готово ${cnt('done')}`;
+    }
+    const body = `${tabs}<div class="sup-list">${head}<div class="recs">${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div></div>`;
+    return mod({ span: 12, cls: 'fill', title: tab === 'recipes' ? 'Рецепты' : 'Заказы на производство', sub, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
+  },
+  recRow(r) {
+    const c = this.recCost(r.id), parents = this.recParents(r.id), nm = r.comps.filter(x => x[0] === 'm').length, ns = r.comps.length - nm, depth = this.recDepth(r.id), h = r.works.reduce((a, w) => a + w[1], 0);
+    return `<div class="rec-card"><div class="tr clickable" style="grid-template-columns:${this.recCols}">
+        <div class="no">${r.id}</div>
+        <div class="t ellip" title="${esc(r.name)}">${r.name}</div>
+        <div>${kindChip(r.kind)}</div>
+        <div class="small ellip gl">${DIR[r.dir].name}</div>
+        <div class="num" style="text-align:center">${fmtQty(r.out)} <span class="mute small">${r.unit}</span></div>
+        <div class="small ellip gl">${nm} мат.${ns ? ` · <b>${ns} п/ф</b> · <span class="nest" title="уровней вложенности: ${depth}">${'<i></i>'.repeat(depth)}</span>` : ''}</div>
+        <div class="num rn">${fmtQty(h)} ч</div>
+        <div class="num rn b">${rub(c.unit)}</div>
+        <div class="small ellip gl">${parents.length ? parents.map(p => p.id).join(', ') : '<span class="mute">—</span>'}</div>
+      </div></div>`;
+  },
+  recTree(id, mult, level) {
+    const tc = 'minmax(0,1fr) 76px 92px 92px 100px';
+    return REC[id].comps.map(([k, x, q]) => {
+      const n = q * mult;
+      if (k === 'm') { const m = MATERIALS[x]; return `<div class="tr tnode" style="grid-template-columns:${tc};--lv:${level}"><div class="tname ellip" title="${esc(m.name)}"><i class="tdot"></i>${m.name}</div><div class="num mute small ellip">${x}</div><div class="num rn">${fmtQty(n)} <span class="mute small">${m.unit}</span></div><div class="num rn">${rub(m.price)}</div><div class="num rn">${rub(m.price * n)}</div></div>`; }
+      const sr = REC[x], u = this.recCost(x).unit;
+      return `<div class="tgroup"><div class="tr tnode semi" style="grid-template-columns:${tc};--lv:${level}"><div class="tname ellip" title="${esc(sr.name)}"><button type="button" class="tg" data-tree-tg title="Свернуть или раскрыть состав полуфабриката">${icRaw('down', 'xs')}</button>${sr.name}</div><div class="num small ellip"><button type="button" class="lnk" data-rec-open="${x}" title="Открыть рецепт">${x}</button></div><div class="num rn">${fmtQty(n)} <span class="mute small">${sr.unit}</span></div><div class="num rn">${rub(u)}</div><div class="num rn b">${rub(u * n)}</div></div><div class="tkids">${this.recTree(x, n / sr.out, level + 1)}</div></div>`;
+    }).join('');
+  },
+  recCard(r) {
+    const c = this.recCost(r.id), parents = this.recParents(r.id), area = this.prodArea(r.dir), tc = 'minmax(0,1fr) 76px 92px 92px 100px', wc = 'minmax(0,1fr) 64px 84px 84px 96px';
+    const works = r.works.map(([op, h, rate]) => `<div class="tr" style="grid-template-columns:${wc};min-height:30px"><div class="ellip">${op}</div><div class="small mute">${area}</div><div class="num rn">${fmtQty(h)} ч</div><div class="num rn">${rub(rate)}</div><div class="num rn b">${rub(h * rate)}</div></div>`).join('');
+    return `<div class="ph">${dirChip(r.dir)}${kindChip(r.kind)}<span class="mute small">партия — ${fmtQty(r.out)} ${r.unit} · ${area} · изменён ${fmtDate(r.upd)}</span><button type="button" class="btn sm primary" data-prod-new="${r.id}" style="margin-left:auto">${glassIcon('plus', themeInv(), 'xs')}Заказ на производство</button><button class="btn ghost sm icon" data-xp-close>${icRaw('x', 'sm')}</button></div>
+      <div class="pb"><div class="oc-blocks">
+        <div class="oc-block"><div class="oc-h"><div class="sec-t">Состав на партию · материалы и полуфабрикаты</div><span class="mute small">полуфабрикаты раскрываются до сырья</span></div>
+          <div class="tbl tree"><div class="tr th" style="grid-template-columns:${tc}"><div>наименование</div><div>код</div><div>кол-во</div><div>цена · себест.</div><div>сумма</div></div>${this.recTree(r.id, 1, 0)}</div></div>
+        <div class="oc-block"><div class="oc-h"><div class="sec-t">Работы на партию</div></div>
+          <div class="tbl items"><div class="tr th" style="grid-template-columns:${wc}"><div>операция</div><div>цех</div><div>нормо-часы</div><div>ставка</div><div>сумма</div></div>${works}</div>
+          <div class="cost-sum"><div><span>материалы</span><b>${rub(c.mat)}</b></div><div><span>полуфабрикаты</span><b>${rub(c.semi)}</b></div><div><span>работы</span><b>${rub(c.work)}</b></div><div class="tot"><span>партия</span><b>${rub(c.total)}</b></div><div class="tot"><span>за ${r.unit}</span><b>${rub(c.unit)}</b></div></div>
+          <div class="oc-h" style="margin-top:10px"><div class="sec-t">Входит в рецепты</div></div>
+          <div class="row wrap" style="gap:6px">${parents.length ? parents.map(p => `<button type="button" class="chip line" data-rec-open="${p.id}">${p.id} · ${p.name}</button>`).join('') : '<span class="mute small">не входит в другие рецепты — конечное изделие</span>'}</div>
+        </div>
+      </div></div>`;
+  },
+  pzRow(o) {
+    const r = REC[o.rec], ex = this.explode(o.rec, o.qty), short = ex.mats.filter(m => m.short > 1e-9).length;
+    const cover = o.st === 'done' ? '<span class="mute small">выпущено</span>' : short ? `<span class="dot bad"></span><span class="small">не хватает ${short} из ${ex.mats.length}</span>` : '<span class="dot ok"></span><span class="small">обеспечено</span>';
+    return `<div class="rec-card"><div class="tr clickable" style="grid-template-columns:${this.pzCols}">
+        <div class="no">${o.id}</div>
+        <div class="ellip" title="${esc(r.name)}"><span class="t">${r.name}</span> <span class="mute small">${r.id}</span></div>
+        <div>${pzChip(o.st)}</div>
+        <div class="small ellip gl">${this.prodArea(r.dir)}</div>
+        <div class="num rn">${fmtQty(o.qty)} <span class="mute small">${r.unit}</span></div>
+        <div class="row gl" style="gap:6px;min-width:0">${cover}</div>
+        <div class="num" style="text-align:center">${fmtDate(o.due)}</div>
+        <div class="no ${o.order === '—' ? 'mute' : ''}">${o.order}</div>
+        <div class="num rn b">${rub(this.recCost(o.rec).unit * o.qty)}</div>
+      </div></div>`;
+  },
+  pzCard(o) {
+    const r = REC[o.rec], ex = this.explode(o.rec, o.qty), mc = '70px minmax(0,1fr) 84px 84px 90px', sc = '70px minmax(0,1fr) 84px 84px 84px', wc = 'minmax(0,1fr) 64px 80px 96px';
+    const matSum = ex.mats.reduce((a, m) => a + m.need * m.m.price, 0), workSum = ex.works.reduce((a, w) => a + w.sum, 0);
+    const mats = ex.mats.map(m => `<div class="tr" style="grid-template-columns:${mc};min-height:30px"><div class="num mute small ellip">${m.sku}</div><div class="ellip" title="${esc(m.m.name)}">${m.m.name}</div><div class="num rn">${fmtQty(m.need)} <span class="mute small">${m.m.unit}</span></div><div class="num rn ${m.have ? '' : 'mute'}">${fmtQty(m.have)}</div><div class="num rn b ${m.short > 1e-9 ? 'bad-t' : 'mute'}">${m.short > 1e-9 ? fmtQty(m.short) : '—'}</div></div>`).join('');
+    const semis = Object.entries(ex.semi).map(([id, sm]) => `<div class="tr" style="grid-template-columns:${sc};min-height:30px"><div class="num small"><button type="button" class="lnk" data-rec-open="${id}">${id}</button></div><div class="ellip" title="${esc(REC[id].name)}">${REC[id].name}</div><div class="num rn">${fmtQty(sm.need)} <span class="mute small">${REC[id].unit}</span></div><div class="num rn ${sm.used ? '' : 'mute'}">${fmtQty(sm.used)}</div><div class="num rn b">${fmtQty(sm.make)}</div></div>`).join('');
+    const works = ex.works.map(w => `<div class="tr" style="grid-template-columns:${wc};min-height:30px"><div class="ellip">${w.op}</div><div class="small mute">${w.area}</div><div class="num rn">${fmtQty(w.h)} ч</div><div class="num rn b">${rub(w.sum)}</div></div>`).join('');
+    const iso = /^\d{2}\.\d{2}\.\d{4}$/.test(o.due) ? o.due.split('.').reverse().join('-') : '';
+    return `<div class="ph">${dirChip(r.dir)}<span class="t">${r.name}</span><button type="button" class="lnk small" data-rec-open="${r.id}">рецепт ${r.id}</button><span class="mute small">создан ${fmtDT(o.at)}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
+      <div class="pb" data-pcard="${o.id}">
+        <div class="of-row pz">
+          ${fld('Статус', sel('pf-st', Object.entries(PROD_ST).map(([k, v]) => [k, v[0]]), o.st))}
+          ${fld('Количество, ' + r.unit, inp('pf-qty', `type="number" min="0.01" step="any" value="${o.qty}"`))}
+          ${fld('Срок', dsel('pf-due', iso))}
+          ${fld('№ заказа клиента', inp('pf-order', `value="${o.order === '—' ? '' : esc(o.order)}" placeholder="без заказа клиента"`))}
+        </div>
+        <div class="oc-blocks">
+          <div class="oc-block"><div class="oc-h"><div class="sec-t">Потребность в материалах · ${ex.mats.length}</div><span class="mute small">остаток — со склада</span></div>
+            <div class="tbl items"><div class="tr th" style="grid-template-columns:${mc}"><div>артикул</div><div>наименование</div><div>нужно</div><div>на складе</div><div>не хватает</div></div>${mats}</div>
+            <div class="cost-sum three"><div><span>материалы</span><b>${rub(matSum)}</b></div><div><span>работы</span><b>${rub(workSum)}</b></div><div class="tot"><span>к запуску</span><b>${rub(matSum + workSum)}</b></div></div></div>
+          <div class="oc-block">
+            <div class="oc-h"><div class="sec-t">Полуфабрикаты · ${Object.keys(ex.semi).length}</div><span class="mute small">сначала берутся готовые из выполненных заказов</span></div>
+            ${semis ? `<div class="tbl items"><div class="tr th" style="grid-template-columns:${sc}"><div>рецепт</div><div>наименование</div><div>нужно</div><div>из готовых</div><div>произвести</div></div>${semis}</div>` : '<div class="mute small" style="padding:2px 4px 6px">в рецепте нет полуфабрикатов — только материалы склада</div>'}
+            <div class="oc-h" style="margin-top:10px"><div class="sec-t">Работы по всем уровням</div></div>
+            <div class="tbl items"><div class="tr th" style="grid-template-columns:${wc}"><div>операция</div><div>цех</div><div>нормо-часы</div><div>сумма</div></div>${works}</div>
+          </div>
+        </div>
+      </div>`;
+  },
+  /* изменение заказа на производство из карточки: готовые полуфабрикаты меняют обеспеченность всех заказов — строки обновляются все,
+     раскрытая карточка перерисовывается (кроме ввода № заказа клиента — там нечего пересчитывать) */
+  updateProd(id, f, v) {
+    const o = PROD_ORDERS.find(x => x.id === id); if (!o) return;
+    if (f === 'st') o.st = v;
+    else if (f === 'qty') { const n = parseFloat(String(v).replace(',', '.')); if (n > 0) o.qty = n; }
+    else if (f === 'due') o.due = v ? isoToRu(v) : '—';
+    else if (f === 'order') o.order = v.trim() || '—';
+    document.querySelectorAll('.recs > [data-xp^="pz-"]').forEach(el => { const oo = PROD_ORDERS.find(x => 'pz-' + x.id === el.dataset.xp); if (oo) el.querySelector(':scope > .xp-head').innerHTML = this.pzRow(oo); });
+    const el = document.querySelector(`[data-xp="pz-${id}"]`);
+    if (el && f !== 'order') el.querySelector(':scope > .xp-panel').innerHTML = this.pzCard(o);
+    if (XP.open) XP.focus();
+  },
+
   /* ---------- Сотрудники ---------- */
   staff() {
     const s = this.state, q = s.q.trim().toLowerCase();
@@ -1780,6 +2047,7 @@ const App = {
       opt.insertAdjacentHTML('beforeend', `<span class="chk">${icRaw('check', 'sm')}</span>`);
       XP.close();
       const oc = x.closest('[data-ocard]'); if (oc) this.updateOrder(oc.dataset.ocard, x.querySelector('input[type=hidden]').name.replace(/^of-/, ''), opt.dataset.opt);
+      const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, x.querySelector('input[type=hidden]').name.replace(/^pf-/, ''), opt.dataset.opt);
       return;
     }
     // календарь: листание месяцев перерисовывает сетку внутри открытой панели; выбор дня и «очистить» пишут значение и закрывают
@@ -1795,7 +2063,22 @@ const App = {
       x.querySelector('input[type=hidden]').value = v;
       l.textContent = v ? fmtDate(isoToRu(v)) : 'выберите дату'; l.classList.toggle('ph', !v);
       x.querySelector('.cal-p').innerHTML = calHtml(d.getFullYear(), d.getMonth(), v);
-      XP.close(); return;
+      XP.close();
+      const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, 'due', v);
+      return;
+    }
+    const ptab = t.closest('[data-ptab]');
+    if (ptab) { this.state.prodTab = ptab.dataset.ptab; XP.closeAll(); this.renderTopbar(); this.renderGrid(); return; }
+    const ttg = t.closest('[data-tree-tg]');
+    if (ttg) { ttg.closest('.tgroup').classList.toggle('closed'); XP.focus(); return; }
+    const recOpen = t.closest('[data-rec-open]');
+    if (recOpen) { this.state.prodTab = 'recipes'; this.state.q = ''; XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('rc-' + recOpen.dataset.recOpen); return; }
+    const pnew = t.closest('[data-prod-new]');
+    if (pnew) {
+      const r = REC[pnew.dataset.prodNew], id = nextNo(PROD_ORDERS.map(o => o.id), 'ПЗ'), due = new Date(Date.now() + 14 * 864e5);
+      PROD_ORDERS.unshift({ id, rec: r.id, qty: r.out, st: 'plan', due: isoToRu(isoDate(due)), order: '—', at: nowStamp() });
+      this.state.prodTab = 'orders'; XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('pz-' + id);
+      return;
     }
     const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');
     if (themeBtn) {
@@ -1842,6 +2125,8 @@ const App = {
 
   /* загрузка файлов в карточку заказа: имена добавляются в список заявки */
   onChange(e) {
+    const pf = e.target.closest('[data-pcard] input.in[name^="pf-"]');
+    if (pf) { this.updateProd(pf.closest('[data-pcard]').dataset.pcard, pf.name.replace(/^pf-/, ''), pf.value); return; }
     const of = e.target.closest('[data-ocard] input.in[name^="of-"]');
     if (of) { this.updateOrder(of.closest('[data-ocard]').dataset.ocard, of.name.replace(/^of-/, ''), of.value); return; }
     const toRow = f => [f.name.replace(/\.[^.]+$/, ''), fileKind(f.name), fmtSize(f.size), todayShort()];

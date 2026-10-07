@@ -159,13 +159,17 @@ const glassIcon = (name, variant = 'n', size = '', cls = '') => {
    (цвет --stc по классу st-<статус>), стеклянная плашка 118×16 со сдвигом вправо-вниз (6, 4) — внутри плашки основа, размытые копии
    обеих фигур, тонировка, свечение метки поверх тонировки (.glow, иначе белое стекло гасит цвет) и блик; тень под плашкой; текст с 48px, правее размытых фигур. Обрезка и фильтры — общие #st-clip,
    #st-blur, #st-soft в build.mjs (координаты в пространстве каждого чипа), цвета и тема — в style.css */
-const markChip = (cls, text) => {
+const markChip = (cls, text, w = 124) => {   // w: 124 — обычный, 136 — широкий (для «полуфабрикат», 31-й круг); у каждой ширины своя обрезка #st-clip / #st-clip-136
   const mark = cls => `<path class="cl bl${cls}" d="M32 6H42V11A5 5 0 0 1 32 11Z"/>`;   // метка 10×16, верх срезан на 6px (24-й круг): целиком под плашкой, видна только размытой
-  return `<span class="chip st ${cls}"><svg class="stg" viewBox="0 0 124 20" aria-hidden="true"><rect class="bk" width="26" height="16" rx="5"/><rect class="sh" x="6" y="5" width="118" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="124" height="20"/><rect class="bk bl" width="26" height="16" rx="5"/>${mark('')}<rect class="tint" y="4" width="124" height="16"/>${mark(' glow')}<rect class="edge" x="6" y="4" width="118" height="16" rx="6"/></g></svg><span class="tx">${text}</span></span>`;
+  const pw = w - 6, clip = w === 124 ? 'st-clip' : 'st-clip-' + w;
+  return `<span class="chip st ${cls} ${w === 124 ? '' : 'w' + w}"><svg class="stg" viewBox="0 0 ${w} 20" aria-hidden="true"><rect class="bk" width="26" height="16" rx="5"/><rect class="sh" x="6" y="5" width="${pw}" height="16" rx="6"/><g clip-path="url(#${clip})"><rect class="base" width="${w}" height="20"/><rect class="bk bl" width="26" height="16" rx="5"/>${mark('')}<rect class="tint" y="4" width="${w}" height="16"/>${mark(' glow')}<rect class="edge" x="6" y="4" width="${pw}" height="16" rx="6"/></g></svg><span class="tx">${text}</span></span>`;
 };
 const stChip = st => markChip('st-' + st, SUP_ST[st][0]);
 /* чип оплаты (29-й круг): та же конструкция, метка — зелёная «оплачено», красная «не оплачено» */
 const payChip = paid => markChip(paid ? 'pay-y' : 'pay-n', paid ? 'оплачено' : 'не оплачено');
+/* производство (31-й круг): тип рецепта — широкий чип; статус заказа на производство — обычный */
+const kindChip = k => markChip(REC_KIND[k][1], REC_KIND[k][0], 136);
+const pzChip = st => markChip(PROD_ST[st][1], PROD_ST[st][0]);
 
 /* чип направления (шапка карточки заказа, 28-й круг): тот же приём, что у чипа статуса, крупнее в 1,2 раза и без цветной метки —
    задняя фигура 31×19, плашка 169×19 со сдвигом (7, 5), текст 12px с 38px; одна ширина 176px под «полимерные изделия» (129px) */

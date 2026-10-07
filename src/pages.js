@@ -6,6 +6,8 @@ const pct16 = (a, b) => b ? Math.round(16 * a / b) : 0;
 const rmIcon = (st, i) => st === 'done' ? ic('check', 'xs') : st === 'cur' ? ic('loader', 'sm spin') : st === 'bad' ? ic('alert', 'xs') : (i + 1);
 const hit = (q, ...fields) => !q || fields.join(' ').toLowerCase().includes(q);
 const fmtMoney = n => n.toLocaleString('ru-RU');
+const fmtQty = n => (Math.round(n * 100) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 2 });   // количество до сотых: 0,6 кг, 1 164 кг
+const rub = n => fmtMoney(Math.round(n)) + ' ₽';
 const fmtSize = b => b < 1024 * 1024 ? Math.max(1, Math.round(b / 1024)) + ' КБ' : (b / 1024 / 1024).toFixed(1).replace('.', ',') + ' МБ';
 const todayShort = () => new Date().toLocaleDateString('ru-RU');
 
@@ -25,7 +27,7 @@ const App = {
     window.addEventListener('hashchange', () => this.route());
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));
-    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-ocard] input.in')) e.target.blur(); });   // Enter в поле карточки заказа применяет значение
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-ocard] input.in, [data-pcard] input.in')) e.target.blur(); });   // Enter в поле карточки заказа применяет значение
     document.addEventListener('input', e => this.onInput(e));
     document.addEventListener('change', e => this.onChange(e));
     document.addEventListener('keydown', e => {
@@ -92,8 +94,8 @@ const App = {
       <div class="sep"></div>
       <div class="mute small" style="padding:4px 9px 6px">Общие службы (снабжение, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
     </div>`;
-    const primary = { supply: 'Заявка', staff: 'Сотрудник' }[pg.id] || 'Запись';
-    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', warehouse: 'Артикул, наименование, поставщик…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
+    const primary = { supply: 'Заявка', production: 'Заказ', staff: 'Сотрудник' }[pg.id] || 'Запись';
+    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', warehouse: 'Артикул, наименование, поставщик…', production: 'Рецепт, изделие, материал, заказ…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
     const unread = NOTIFS.filter(n => n.unread).length;
     this.el.topbar.innerHTML = `
       <div class="tb-ic">${glassIcon(pg.icon, themeVar())}</div>
@@ -132,6 +134,18 @@ const App = {
         <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать заявку</button></div>
       </form>`;
     }
+    if (pg.id === 'production') {
+      return `<form data-new="prod" style="width:560px">
+        <div class="ph"><span class="t">Новый заказ на производство</span><span class="mute small">${nextNo(PROD_ORDERS.map(o => o.id), 'ПЗ')} · статус «в плане»</span>${close}</div>
+        <div class="pb frm">
+          ${fld('Рецепт', sel('rec', RECIPES.map(r => [r.id, `${r.id} · ${r.name}`])), 'full')}
+          ${fld('Количество', inp('qty', 'type="number" min="0.01" step="any" required placeholder="в единицах выхода рецепта"'))}
+          ${fld('Срок', dsel('due'))}
+          ${fld('№ заказа клиента', inp('order', 'placeholder="ЗК-0000 — если под заказ" pattern="[А-ЯЁ]{2}-[0-9]{4}"'), 'full')}
+        </div>
+        <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать заказ</button></div>
+      </form>`;
+    }
     if (pg.id === 'staff') {
       return `<form data-new="staff" style="width:600px">
         <div class="ph"><span class="t">Новый сотрудник</span><span class="mute small">доступ к страницам откроется по роли</span>${close}</div>
@@ -164,6 +178,12 @@ const App = {
       XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('sup-' + id);
       return;
     }
+    if (form.dataset.new === 'prod') {
+      const id = nextNo(PROD_ORDERS.map(o => o.id), 'ПЗ'), rec = v('rec'), qty = parseFloat(v('qty').replace(',', '.'));
+      PROD_ORDERS.unshift({ id, rec, qty: qty > 0 ? qty : REC[rec].out, st: 'plan', due: v('due') ? isoToRu(v('due')) : '—', order: v('order') || '—', at: nowStamp() });
+      XP.closeAll(); this.state.prodTab = 'orders'; this.renderTopbar(); this.renderGrid(); this.reopen('pz-' + id);
+      return;
+    }
     if (form.dataset.new === 'staff') {
       const id = Math.max(...STAFF.map(p => p.id)) + 1, dirs = v('dirs');
       const p = { id, name: v('name'), pos: v('pos'), dept: v('dept'), dirs: dirs === 'all' ? 'all' : [dirs], role: v('role'), st: v('st') || 'office', on: false, tel: v('tel') || '—', mail: v('mail'), newbie: true };
@@ -190,8 +210,8 @@ const App = {
 
   renderGrid(animate = false) {
     const pg = this.page();
-    this.el.grid.classList.toggle('single', pg.id === 'supply' || pg.id === 'warehouse');
-    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'warehouse' ? this.warehouse() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+    this.el.grid.classList.toggle('single', pg.id === 'supply' || pg.id === 'warehouse' || pg.id === 'production');
+    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'warehouse' ? this.warehouse() : pg.id === 'production' ? this.production() : pg.id === 'staff' ? this.staff() : this.stub(pg);
     if (animate) this.animateIn();
   },
 
@@ -348,6 +368,158 @@ const App = {
     return mod({ span: 12, cls: 'fill', title: 'Поступления и остатки', sub: `${list.length} из ${all.length} позиций · ${where} · поступления из завершённых заказов снабжения · остаток на ${money(leftSum)}`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
   },
 
+  /* ---------- Производство (31-й круг): рецепты (материалы + работы) и подстраница заказов на производство.
+     Принцип матрёшки: полуфабрикат одного рецепта входит в другой как материал — себестоимость и потребность считаются
+     рекурсивно по всем уровням; выполненные заказы дают готовые полуфабрикаты, которые расходуются раньше, чем производятся новые ---------- */
+  recCols: '72px minmax(172px,1.6fr) 136px 136px 84px 150px 76px 116px minmax(130px,1fr)',
+  pzCols: '72px minmax(200px,1.6fr) 124px 84px 104px 170px 112px 72px 120px',
+  prodArea(dir) { return DEPTS.find(d => d.id === 'prod').names[dir]; },
+  recCost(id) {   // на партию и на единицу выхода: материалы + полуфабрикаты (по их рецептам) + работы
+    const r = REC[id]; let mat = 0, semi = 0, work = 0;
+    r.comps.forEach(([k, x, q]) => { if (k === 'm') mat += (MATERIALS[x] ? MATERIALS[x].price : 0) * q; else semi += this.recCost(x).unit * q; });
+    r.works.forEach(([, h, rate]) => { work += h * rate; });
+    const total = mat + semi + work; return { mat, semi, work, total, unit: total / r.out };
+  },
+  recDepth(id) { const subs = REC[id].comps.filter(c => c[0] === 'r'); return 1 + (subs.length ? Math.max(...subs.map(c => this.recDepth(c[1]))) : 0); },
+  recParents(id) { return RECIPES.filter(r => r.comps.some(c => c[0] === 'r' && c[1] === id)); },
+  semiReady() { const s = {}; PROD_ORDERS.forEach(o => { if (o.st === 'done') s[o.rec] = (s[o.rec] || 0) + o.qty; }); return s; },
+  stockBySku() { const s = {}; this.stockRows().forEach(x => { s[x.sku] = (s[x.sku] || 0) + x.left; }); return s; },
+  /* разворот заказа до сырья: по каждому полуфабрикату сначала берутся готовые (из выполненных заказов), недостающее раскладывается по его рецепту */
+  explode(recId, qty) {
+    const need = {}, semi = {}, works = {}, ready = this.semiReady();
+    const go = (id, units) => {
+      const r = REC[id], f = units / r.out, area = this.prodArea(r.dir);
+      r.works.forEach(([op, h, rate]) => { const k = op + '|' + area, w = works[k] || (works[k] = { op, area, h: 0, sum: 0 }); w.h += h * f; w.sum += h * f * rate; });
+      r.comps.forEach(([k, x, q]) => {
+        const n = q * f;
+        if (k === 'm') { need[x] = (need[x] || 0) + n; return; }
+        const sm = semi[x] || (semi[x] = { need: 0, ready: ready[x] || 0, used: 0, make: 0 });
+        const use = Math.min(Math.max(0, sm.ready - sm.used), n);
+        sm.need += n; sm.used += use; sm.make += n - use;
+        if (n - use > 0) go(x, n - use);
+      });
+    };
+    go(recId, qty);
+    const stock = this.stockBySku();
+    const mats = Object.entries(need).map(([sku, n]) => { const have = stock[sku] || 0; return { sku, m: MATERIALS[sku], need: n, have, short: Math.max(0, n - have) }; });
+    return { mats, semi, works: Object.values(works) };
+  },
+  production() {
+    const s = this.state, tab = s.prodTab || 'recipes', q = s.q.trim().toLowerCase(), inDir = d => s.dir === 'all' || d === s.dir;
+    const recs = RECIPES.filter(r => inDir(r.dir) && hit(q, r.id, r.name, DIR[r.dir].name, REC_KIND[r.kind][0], ...r.comps.map(c => c[0] === 'm' ? (MATERIALS[c[1]] || {}).name : REC[c[1]].name)));
+    const ords = PROD_ORDERS.filter(o => inDir(REC[o.rec].dir) && hit(q, o.id, o.rec, REC[o.rec].name, o.order, PROD_ST[o.st][0]));
+    const tabs = `<div class="seg-row"><div class="seg"><button type="button" class="${tab === 'recipes' ? 'on' : ''}" data-ptab="recipes">Рецепты <span class="n">${recs.length}</span></button><button type="button" class="${tab === 'orders' ? 'on' : ''}" data-ptab="orders">Заказы на производство <span class="n">${ords.length}</span></button></div>
+      <span class="mute small">${tab === 'recipes' ? 'рецепт — материалы и работы на партию; полуфабрикат одного рецепта входит в другой как материал' : 'потребность разворачивается по всем уровням рецептов и сверяется с остатками склада и готовыми полуфабрикатами'}</span></div>`;
+    const where = s.dir === 'all' ? 'цеха №1, №2, №3' : this.prodArea(s.dir).toLowerCase();
+    let head, rows, sub;
+    if (tab === 'recipes') {
+      head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${this.recCols}"><div>код</div><div>наименование</div><div>тип</div><div class="gl">направление</div><div>выход</div><div class="gl">состав</div><div>работы</div><div>себестоимость ед.</div><div class="gl">входит в</div></div></div>`;
+      rows = recs.map(r => xp({ id: 'rc-' + r.id, head: this.recRow(r), panel: this.recCard(r), place: 'under', cls: 'rec' })).join('');
+      sub = `${recs.length} из ${RECIPES.length} рецептов · ${where} · себестоимость — по ценам последних закупок, полуфабрикаты — по их рецептам`;
+    } else {
+      head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${this.pzCols}"><div>№ заказа</div><div>рецепт</div><div>статус</div><div class="gl">цех</div><div>количество</div><div class="gl">материалы</div><div>срок</div><div>заказ клиента</div><div>себестоимость</div></div></div>`;
+      rows = ords.map(o => xp({ id: 'pz-' + o.id, head: this.pzRow(o), panel: this.pzCard(o), place: 'under', cls: 'rec' })).join('');
+      const cnt = st => ords.filter(o => o.st === st).length;
+      sub = `${ords.length} заказов · ${where} · в работе ${cnt('work')} · в плане ${cnt('plan')} · готово ${cnt('done')}`;
+    }
+    const body = `${tabs}<div class="sup-list">${head}<div class="recs">${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div></div>`;
+    return mod({ span: 12, cls: 'fill', title: tab === 'recipes' ? 'Рецепты' : 'Заказы на производство', sub, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
+  },
+  recRow(r) {
+    const c = this.recCost(r.id), parents = this.recParents(r.id), nm = r.comps.filter(x => x[0] === 'm').length, ns = r.comps.length - nm, depth = this.recDepth(r.id), h = r.works.reduce((a, w) => a + w[1], 0);
+    return `<div class="rec-card"><div class="tr clickable" style="grid-template-columns:${this.recCols}">
+        <div class="no">${r.id}</div>
+        <div class="t ellip" title="${esc(r.name)}">${r.name}</div>
+        <div>${kindChip(r.kind)}</div>
+        <div class="small ellip gl">${DIR[r.dir].name}</div>
+        <div class="num" style="text-align:center">${fmtQty(r.out)} <span class="mute small">${r.unit}</span></div>
+        <div class="small ellip gl">${nm} мат.${ns ? ` · <b>${ns} п/ф</b> · <span class="nest" title="уровней вложенности: ${depth}">${'<i></i>'.repeat(depth)}</span>` : ''}</div>
+        <div class="num rn">${fmtQty(h)} ч</div>
+        <div class="num rn b">${rub(c.unit)}</div>
+        <div class="small ellip gl">${parents.length ? parents.map(p => p.id).join(', ') : '<span class="mute">—</span>'}</div>
+      </div></div>`;
+  },
+  recTree(id, mult, level) {
+    const tc = 'minmax(0,1fr) 76px 92px 92px 100px';
+    return REC[id].comps.map(([k, x, q]) => {
+      const n = q * mult;
+      if (k === 'm') { const m = MATERIALS[x]; return `<div class="tr tnode" style="grid-template-columns:${tc};--lv:${level}"><div class="tname ellip" title="${esc(m.name)}"><i class="tdot"></i>${m.name}</div><div class="num mute small ellip">${x}</div><div class="num rn">${fmtQty(n)} <span class="mute small">${m.unit}</span></div><div class="num rn">${rub(m.price)}</div><div class="num rn">${rub(m.price * n)}</div></div>`; }
+      const sr = REC[x], u = this.recCost(x).unit;
+      return `<div class="tgroup"><div class="tr tnode semi" style="grid-template-columns:${tc};--lv:${level}"><div class="tname ellip" title="${esc(sr.name)}"><button type="button" class="tg" data-tree-tg title="Свернуть или раскрыть состав полуфабриката">${icRaw('down', 'xs')}</button>${sr.name}</div><div class="num small ellip"><button type="button" class="lnk" data-rec-open="${x}" title="Открыть рецепт">${x}</button></div><div class="num rn">${fmtQty(n)} <span class="mute small">${sr.unit}</span></div><div class="num rn">${rub(u)}</div><div class="num rn b">${rub(u * n)}</div></div><div class="tkids">${this.recTree(x, n / sr.out, level + 1)}</div></div>`;
+    }).join('');
+  },
+  recCard(r) {
+    const c = this.recCost(r.id), parents = this.recParents(r.id), area = this.prodArea(r.dir), tc = 'minmax(0,1fr) 76px 92px 92px 100px', wc = 'minmax(0,1fr) 64px 84px 84px 96px';
+    const works = r.works.map(([op, h, rate]) => `<div class="tr" style="grid-template-columns:${wc};min-height:30px"><div class="ellip">${op}</div><div class="small mute">${area}</div><div class="num rn">${fmtQty(h)} ч</div><div class="num rn">${rub(rate)}</div><div class="num rn b">${rub(h * rate)}</div></div>`).join('');
+    return `<div class="ph">${dirChip(r.dir)}${kindChip(r.kind)}<span class="mute small">партия — ${fmtQty(r.out)} ${r.unit} · ${area} · изменён ${fmtDate(r.upd)}</span><button type="button" class="btn sm primary" data-prod-new="${r.id}" style="margin-left:auto">${glassIcon('plus', themeInv(), 'xs')}Заказ на производство</button><button class="btn ghost sm icon" data-xp-close>${icRaw('x', 'sm')}</button></div>
+      <div class="pb"><div class="oc-blocks">
+        <div class="oc-block"><div class="oc-h"><div class="sec-t">Состав на партию · материалы и полуфабрикаты</div><span class="mute small">полуфабрикаты раскрываются до сырья</span></div>
+          <div class="tbl tree"><div class="tr th" style="grid-template-columns:${tc}"><div>наименование</div><div>код</div><div>кол-во</div><div>цена · себест.</div><div>сумма</div></div>${this.recTree(r.id, 1, 0)}</div></div>
+        <div class="oc-block"><div class="oc-h"><div class="sec-t">Работы на партию</div></div>
+          <div class="tbl items"><div class="tr th" style="grid-template-columns:${wc}"><div>операция</div><div>цех</div><div>нормо-часы</div><div>ставка</div><div>сумма</div></div>${works}</div>
+          <div class="cost-sum"><div><span>материалы</span><b>${rub(c.mat)}</b></div><div><span>полуфабрикаты</span><b>${rub(c.semi)}</b></div><div><span>работы</span><b>${rub(c.work)}</b></div><div class="tot"><span>партия</span><b>${rub(c.total)}</b></div><div class="tot"><span>за ${r.unit}</span><b>${rub(c.unit)}</b></div></div>
+          <div class="oc-h" style="margin-top:10px"><div class="sec-t">Входит в рецепты</div></div>
+          <div class="row wrap" style="gap:6px">${parents.length ? parents.map(p => `<button type="button" class="chip line" data-rec-open="${p.id}">${p.id} · ${p.name}</button>`).join('') : '<span class="mute small">не входит в другие рецепты — конечное изделие</span>'}</div>
+        </div>
+      </div></div>`;
+  },
+  pzRow(o) {
+    const r = REC[o.rec], ex = this.explode(o.rec, o.qty), short = ex.mats.filter(m => m.short > 1e-9).length;
+    const cover = o.st === 'done' ? '<span class="mute small">выпущено</span>' : short ? `<span class="dot bad"></span><span class="small">не хватает ${short} из ${ex.mats.length}</span>` : '<span class="dot ok"></span><span class="small">обеспечено</span>';
+    return `<div class="rec-card"><div class="tr clickable" style="grid-template-columns:${this.pzCols}">
+        <div class="no">${o.id}</div>
+        <div class="ellip" title="${esc(r.name)}"><span class="t">${r.name}</span> <span class="mute small">${r.id}</span></div>
+        <div>${pzChip(o.st)}</div>
+        <div class="small ellip gl">${this.prodArea(r.dir)}</div>
+        <div class="num rn">${fmtQty(o.qty)} <span class="mute small">${r.unit}</span></div>
+        <div class="row gl" style="gap:6px;min-width:0">${cover}</div>
+        <div class="num" style="text-align:center">${fmtDate(o.due)}</div>
+        <div class="no ${o.order === '—' ? 'mute' : ''}">${o.order}</div>
+        <div class="num rn b">${rub(this.recCost(o.rec).unit * o.qty)}</div>
+      </div></div>`;
+  },
+  pzCard(o) {
+    const r = REC[o.rec], ex = this.explode(o.rec, o.qty), mc = '70px minmax(0,1fr) 84px 84px 90px', sc = '70px minmax(0,1fr) 84px 84px 84px', wc = 'minmax(0,1fr) 64px 80px 96px';
+    const matSum = ex.mats.reduce((a, m) => a + m.need * m.m.price, 0), workSum = ex.works.reduce((a, w) => a + w.sum, 0);
+    const mats = ex.mats.map(m => `<div class="tr" style="grid-template-columns:${mc};min-height:30px"><div class="num mute small ellip">${m.sku}</div><div class="ellip" title="${esc(m.m.name)}">${m.m.name}</div><div class="num rn">${fmtQty(m.need)} <span class="mute small">${m.m.unit}</span></div><div class="num rn ${m.have ? '' : 'mute'}">${fmtQty(m.have)}</div><div class="num rn b ${m.short > 1e-9 ? 'bad-t' : 'mute'}">${m.short > 1e-9 ? fmtQty(m.short) : '—'}</div></div>`).join('');
+    const semis = Object.entries(ex.semi).map(([id, sm]) => `<div class="tr" style="grid-template-columns:${sc};min-height:30px"><div class="num small"><button type="button" class="lnk" data-rec-open="${id}">${id}</button></div><div class="ellip" title="${esc(REC[id].name)}">${REC[id].name}</div><div class="num rn">${fmtQty(sm.need)} <span class="mute small">${REC[id].unit}</span></div><div class="num rn ${sm.used ? '' : 'mute'}">${fmtQty(sm.used)}</div><div class="num rn b">${fmtQty(sm.make)}</div></div>`).join('');
+    const works = ex.works.map(w => `<div class="tr" style="grid-template-columns:${wc};min-height:30px"><div class="ellip">${w.op}</div><div class="small mute">${w.area}</div><div class="num rn">${fmtQty(w.h)} ч</div><div class="num rn b">${rub(w.sum)}</div></div>`).join('');
+    const iso = /^\d{2}\.\d{2}\.\d{4}$/.test(o.due) ? o.due.split('.').reverse().join('-') : '';
+    return `<div class="ph">${dirChip(r.dir)}<span class="t">${r.name}</span><button type="button" class="lnk small" data-rec-open="${r.id}">рецепт ${r.id}</button><span class="mute small">создан ${fmtDT(o.at)}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
+      <div class="pb" data-pcard="${o.id}">
+        <div class="of-row pz">
+          ${fld('Статус', sel('pf-st', Object.entries(PROD_ST).map(([k, v]) => [k, v[0]]), o.st))}
+          ${fld('Количество, ' + r.unit, inp('pf-qty', `type="number" min="0.01" step="any" value="${o.qty}"`))}
+          ${fld('Срок', dsel('pf-due', iso))}
+          ${fld('№ заказа клиента', inp('pf-order', `value="${o.order === '—' ? '' : esc(o.order)}" placeholder="без заказа клиента"`))}
+        </div>
+        <div class="oc-blocks">
+          <div class="oc-block"><div class="oc-h"><div class="sec-t">Потребность в материалах · ${ex.mats.length}</div><span class="mute small">остаток — со склада</span></div>
+            <div class="tbl items"><div class="tr th" style="grid-template-columns:${mc}"><div>артикул</div><div>наименование</div><div>нужно</div><div>на складе</div><div>не хватает</div></div>${mats}</div>
+            <div class="cost-sum three"><div><span>материалы</span><b>${rub(matSum)}</b></div><div><span>работы</span><b>${rub(workSum)}</b></div><div class="tot"><span>к запуску</span><b>${rub(matSum + workSum)}</b></div></div></div>
+          <div class="oc-block">
+            <div class="oc-h"><div class="sec-t">Полуфабрикаты · ${Object.keys(ex.semi).length}</div><span class="mute small">сначала берутся готовые из выполненных заказов</span></div>
+            ${semis ? `<div class="tbl items"><div class="tr th" style="grid-template-columns:${sc}"><div>рецепт</div><div>наименование</div><div>нужно</div><div>из готовых</div><div>произвести</div></div>${semis}</div>` : '<div class="mute small" style="padding:2px 4px 6px">в рецепте нет полуфабрикатов — только материалы склада</div>'}
+            <div class="oc-h" style="margin-top:10px"><div class="sec-t">Работы по всем уровням</div></div>
+            <div class="tbl items"><div class="tr th" style="grid-template-columns:${wc}"><div>операция</div><div>цех</div><div>нормо-часы</div><div>сумма</div></div>${works}</div>
+          </div>
+        </div>
+      </div>`;
+  },
+  /* изменение заказа на производство из карточки: готовые полуфабрикаты меняют обеспеченность всех заказов — строки обновляются все,
+     раскрытая карточка перерисовывается (кроме ввода № заказа клиента — там нечего пересчитывать) */
+  updateProd(id, f, v) {
+    const o = PROD_ORDERS.find(x => x.id === id); if (!o) return;
+    if (f === 'st') o.st = v;
+    else if (f === 'qty') { const n = parseFloat(String(v).replace(',', '.')); if (n > 0) o.qty = n; }
+    else if (f === 'due') o.due = v ? isoToRu(v) : '—';
+    else if (f === 'order') o.order = v.trim() || '—';
+    document.querySelectorAll('.recs > [data-xp^="pz-"]').forEach(el => { const oo = PROD_ORDERS.find(x => 'pz-' + x.id === el.dataset.xp); if (oo) el.querySelector(':scope > .xp-head').innerHTML = this.pzRow(oo); });
+    const el = document.querySelector(`[data-xp="pz-${id}"]`);
+    if (el && f !== 'order') el.querySelector(':scope > .xp-panel').innerHTML = this.pzCard(o);
+    if (XP.open) XP.focus();
+  },
+
   /* ---------- Сотрудники ---------- */
   staff() {
     const s = this.state, q = s.q.trim().toLowerCase();
@@ -465,6 +637,7 @@ const App = {
       opt.insertAdjacentHTML('beforeend', `<span class="chk">${icRaw('check', 'sm')}</span>`);
       XP.close();
       const oc = x.closest('[data-ocard]'); if (oc) this.updateOrder(oc.dataset.ocard, x.querySelector('input[type=hidden]').name.replace(/^of-/, ''), opt.dataset.opt);
+      const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, x.querySelector('input[type=hidden]').name.replace(/^pf-/, ''), opt.dataset.opt);
       return;
     }
     // календарь: листание месяцев перерисовывает сетку внутри открытой панели; выбор дня и «очистить» пишут значение и закрывают
@@ -480,7 +653,22 @@ const App = {
       x.querySelector('input[type=hidden]').value = v;
       l.textContent = v ? fmtDate(isoToRu(v)) : 'выберите дату'; l.classList.toggle('ph', !v);
       x.querySelector('.cal-p').innerHTML = calHtml(d.getFullYear(), d.getMonth(), v);
-      XP.close(); return;
+      XP.close();
+      const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, 'due', v);
+      return;
+    }
+    const ptab = t.closest('[data-ptab]');
+    if (ptab) { this.state.prodTab = ptab.dataset.ptab; XP.closeAll(); this.renderTopbar(); this.renderGrid(); return; }
+    const ttg = t.closest('[data-tree-tg]');
+    if (ttg) { ttg.closest('.tgroup').classList.toggle('closed'); XP.focus(); return; }
+    const recOpen = t.closest('[data-rec-open]');
+    if (recOpen) { this.state.prodTab = 'recipes'; this.state.q = ''; XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('rc-' + recOpen.dataset.recOpen); return; }
+    const pnew = t.closest('[data-prod-new]');
+    if (pnew) {
+      const r = REC[pnew.dataset.prodNew], id = nextNo(PROD_ORDERS.map(o => o.id), 'ПЗ'), due = new Date(Date.now() + 14 * 864e5);
+      PROD_ORDERS.unshift({ id, rec: r.id, qty: r.out, st: 'plan', due: isoToRu(isoDate(due)), order: '—', at: nowStamp() });
+      this.state.prodTab = 'orders'; XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('pz-' + id);
+      return;
     }
     const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');
     if (themeBtn) {
@@ -527,6 +715,8 @@ const App = {
 
   /* загрузка файлов в карточку заказа: имена добавляются в список заявки */
   onChange(e) {
+    const pf = e.target.closest('[data-pcard] input.in[name^="pf-"]');
+    if (pf) { this.updateProd(pf.closest('[data-pcard]').dataset.pcard, pf.name.replace(/^pf-/, ''), pf.value); return; }
     const of = e.target.closest('[data-ocard] input.in[name^="of-"]');
     if (of) { this.updateOrder(of.closest('[data-ocard]').dataset.ocard, of.name.replace(/^of-/, ''), of.value); return; }
     const toRow = f => [f.name.replace(/\.[^.]+$/, ''), fileKind(f.name), fmtSize(f.size), todayShort()];
