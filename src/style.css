@@ -550,3 +550,22 @@ html.vt-theme::view-transition-new(root) { animation: reveal .55s ease-in both; 
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- линейка ширины окна (25-й круг, RULER в ui.js): поверх всего, на 30 % высоты от нижнего края, клики проходят сквозь;
+   деления 10 / 50 / 100 px от левого края окна в CSS-пикселях; Alt+R прячет и показывает ---------- */
+.ruler { position: fixed; left: 0; right: 0; bottom: 30vh; height: 28px; z-index: 9999; pointer-events: none; color: rgba(255, 255, 255, .9);
+  font: 600 9px/1 "SN Pro", "SN Pro Local", Inter, Arial, sans-serif; font-variant-numeric: tabular-nums;
+  background:
+    repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 100px) 0 0 / 100% 12px no-repeat,
+    repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 50px) 0 0 / 100% 8px no-repeat,
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .55) 0 1px, transparent 1px 10px) 0 0 / 100% 4px no-repeat,
+    rgba(17, 17, 17, .74);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .16); }
+html.ruler-off .ruler { display: none; }
+.ruler .n { position: absolute; top: 15px; margin-left: 3px; }
+.ruler .pm { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #CC6E19; }
+.ruler .pm span { position: absolute; bottom: calc(100% + 4px); right: -1px; white-space: nowrap; padding: 4px 7px; border-radius: 6px; background: rgba(17, 17, 17, .82); color: #fff; font-size: 10px; }
+.ruler .pm.hit { background: #199948; }
+.ruler .pm.hit span { background: #199948; }
+.ruler .rd { position: absolute; bottom: calc(100% + 4px); left: 12px; white-space: nowrap; padding: 4px 8px; border-radius: 6px; background: rgba(17, 17, 17, .82); color: #fff; font-size: 10.5px; }
+.ruler .rd.hit { background: #199948; }

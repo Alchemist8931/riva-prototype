@@ -47,6 +47,7 @@ document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves'
   </main>
   <div class="veil"></div>
 </div>
+<div class="ruler" id="ruler" aria-hidden="true"></div>
 <script>
 ${r('data.js')}
 ${r('ui.js')}

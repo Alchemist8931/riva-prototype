@@ -21,7 +21,7 @@ const App = {
   init() {
     this.el = { side: document.getElementById('side'), topbar: document.getElementById('topbar'), grid: document.getElementById('grid'), chatcol: document.getElementById('chatcol'), notifcol: document.getElementById('notifcol') };
     document.documentElement.dataset.theme = this.state.theme;
-    XP.init(); BG.init();
+    XP.init(); BG.init(); RULER.init();
     window.addEventListener('hashchange', () => this.route());
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));

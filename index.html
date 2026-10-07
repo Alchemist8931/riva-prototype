@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>RIVA · прототип интерфейса для ПК · сборка 07.10 21:49</title>
+<title>RIVA · прототип интерфейса для ПК · сборка 07.10 21:59</title>
 <meta name="viewport" content="width=1280">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23111%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial%27 font-weight=%27800%27 font-size=%2718%27 fill=%27%23fff%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
@@ -563,6 +563,25 @@ html.vt-theme::view-transition-new(root) { animation: reveal .55s ease-in both; 
   *, ::before, ::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 
+/* ---------- линейка ширины окна (25-й круг, RULER в ui.js): поверх всего, на 30 % высоты от нижнего края, клики проходят сквозь;
+   деления 10 / 50 / 100 px от левого края окна в CSS-пикселях; Alt+R прячет и показывает ---------- */
+.ruler { position: fixed; left: 0; right: 0; bottom: 30vh; height: 28px; z-index: 9999; pointer-events: none; color: rgba(255, 255, 255, .9);
+  font: 600 9px/1 "SN Pro", "SN Pro Local", Inter, Arial, sans-serif; font-variant-numeric: tabular-nums;
+  background:
+    repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 100px) 0 0 / 100% 12px no-repeat,
+    repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 50px) 0 0 / 100% 8px no-repeat,
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .55) 0 1px, transparent 1px 10px) 0 0 / 100% 4px no-repeat,
+    rgba(17, 17, 17, .74);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .16); }
+html.ruler-off .ruler { display: none; }
+.ruler .n { position: absolute; top: 15px; margin-left: 3px; }
+.ruler .pm { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #CC6E19; }
+.ruler .pm span { position: absolute; bottom: calc(100% + 4px); right: -1px; white-space: nowrap; padding: 4px 7px; border-radius: 6px; background: rgba(17, 17, 17, .82); color: #fff; font-size: 10px; }
+.ruler .pm.hit { background: #199948; }
+.ruler .pm.hit span { background: #199948; }
+.ruler .rd { position: absolute; bottom: calc(100% + 4px); left: 12px; white-space: nowrap; padding: 4px 8px; border-radius: 6px; background: rgba(17, 17, 17, .82); color: #fff; font-size: 10.5px; }
+.ruler .rd.hit { background: #199948; }
+
 </style>
 </head>
 <body>
@@ -594,6 +613,7 @@ document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves'
   </main>
   <div class="veil"></div>
 </div>
+<div class="ruler" id="ruler" aria-hidden="true"></div>
 <script>
 /* ============================================================
    Тестовые данные. Вымышленное предприятие ПК «Берег»:
@@ -1110,6 +1130,35 @@ const BG = {
   },
 };
 
+/* ---------- линейка ширины окна (25-й круг): сверка с ноутбуком 16″ 1920×1080 ----------
+   полоса поверх всего на 30 % высоты от нижнего края, в CSS-пикселях; отметки — ширина экрана такого ноутбука при масштабе
+   Windows 100/125/150 %; надпись с размером окна подсвечивается при совпадении ±4px; Alt+R прячет и показывает (riva.ruler) */
+const RULER = {
+  presets: [[1920, 100], [1536, 125], [1280, 150]],
+  el: null,
+  init() {
+    this.el = document.getElementById('ruler'); if (!this.el) return;
+    if (localStorage.getItem('riva.ruler') === 'off') document.documentElement.classList.add('ruler-off');
+    addEventListener('resize', () => this.draw());
+    addEventListener('keydown', e => {
+      if (!e.altKey || e.code !== 'KeyR') return;
+      e.preventDefault();
+      const off = document.documentElement.classList.toggle('ruler-off');
+      localStorage.setItem('riva.ruler', off ? 'off' : 'on');
+    });
+    this.draw();
+  },
+  draw() {
+    const W = innerWidth, H = innerHeight, dpr = devicePixelRatio || 1;
+    const hit = this.presets.find(([w]) => Math.abs(W - w) <= 4);
+    let h = '';
+    for (let x = 100; x < W; x += 100) h += `<span class="n" style="left:${x}px">${x}</span>`;
+    for (const [w, s] of this.presets) if (w <= W + 4) h += `<i class="pm${hit && hit[0] === w ? ' hit' : ''}" style="left:${Math.min(w, W - 1)}px"><span>16″ 1920×1080 · ${s} % · ${w}</span></i>`;
+    h += `<span class="rd${hit ? ' hit' : ''}">окно ${W} × ${H} px · масштаб экрана ${Math.round(dpr * 100)} %${hit ? ` · как ноутбук 16″ 1920×1080 при ${hit[1]} %` : ''}</span>`;
+    this.el.innerHTML = h;
+  },
+};
+
 /* ---------- чат страницы ---------- */
 const CHAT = {
   state: {},   // pageId → { msgs, replied, typing }
@@ -1188,7 +1237,7 @@ const App = {
   init() {
     this.el = { side: document.getElementById('side'), topbar: document.getElementById('topbar'), grid: document.getElementById('grid'), chatcol: document.getElementById('chatcol'), notifcol: document.getElementById('notifcol') };
     document.documentElement.dataset.theme = this.state.theme;
-    XP.init(); BG.init();
+    XP.init(); BG.init(); RULER.init();
     window.addEventListener('hashchange', () => this.route());
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));

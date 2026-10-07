@@ -344,6 +344,35 @@ const BG = {
   },
 };
 
+/* ---------- линейка ширины окна (25-й круг): сверка с ноутбуком 16″ 1920×1080 ----------
+   полоса поверх всего на 30 % высоты от нижнего края, в CSS-пикселях; отметки — ширина экрана такого ноутбука при масштабе
+   Windows 100/125/150 %; надпись с размером окна подсвечивается при совпадении ±4px; Alt+R прячет и показывает (riva.ruler) */
+const RULER = {
+  presets: [[1920, 100], [1536, 125], [1280, 150]],
+  el: null,
+  init() {
+    this.el = document.getElementById('ruler'); if (!this.el) return;
+    if (localStorage.getItem('riva.ruler') === 'off') document.documentElement.classList.add('ruler-off');
+    addEventListener('resize', () => this.draw());
+    addEventListener('keydown', e => {
+      if (!e.altKey || e.code !== 'KeyR') return;
+      e.preventDefault();
+      const off = document.documentElement.classList.toggle('ruler-off');
+      localStorage.setItem('riva.ruler', off ? 'off' : 'on');
+    });
+    this.draw();
+  },
+  draw() {
+    const W = innerWidth, H = innerHeight, dpr = devicePixelRatio || 1;
+    const hit = this.presets.find(([w]) => Math.abs(W - w) <= 4);
+    let h = '';
+    for (let x = 100; x < W; x += 100) h += `<span class="n" style="left:${x}px">${x}</span>`;
+    for (const [w, s] of this.presets) if (w <= W + 4) h += `<i class="pm${hit && hit[0] === w ? ' hit' : ''}" style="left:${Math.min(w, W - 1)}px"><span>16″ 1920×1080 · ${s} % · ${w}</span></i>`;
+    h += `<span class="rd${hit ? ' hit' : ''}">окно ${W} × ${H} px · масштаб экрана ${Math.round(dpr * 100)} %${hit ? ` · как ноутбук 16″ 1920×1080 при ${hit[1]} %` : ''}</span>`;
+    this.el.innerHTML = h;
+  },
+};
+
 /* ---------- чат страницы ---------- */
 const CHAT = {
   state: {},   // pageId → { msgs, replied, typing }
