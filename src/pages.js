@@ -210,7 +210,7 @@ const App = {
     const s = this.state, q = s.q.trim().toLowerCase();
     const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
     /* колонки: номера, статус, дата изменения (вправо), поставщик, контакт, срок (вправо), комментарий — на 100px шире прежнего */
-    const cols = '72px 76px 112px 164px minmax(0,1fr) 34px 122px minmax(0,1.78fr)';
+    const cols = '72px 76px 136px 164px minmax(0,1fr) 34px 122px minmax(0,1.78fr)';
     const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="sup"><span class="inn">ИНН</span><span>поставщик</span></div><div></div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
       const last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';

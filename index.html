@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>RIVA · прототип интерфейса для ПК · сборка 07.10 21:15</title>
+<title>RIVA · прототип интерфейса для ПК · сборка 07.10 21:33</title>
 <meta name="viewport" content="width=1280">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23111%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial%27 font-weight=%27800%27 font-size=%2718%27 fill=%27%23fff%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
@@ -266,12 +266,17 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.dir { background: transparent; border-color: var(--line-2); font-weight: 600; letter-spacing: .01em; }
 .chip.dir .dk { width: 12px; height: 12px; border-radius: 3px; background: var(--fg); color: var(--panel); display: grid; place-items: center; font-size: 8px; font-weight: 700; }
 .chip.all { background: var(--surface-3); border-color: transparent; }
-/* статус заявки — приём стеклянных иконок меню (stChip в ui.js): тёмная задняя фигура (скруглённый квадрат слева сверху) и
-   стеклянная плашка поверх неё со сдвигом вправо-вниз; в перекрытии — размытая копия задней фигуры под белой тонировкой,
-   по краю блик, под плашкой мягкая тень. Пока без цвета, все статусы одинаковы; одна ширина, текст слева, строчными, 700, углы 6px */
-.chip.st { position: relative; width: 100px; height: 20px; padding: 4px 6px 0 23px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-weight: 700; text-transform: lowercase; color: var(--fg); }
-.chip.st .stg { position: absolute; left: 0; top: 0; width: 100px; height: 20px; overflow: visible; pointer-events: none; }
+/* статус заявки — приём стеклянных иконок меню (stChip в ui.js): тёмная задняя фигура 26×16 и цветная метка статуса 10×16
+   слева сверху, стеклянная плашка поверх них со сдвигом вправо-вниз; в перекрытии — размытые копии фигур под белой тонировкой,
+   по краю блик, под плашкой мягкая тень. Одна ширина 124px (под «заказ создан» с текстом от 48px), текст слева, строчными, 700, углы 6px */
+.chip.st { position: relative; width: 124px; height: 20px; padding: 4px 6px 0 48px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-weight: 700; text-transform: lowercase; color: var(--fg); }
+.chip.st .stg { position: absolute; left: 0; top: 0; width: 124px; height: 20px; overflow: visible; pointer-events: none; }
 .chip.st .tx { position: relative; line-height: 16px; }
+.chip.st-req { --stc: #F1F1F1; }    /* цвета меток — владелец, 22-й круг; в обеих темах одинаковые */
+.chip.st-ord { --stc: #B28F6F; }
+.chip.st-tr { --stc: #556E58; }
+.chip.st-done { --stc: #536878; }
+.stg .cl { fill: var(--stc); }
 .stg .bk { fill: url(#gi-back); }
 .stg .bl { filter: url(#st-blur); }
 .stg .sh { fill: rgba(0, 0, 0, .22); filter: url(#st-soft); }
@@ -574,7 +579,7 @@ document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves'
   <filter id="gi-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
   <filter id="st-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
   <filter id="st-soft" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
-  <clipPath id="st-clip"><rect x="6" y="4" width="94" height="16" rx="6"/></clipPath>
+  <clipPath id="st-clip"><rect x="6" y="4" width="118" height="16" rx="6"/></clipPath>
 </defs></svg>
 <div class="frame">
   <aside class="side" id="side"></aside>
@@ -914,10 +919,14 @@ const glassIcon = (name, variant = 'n', size = '', cls = '') => {
   </svg>`;
 };
 
-/* чип статуса заявки в приёме стеклянных иконок: задняя тёмная фигура 16×16 слева сверху, стеклянная плашка 94×16 со сдвигом
-   вправо-вниз (6, 4) — внутри плашки основа, размытая копия задней фигуры, тонировка и блик; тень под плашкой. Обрезка и фильтры —
-   общие #st-clip, #st-blur, #st-soft в build.mjs (координаты в пространстве каждого чипа), цвета и тема — в style.css */
-const stChip = st => `<span class="chip st"><svg class="stg" viewBox="0 0 100 20" aria-hidden="true"><rect class="bk" width="16" height="16" rx="5"/><rect class="sh" x="6" y="5" width="94" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="100" height="20"/><rect class="bk bl" width="16" height="16" rx="5"/><rect class="tint" y="4" width="100" height="16"/><rect class="edge" x="6" y="4" width="94" height="16" rx="6"/></g></svg><span class="tx">${SUP_ST[st][0]}</span></span>`;
+/* чип статуса заявки в приёме стеклянных иконок: задняя тёмная фигура 26×16 слева сверху и через 6px цветная метка статуса 10×16
+   (цвет --stc по классу st-<статус>), стеклянная плашка 118×16 со сдвигом вправо-вниз (6, 4) — внутри плашки основа, размытые копии
+   обеих фигур, тонировка и блик; тень под плашкой; текст с 48px, правее размытых фигур. Обрезка и фильтры — общие #st-clip,
+   #st-blur, #st-soft в build.mjs (координаты в пространстве каждого чипа), цвета и тема — в style.css */
+const stChip = st => {
+  const figs = cls => `<rect class="bk${cls}" width="26" height="16" rx="5"/><rect class="cl${cls}" x="32" width="10" height="16" rx="5"/>`;
+  return `<span class="chip st st-${st}"><svg class="stg" viewBox="0 0 124 20" aria-hidden="true">${figs('')}<rect class="sh" x="6" y="5" width="118" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="124" height="20"/>${figs(' bl')}<rect class="tint" y="4" width="124" height="16"/><rect class="edge" x="6" y="4" width="118" height="16" rx="6"/></g></svg><span class="tx">${SUP_ST[st][0]}</span></span>`;
+};
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const initials = name => name.split(' ').slice(0, 2).map(w => w[0]).join('');
@@ -1367,7 +1376,7 @@ const App = {
     const s = this.state, q = s.q.trim().toLowerCase();
     const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
     /* колонки: номера, статус, дата изменения (вправо), поставщик, контакт, срок (вправо), комментарий — на 100px шире прежнего */
-    const cols = '72px 76px 112px 164px minmax(0,1fr) 34px 122px minmax(0,1.78fr)';
+    const cols = '72px 76px 136px 164px minmax(0,1fr) 34px 122px minmax(0,1.78fr)';
     const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="sup"><span class="inn">ИНН</span><span>поставщик</span></div><div></div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
       const last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';

@@ -254,12 +254,17 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.dir { background: transparent; border-color: var(--line-2); font-weight: 600; letter-spacing: .01em; }
 .chip.dir .dk { width: 12px; height: 12px; border-radius: 3px; background: var(--fg); color: var(--panel); display: grid; place-items: center; font-size: 8px; font-weight: 700; }
 .chip.all { background: var(--surface-3); border-color: transparent; }
-/* статус заявки — приём стеклянных иконок меню (stChip в ui.js): тёмная задняя фигура (скруглённый квадрат слева сверху) и
-   стеклянная плашка поверх неё со сдвигом вправо-вниз; в перекрытии — размытая копия задней фигуры под белой тонировкой,
-   по краю блик, под плашкой мягкая тень. Пока без цвета, все статусы одинаковы; одна ширина, текст слева, строчными, 700, углы 6px */
-.chip.st { position: relative; width: 100px; height: 20px; padding: 4px 6px 0 23px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-weight: 700; text-transform: lowercase; color: var(--fg); }
-.chip.st .stg { position: absolute; left: 0; top: 0; width: 100px; height: 20px; overflow: visible; pointer-events: none; }
+/* статус заявки — приём стеклянных иконок меню (stChip в ui.js): тёмная задняя фигура 26×16 и цветная метка статуса 10×16
+   слева сверху, стеклянная плашка поверх них со сдвигом вправо-вниз; в перекрытии — размытые копии фигур под белой тонировкой,
+   по краю блик, под плашкой мягкая тень. Одна ширина 124px (под «заказ создан» с текстом от 48px), текст слева, строчными, 700, углы 6px */
+.chip.st { position: relative; width: 124px; height: 20px; padding: 4px 6px 0 48px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-weight: 700; text-transform: lowercase; color: var(--fg); }
+.chip.st .stg { position: absolute; left: 0; top: 0; width: 124px; height: 20px; overflow: visible; pointer-events: none; }
 .chip.st .tx { position: relative; line-height: 16px; }
+.chip.st-req { --stc: #F1F1F1; }    /* цвета меток — владелец, 22-й круг; в обеих темах одинаковые */
+.chip.st-ord { --stc: #B28F6F; }
+.chip.st-tr { --stc: #556E58; }
+.chip.st-done { --stc: #536878; }
+.stg .cl { fill: var(--stc); }
 .stg .bk { fill: url(#gi-back); }
 .stg .bl { filter: url(#st-blur); }
 .stg .sh { fill: rgba(0, 0, 0, .22); filter: url(#st-soft); }
