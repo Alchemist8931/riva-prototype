@@ -93,7 +93,7 @@ const App = {
       <div class="mute small" style="padding:4px 9px 6px">Общие службы (снабжение, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
     </div>`;
     const primary = { supply: 'Заявка', staff: 'Сотрудник' }[pg.id] || 'Запись';
-    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
+    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', warehouse: 'Артикул, наименование, поставщик…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
     const unread = NOTIFS.filter(n => n.unread).length;
     this.el.topbar.innerHTML = `
       <div class="tb-ic">${glassIcon(pg.icon, themeVar())}</div>
@@ -190,8 +190,8 @@ const App = {
 
   renderGrid(animate = false) {
     const pg = this.page();
-    this.el.grid.classList.toggle('single', pg.id === 'supply');
-    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+    this.el.grid.classList.toggle('single', pg.id === 'supply' || pg.id === 'warehouse');
+    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'warehouse' ? this.warehouse() : pg.id === 'staff' ? this.staff() : this.stub(pg);
     if (animate) this.animateIn();
   },
 
@@ -304,6 +304,48 @@ const App = {
     head.innerHTML = this.supRow(r, !!head.querySelector('.hp-pop.up'));
     if (f !== 'track' && f !== 'comment') el.querySelector(':scope > .xp-panel').innerHTML = this.orderCard(r);
     if (XP.open) XP.focus();
+  },
+
+  /* ---------- Склад (30-й круг): поступления — позиции завершённых заказов «Снабжения» (выводятся из SUPPLY при каждом показе),
+     остаток = поступило − выдано (STOCK_ISSUED); строка — две карточки в ряд с отступом 16px: позиция и остаток ---------- */
+  whCols: '84px minmax(130px,2fr) 100px 108px minmax(100px,1.2fr) 56px 80px 88px 104px',   // наименование и поставщик не сжимаются до нечитаемого: уже — горизонтальная прокрутка
+  whRight: '104px 112px',
+  stockRows() {
+    const ts = d => d.replace(/^(\d\d)\.(\d\d)\.(\d{4}) ?(.*)$/, '$3$2$1 $4');
+    return SUPPLY.filter(r => r.st === 'done').flatMap(r => {
+      const at = (r.hist.find(h => h[0] === 'done') || r.hist[r.hist.length - 1])[1];
+      return r.items.map(([sku, name, cat, unit, qty, price, sub]) => ({ sku, name, cat, sub: sub || '—', unit, qty, price, left: Math.max(0, qty - (STOCK_ISSUED[sku] || 0)), supplier: r.supplier, req: r.id, order: r.order, dir: r.dir, at }));
+    }).sort((a, b) => ts(b.at).localeCompare(ts(a.at)) || a.sku.localeCompare(b.sku, 'ru'));
+  },
+  warehouse() {
+    const s = this.state, q = s.q.trim().toLowerCase(), all = this.stockRows();
+    const list = all.filter(x => (s.dir === 'all' || x.dir === s.dir) && hit(q, x.sku, x.name, x.cat, x.sub, x.supplier, x.req, x.order));
+    const L = this.whCols, R = this.whRight, money = v => `${fmtMoney(v)} ₽`;
+    const head = `<div class="wh-head">
+        <div class="sup-head"><div class="tr th" style="grid-template-columns:${L}"><div>артикул</div><div>наименование</div><div>категория</div><div>подкатегория</div><div>поставщик</div><div>ед. изм.</div><div>кол-во</div><div>цена за ед.</div><div>сумма</div></div></div>
+        <div class="sup-head"><div class="tr th" style="grid-template-columns:${R}"><div>остаток</div><div>сумма остатка</div></div></div>
+      </div>`;
+    const rows = list.map(x => `<div class="wh-row" title="Поступление по заявке ${x.req} · заказ клиента ${x.order} · ${fmtDT(x.at)}">
+        <div class="rec-card"><div class="tr" style="grid-template-columns:${L}">
+          <div class="num mute ellip">${x.sku}</div>
+          <div class="t ellip" title="${esc(x.name)}">${x.name}</div>
+          <div class="small ellip">${x.cat}</div>
+          <div class="small ellip mute">${x.sub}</div>
+          <div class="ellip" title="${esc(x.supplier)}">${x.supplier}</div>
+          <div class="small" style="text-align:center">${x.unit}</div>
+          <div class="num rn">${fmtMoney(x.qty)}</div>
+          <div class="num rn">${money(x.price)}</div>
+          <div class="num rn b">${money(x.qty * x.price)}</div>
+        </div></div>
+        <div class="rec-card"><div class="tr" style="grid-template-columns:${R}">
+          <div class="num rn ${x.left ? '' : 'mute'}">${fmtMoney(x.left)} <span class="mute small">${x.unit}</span></div>
+          <div class="num rn b ${x.left ? '' : 'mute'}">${money(x.left * x.price)}</div>
+        </div></div>
+      </div>`).join('');
+    const where = s.dir === 'all' ? 'склады А, Б, В' : DEPTS.find(d => d.id === 'wh').names[s.dir].toLowerCase();
+    const leftSum = list.reduce((a, x) => a + x.left * x.price, 0);
+    const body = `<div class="sup-list">${head}<div class="recs">${rows || '<div class="mute small" style="padding:14px 10px">Поступлений нет: позиции появляются здесь, когда заказ на «Снабжении» получает статус «завершён»</div>'}</div></div>`;
+    return mod({ span: 12, cls: 'fill', title: 'Поступления и остатки', sub: `${list.length} из ${all.length} позиций · ${where} · поступления из завершённых заказов снабжения · остаток на ${money(leftSum)}`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
   },
 
   /* ---------- Сотрудники ---------- */

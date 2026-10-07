@@ -354,7 +354,13 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .sup-head { position: sticky; top: 0; z-index: 2; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; }
 .recs { display: flex; flex-direction: column; gap: 8px; }
 /* 29-й круг: когда даже сжатые комментарий и ИНН не помещаются (окно уже ~1380px), строки не обрезаются, а список прокручивается по горизонтали */
-.sup-list > .sup-head, .sup-list > .recs { min-width: min-content; }
+.sup-list > .sup-head, .sup-list > .wh-head, .sup-list > .recs { min-width: min-content; }
+/* склад (30-й круг): строка — две карточки в ряд с отступом 16px (позиция | остаток), шапка из двух таких же блоков, липкая целиком */
+.wh-row, .wh-head { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 16px; }
+.wh-head { position: sticky; top: 0; z-index: 2; }
+.wh-head > .sup-head { position: static; }
+.wh-row .tr { min-height: 34px; }
+.tr .rn { text-align: right; white-space: nowrap; }
 /* запись — один контейнер с одной рамкой (без подложки, как у модуля: двойная рамка — перебор) */
 .rec { background: transparent; border-radius: 10px; padding: 0; }
 .rec-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; transition: border-color .15s ease, box-shadow .2s ease; }
