@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>RIVA · прототип интерфейса для ПК · сборка 06.10 15:23</title>
+<title>RIVA · прототип интерфейса для ПК · сборка 07.10 21:15</title>
 <meta name="viewport" content="width=1280">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23111%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial%27 font-weight=%27800%27 font-size=%2718%27 fill=%27%23fff%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
@@ -266,20 +266,22 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.dir { background: transparent; border-color: var(--line-2); font-weight: 600; letter-spacing: .01em; }
 .chip.dir .dk { width: 12px; height: 12px; border-radius: 3px; background: var(--fg); color: var(--panel); display: grid; place-items: center; font-size: 8px; font-weight: 700; }
 .chip.all { background: var(--surface-3); border-color: transparent; }
-/* статус заявки: матовое стекло в духе иконок, но лёгкое — ровная тонированная подложка под почти однородным белым стеклом,
-   светлый блик по внутреннему краю, тонкая внешняя линия, мягкая тень внизу внутри (как размытая задняя фигура у иконок) и
-   едва заметная тень снаружи; одна ширина, текст слева, строчными, жирнее, углы 6px. Тяжёлый градиент и глянец — несуразны */
-.chip.st { --base: #a4a4a4; --ov1: rgba(255, 255, 255, .68); --ov2: rgba(255, 255, 255, .52); --edge: rgba(255, 255, 255, .92); --ln: rgba(0, 0, 0, .1); --sh: rgba(0, 0, 0, .1); --in: rgba(0, 0, 0, .22); --tx: #111;
-  width: 100px; justify-content: flex-start; border-radius: 6px; border: 0; font-weight: 700; text-transform: lowercase; color: var(--tx);
-  background: linear-gradient(180deg, var(--ov1), var(--ov2)), var(--base);
-  box-shadow: inset 0 0 0 1px var(--edge), inset 0 -10px 14px -12px var(--in), 0 0 0 1px var(--ln), 0 1px 2px var(--sh); }
-.chip.st-ord { --base: #5c5c5c; }
-.chip.st-tr { --base: #3a3a3a; --ov1: rgba(255, 255, 255, .09); --ov2: rgba(0, 0, 0, .12); --edge: rgba(255, 255, 255, .3); --ln: rgba(0, 0, 0, .3); --in: rgba(0, 0, 0, .5); --tx: #fff; }   /* дымчатое стекло */
-.chip.st-done { --base: #1f9d55; --tx: #0d5a32; }
-:root[data-theme="dark"] .chip.st { --base: #5a5a5a; --ov1: rgba(16, 16, 16, .45); --ov2: rgba(16, 16, 16, .6); --edge: rgba(255, 255, 255, .2); --ln: rgba(255, 255, 255, .1); --sh: rgba(0, 0, 0, .5); --in: rgba(0, 0, 0, .6); --tx: #f0f0f0; }
-:root[data-theme="dark"] .chip.st-ord { --base: #8c8c8c; }
-:root[data-theme="dark"] .chip.st-tr { --base: #cfcfcf; --ov1: rgba(255, 255, 255, .62); --ov2: rgba(255, 255, 255, .42); --edge: rgba(255, 255, 255, .95); --ln: rgba(0, 0, 0, .25); --in: rgba(0, 0, 0, .25); --tx: #111; }   /* светлое стекло — обратный вариант */
-:root[data-theme="dark"] .chip.st-done { --base: #2f9e5f; --ov1: rgba(16, 16, 16, .4); --ov2: rgba(16, 16, 16, .55); --tx: #bfffd9; }
+/* статус заявки — приём стеклянных иконок меню (stChip в ui.js): тёмная задняя фигура (скруглённый квадрат слева сверху) и
+   стеклянная плашка поверх неё со сдвигом вправо-вниз; в перекрытии — размытая копия задней фигуры под белой тонировкой,
+   по краю блик, под плашкой мягкая тень. Пока без цвета, все статусы одинаковы; одна ширина, текст слева, строчными, 700, углы 6px */
+.chip.st { position: relative; width: 100px; height: 20px; padding: 4px 6px 0 23px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-weight: 700; text-transform: lowercase; color: var(--fg); }
+.chip.st .stg { position: absolute; left: 0; top: 0; width: 100px; height: 20px; overflow: visible; pointer-events: none; }
+.chip.st .tx { position: relative; line-height: 16px; }
+.stg .bk { fill: url(#gi-back); }
+.stg .bl { filter: url(#st-blur); }
+.stg .sh { fill: rgba(0, 0, 0, .22); filter: url(#st-soft); }
+.stg .base { fill: var(--surface); }
+.stg .tint { fill: url(#gi-glass); }
+.stg .edge { fill: none; stroke: rgba(255, 255, 255, .9); stroke-width: 2; }
+:root[data-theme="dark"] .stg .bk { fill: url(#gi-back-i); }
+:root[data-theme="dark"] .stg .sh { fill: rgba(0, 0, 0, .6); }
+:root[data-theme="dark"] .stg .tint { fill: url(#gi-glass-i); }
+:root[data-theme="dark"] .stg .edge { stroke: rgba(255, 255, 255, .42); }
 .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); flex: none; }
 .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.fg { background: var(--fg); }
 .av { width: 22px; height: 22px; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--line); display: grid; place-items: center; font-size: 9px; font-weight: 600; color: var(--fg-2); flex: none; letter-spacing: .02em; position: relative; }
@@ -570,6 +572,9 @@ document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves'
   <linearGradient id="gi-glass-i" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101010" stop-opacity=".32"/><stop offset="1" stop-color="#101010" stop-opacity=".86"/></linearGradient>
   <filter id="gi-blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4"/></filter>
   <filter id="gi-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
+  <filter id="st-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
+  <filter id="st-soft" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
+  <clipPath id="st-clip"><rect x="6" y="4" width="94" height="16" rx="6"/></clipPath>
 </defs></svg>
 <div class="frame">
   <aside class="side" id="side"></aside>
@@ -908,6 +913,11 @@ const glassIcon = (name, variant = 'n', size = '', cls = '') => {
     ${g.extra || ''}
   </svg>`;
 };
+
+/* чип статуса заявки в приёме стеклянных иконок: задняя тёмная фигура 16×16 слева сверху, стеклянная плашка 94×16 со сдвигом
+   вправо-вниз (6, 4) — внутри плашки основа, размытая копия задней фигуры, тонировка и блик; тень под плашкой. Обрезка и фильтры —
+   общие #st-clip, #st-blur, #st-soft в build.mjs (координаты в пространстве каждого чипа), цвета и тема — в style.css */
+const stChip = st => `<span class="chip st"><svg class="stg" viewBox="0 0 100 20" aria-hidden="true"><rect class="bk" width="16" height="16" rx="5"/><rect class="sh" x="6" y="5" width="94" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="100" height="20"/><rect class="bk bl" width="16" height="16" rx="5"/><rect class="tint" y="4" width="100" height="16"/><rect class="edge" x="6" y="4" width="94" height="16" rx="6"/></g></svg><span class="tx">${SUP_ST[st][0]}</span></span>`;
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const initials = name => name.split(' ').slice(0, 2).map(w => w[0]).join('');
@@ -1360,13 +1370,13 @@ const App = {
     const cols = '72px 76px 112px 164px minmax(0,1fr) 34px 122px minmax(0,1.78fr)';
     const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="sup"><span class="inn">ИНН</span><span>поставщик</span></div><div></div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
-      const [stName, stCls] = SUP_ST[r.st], last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
-      const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px"><span class="chip ${SUP_ST[st][1]}">${SUP_ST[st][0]}</span><span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
+      const last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
+      const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px">${stChip(st)}<span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
       const contact = `<span class="hp"><span class="ic-btn">${ic('user', 'sm')}</span><div class="hp-pop ${up}"><div class="b">${r.contact.name}</div><div class="num" style="margin-top:3px">${r.contact.tel}</div><div class="mute small">${r.contact.mail}</div></div></span>`;
       const headRow = `<div class="tr clickable" style="grid-template-columns:${cols}">
           <div class="no">${r.order}</div>
           <div class="no">${r.id}</div>
-          <div><span class="chip ${stCls}">${stName}</span></div>
+          <div>${stChip(r.st)}</div>
           <div class="r">${hist}</div>
           <div class="sup"><span class="inn num">${r.inn}</span><span class="t ellip" title="${esc(r.supplier)}">${r.supplier}</span></div>
           <div>${contact}</div>
@@ -1381,10 +1391,10 @@ const App = {
 
   /* карточка заказа: файлы (счёт, договор, УПД и прочее) и позиции */
   orderCard(r) {
-    const [stName, stCls] = SUP_ST[r.st], icols = '104px minmax(0,2fr) minmax(0,1fr) 112px 104px 112px';
+    const icols = '104px minmax(0,2fr) minmax(0,1fr) 112px 104px 112px';
     const total = r.items.reduce((a, it) => a + it[4] * it[5], 0);
     const files = r.files.map(([name, kind, size, at]) => `<div class="file"><span class="fi">${ic('file', 'sm')}</span><span class="grow ellip">${esc(name)}</span><span class="chip ${kind === 'прочее' ? 'line' : ''}">${kind}</span><span class="mute small num">${size}</span><span class="mute small num">${fmtDate(at)}</span><button class="btn ghost sm icon" title="Скачать">${icRaw('down', 'xs')}</button></div>`).join('');
-    return `<div class="ph">${chipDir(r.dir)}<span class="t num">Заказ клиента ${r.order}</span><span class="mute small ellip">заявка ${r.id} · ${r.supplier}</span><span class="chip ${stCls}">${stName}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
+    return `<div class="ph">${chipDir(r.dir)}<span class="t num">Заказ клиента ${r.order}</span><span class="mute small ellip">заявка ${r.id} · ${r.supplier}</span>${stChip(r.st)}<button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
       <div class="pb">
         <div class="row between" style="margin-bottom:6px"><div class="sec-t" style="margin:0">Файлы заказа · ${r.files.length}</div><label class="btn sm">${ic('clip', 'xs')}Загрузить файл<input type="file" multiple hidden data-upload="${r.id}"></label></div>
         <div class="files">${files || '<div class="mute small" style="padding:4px 2px">Файлов пока нет: счёт, договор, УПД и прочее появятся здесь списком</div>'}</div>

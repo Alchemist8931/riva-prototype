@@ -31,6 +31,9 @@ document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves'
   <linearGradient id="gi-glass-i" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101010" stop-opacity=".32"/><stop offset="1" stop-color="#101010" stop-opacity=".86"/></linearGradient>
   <filter id="gi-blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4"/></filter>
   <filter id="gi-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
+  <filter id="st-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
+  <filter id="st-soft" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
+  <clipPath id="st-clip"><rect x="6" y="4" width="94" height="16" rx="6"/></clipPath>
 </defs></svg>
 <div class="frame">
   <aside class="side" id="side"></aside>

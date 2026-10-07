@@ -213,13 +213,13 @@ const App = {
     const cols = '72px 76px 112px 164px minmax(0,1fr) 34px 122px minmax(0,1.78fr)';
     const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="sup"><span class="inn">ИНН</span><span>поставщик</span></div><div></div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
-      const [stName, stCls] = SUP_ST[r.st], last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
-      const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px"><span class="chip ${SUP_ST[st][1]}">${SUP_ST[st][0]}</span><span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
+      const last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
+      const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px">${stChip(st)}<span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
       const contact = `<span class="hp"><span class="ic-btn">${ic('user', 'sm')}</span><div class="hp-pop ${up}"><div class="b">${r.contact.name}</div><div class="num" style="margin-top:3px">${r.contact.tel}</div><div class="mute small">${r.contact.mail}</div></div></span>`;
       const headRow = `<div class="tr clickable" style="grid-template-columns:${cols}">
           <div class="no">${r.order}</div>
           <div class="no">${r.id}</div>
-          <div><span class="chip ${stCls}">${stName}</span></div>
+          <div>${stChip(r.st)}</div>
           <div class="r">${hist}</div>
           <div class="sup"><span class="inn num">${r.inn}</span><span class="t ellip" title="${esc(r.supplier)}">${r.supplier}</span></div>
           <div>${contact}</div>
@@ -234,10 +234,10 @@ const App = {
 
   /* карточка заказа: файлы (счёт, договор, УПД и прочее) и позиции */
   orderCard(r) {
-    const [stName, stCls] = SUP_ST[r.st], icols = '104px minmax(0,2fr) minmax(0,1fr) 112px 104px 112px';
+    const icols = '104px minmax(0,2fr) minmax(0,1fr) 112px 104px 112px';
     const total = r.items.reduce((a, it) => a + it[4] * it[5], 0);
     const files = r.files.map(([name, kind, size, at]) => `<div class="file"><span class="fi">${ic('file', 'sm')}</span><span class="grow ellip">${esc(name)}</span><span class="chip ${kind === 'прочее' ? 'line' : ''}">${kind}</span><span class="mute small num">${size}</span><span class="mute small num">${fmtDate(at)}</span><button class="btn ghost sm icon" title="Скачать">${icRaw('down', 'xs')}</button></div>`).join('');
-    return `<div class="ph">${chipDir(r.dir)}<span class="t num">Заказ клиента ${r.order}</span><span class="mute small ellip">заявка ${r.id} · ${r.supplier}</span><span class="chip ${stCls}">${stName}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
+    return `<div class="ph">${chipDir(r.dir)}<span class="t num">Заказ клиента ${r.order}</span><span class="mute small ellip">заявка ${r.id} · ${r.supplier}</span>${stChip(r.st)}<button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
       <div class="pb">
         <div class="row between" style="margin-bottom:6px"><div class="sec-t" style="margin:0">Файлы заказа · ${r.files.length}</div><label class="btn sm">${ic('clip', 'xs')}Загрузить файл<input type="file" multiple hidden data-upload="${r.id}"></label></div>
         <div class="files">${files || '<div class="mute small" style="padding:4px 2px">Файлов пока нет: счёт, договор, УПД и прочее появятся здесь списком</div>'}</div>

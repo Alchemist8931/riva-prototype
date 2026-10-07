@@ -154,6 +154,11 @@ const glassIcon = (name, variant = 'n', size = '', cls = '') => {
   </svg>`;
 };
 
+/* чип статуса заявки в приёме стеклянных иконок: задняя тёмная фигура 16×16 слева сверху, стеклянная плашка 94×16 со сдвигом
+   вправо-вниз (6, 4) — внутри плашки основа, размытая копия задней фигуры, тонировка и блик; тень под плашкой. Обрезка и фильтры —
+   общие #st-clip, #st-blur, #st-soft в build.mjs (координаты в пространстве каждого чипа), цвета и тема — в style.css */
+const stChip = st => `<span class="chip st"><svg class="stg" viewBox="0 0 100 20" aria-hidden="true"><rect class="bk" width="16" height="16" rx="5"/><rect class="sh" x="6" y="5" width="94" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="100" height="20"/><rect class="bk bl" width="16" height="16" rx="5"/><rect class="tint" y="4" width="100" height="16"/><rect class="edge" x="6" y="4" width="94" height="16" rx="6"/></g></svg><span class="tx">${SUP_ST[st][0]}</span></span>`;
+
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const initials = name => name.split(' ').slice(0, 2).map(w => w[0]).join('');
 const shortName = name => { const [f, n] = name.split(' '); return n ? `${f} ${n[0]}.` : f; };
