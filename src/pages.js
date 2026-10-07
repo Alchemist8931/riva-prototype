@@ -215,8 +215,10 @@ const App = {
        № отслеживания, срок (вправо), комментарий. Постоянные — по ширине содержимого; при сужении окна сжимается сначала комментарий
        (до 100px), затем ИНН: его дорожка minmax(0, 84px) получает место раньше гибкой (алгоритм сетки: «maximize tracks» до «expand flexible»),
        значит и отдаёт позже; поставщик, ТК и № отслеживания не сжимаются */
-    const cols = '60px 60px 124px 154px minmax(0,84px) 196px 26px 124px 104px 114px minmax(100px,1fr)';
-    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="inn"><span>ИНН</span></div><div>поставщик</div><div></div><div>транспортная компания</div><div>№ отслеживания</div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
+    /* 27-й круг: между № заявки и статусом, статусом и датой, по обе стороны от контакта и между № отслеживания и сроком — 8px
+       (поле 4px у ячейки .gl/.gr плюс общий зазор 4px), поэтому эти столбцы шире на 4px; минимум комментария 84px — при окне 1280 всё помещается */
+    const cols = '60px 60px 128px 158px minmax(0,84px) 196px 30px 124px 104px 118px minmax(84px,1fr)';
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div class="gl">статус</div><div class="r gl">изменён</div><div class="inn"><span>ИНН</span></div><div>поставщик</div><div class="gl gr"></div><div>транспортная компания</div><div>№ отслеживания</div><div class="r gl">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
       const last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
       const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px">${stChip(st)}<span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
@@ -224,14 +226,14 @@ const App = {
       const headRow = `<div class="tr clickable" style="grid-template-columns:${cols}">
           <div class="no">${r.order}</div>
           <div class="no">${r.id}</div>
-          <div>${stChip(r.st)}</div>
-          <div class="r">${hist}</div>
+          <div class="gl">${stChip(r.st)}</div>
+          <div class="r gl">${hist}</div>
           <div class="inn num" title="ИНН ${esc(r.inn)}"><span>${r.inn}</span></div>
           <div class="t ellip" title="${esc(r.supplier)}">${r.supplier}</div>
-          <div>${contact}</div>
+          <div class="gl gr">${contact}</div>
           <div class="ellip ${r.tc === '—' ? 'mute' : ''}" title="${esc(r.tc)}">${r.tc}</div>
           <div class="ellip num ${r.track === '—' ? 'mute' : ''}" title="${esc(r.track)}">${r.track}</div>
-          <div class="r num">${fmtDate(r.eta)}</div>
+          <div class="r num gl">${fmtDate(r.eta)}</div>
           <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
         </div>`;
       return xp({ id: 'sup-' + r.id, head: `<div class="rec-card">${headRow}</div>`, panel: this.orderCard(r), place: 'under', cls: 'rec' });

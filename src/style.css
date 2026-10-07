@@ -370,6 +370,9 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 /* поставщик: ИНН перед названием, по правому краю своей колонки, в одну строку */
 /* список «Снабжения» (26-й круг): между столбцами 4px, поля у рамки записи прежние 8px; ИНН — свой столбец по правому краю, при сужении сжимается вторым и обрезается многоточием */
 .sup-list .tr { gap: 4px; }
+.sup-list .tr > .gl { padding-left: 4px; }    /* 27-й круг: в отмеченных местах зазор 8px — поле ячейки 4px плюс общий 4px */
+.sup-list .tr > .gr { padding-right: 4px; }
+.sup-head .tr.th > div { text-align: center; padding-left: 0; padding-right: 0; }   /* заголовки — по центру всей ширины столбца */
 .tr .inn { container-type: inline-size; text-align: right; color: var(--mute); font-size: 11px; font-variant-numeric: tabular-nums; overflow: hidden; }
 .tr .inn > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @container (max-width: 36px) { .tr .inn > span { visibility: hidden; } }   /* сжатый почти в ноль ИНН не оставляет обрывка цифр */
