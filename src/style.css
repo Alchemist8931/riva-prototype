@@ -260,10 +260,10 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.st { position: relative; width: 124px; height: 20px; padding: 4px 6px 0 48px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-weight: 700; text-transform: lowercase; color: var(--fg); }
 .chip.st .stg { position: absolute; left: 0; top: 0; width: 124px; height: 20px; overflow: visible; pointer-events: none; }
 .chip.st .tx { position: relative; line-height: 16px; }
-.chip.st-req { --stc: #9AA3AF; }    /* метки статуса, 23-й круг: оттенки владельца (22-й круг: #F1F1F1, #B28F6F, #556E58, #536878) ярче и отличимее; в обеих темах одинаковые */
-.chip.st-ord { --stc: #FF8A1F; }
-.chip.st-tr { --stc: #1FBF5A; }
-.chip.st-done { --stc: #2B7FFF; }
+.chip.st-req { --stc: #7B828C; }    /* метки статуса: 22-й круг — оттенки владельца, 23-й — ярче (#9AA3AF, #FF8A1F, #1FBF5A, #2B7FFF), 24-й — темнее на 20 % по яркости; в обеих темах одинаковые */
+.chip.st-ord { --stc: #CC6E19; }
+.chip.st-tr { --stc: #199948; }
+.chip.st-done { --stc: #2266CC; }
 .stg .cl { fill: var(--stc); }
 .stg .glow { opacity: .55; }   /* размытая метка поверх тонировки стекла — цвет проступает сквозь плашку */
 .stg .bk { fill: url(#gi-back); }

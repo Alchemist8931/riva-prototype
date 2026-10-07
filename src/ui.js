@@ -159,8 +159,8 @@ const glassIcon = (name, variant = 'n', size = '', cls = '') => {
    обеих фигур, тонировка, свечение метки поверх тонировки (.glow, иначе белое стекло гасит цвет) и блик; тень под плашкой; текст с 48px, правее размытых фигур. Обрезка и фильтры — общие #st-clip,
    #st-blur, #st-soft в build.mjs (координаты в пространстве каждого чипа), цвета и тема — в style.css */
 const stChip = st => {
-  const figs = cls => `<rect class="bk${cls}" width="26" height="16" rx="5"/><rect class="cl${cls}" x="32" width="10" height="16" rx="5"/>`;
-  return `<span class="chip st st-${st}"><svg class="stg" viewBox="0 0 124 20" aria-hidden="true">${figs('')}<rect class="sh" x="6" y="5" width="118" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="124" height="20"/>${figs(' bl')}<rect class="tint" y="4" width="124" height="16"/><rect class="cl bl glow" x="32" width="10" height="16" rx="5"/><rect class="edge" x="6" y="4" width="118" height="16" rx="6"/></g></svg><span class="tx">${SUP_ST[st][0]}</span></span>`;
+  const mark = cls => `<path class="cl bl${cls}" d="M32 6H42V11A5 5 0 0 1 32 11Z"/>`;   // метка 10×16, верх срезан на 6px (24-й круг): целиком под плашкой, видна только размытой
+  return `<span class="chip st st-${st}"><svg class="stg" viewBox="0 0 124 20" aria-hidden="true"><rect class="bk" width="26" height="16" rx="5"/><rect class="sh" x="6" y="5" width="118" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="124" height="20"/><rect class="bk bl" width="26" height="16" rx="5"/>${mark('')}<rect class="tint" y="4" width="124" height="16"/>${mark(' glow')}<rect class="edge" x="6" y="4" width="118" height="16" rx="6"/></g></svg><span class="tx">${SUP_ST[st][0]}</span></span>`;
 };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
