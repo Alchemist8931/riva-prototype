@@ -266,6 +266,9 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.st-done { --stc: #2266CC; }
 .stg .cl { fill: var(--stc); }
 .stg .glow { opacity: .55; }   /* размытая метка поверх тонировки стекла — цвет проступает сквозь плашку */
+.chip.dc { position: relative; width: 176px; height: 24px; padding: 5px 8px 0 38px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-size: 12px; font-weight: 700; text-transform: lowercase; color: var(--fg); flex: none; }
+.chip.dc .stg { position: absolute; left: 0; top: 0; width: 176px; height: 24px; overflow: visible; pointer-events: none; }
+.chip.dc .tx { position: relative; line-height: 19px; }
 .stg .bk { fill: url(#gi-back); }
 .stg .bl { filter: url(#st-blur); }
 .stg .sh { fill: rgba(0, 0, 0, .22); filter: url(#st-soft); }
@@ -384,6 +387,13 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .file { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: 11.5px; }
 .file .fi { display: grid; place-items: center; color: var(--surface-2); }
 .items .tr { padding: 0 6px; }
+/* карточка заказа (28-й круг): строка полей заказа, под ней два блока поровну — документы и позиции */
+.of-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, .95fr) minmax(0, 1.45fr) minmax(0, 1.9fr); gap: 8px; align-items: end; margin-bottom: 10px; }
+.of-row .fl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* подписи в одну строку: в узком окне не ломают ряд */
+.oc-blocks { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: stretch; }
+.oc-block { border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px 10px; min-width: 0; }
+.oc-block .oc-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 23px; margin-bottom: 6px; }
+.oc-block .oc-h .sec-t { margin: 0; }
 
 /* сводка */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 7px; }

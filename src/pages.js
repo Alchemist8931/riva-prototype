@@ -25,6 +25,7 @@ const App = {
     window.addEventListener('hashchange', () => this.route());
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-ocard] input.in')) e.target.blur(); });   // Enter в поле карточки заказа применяет значение
     document.addEventListener('input', e => this.onInput(e));
     document.addEventListener('change', e => this.onChange(e));
     document.addEventListener('keydown', e => {
@@ -157,7 +158,9 @@ const App = {
     if (form.dataset.new === 'supply') {
       const id = nextNo(SUPPLY.map(r => r.id), 'СН');
       const eta = v('eta') ? v('eta').split('-').reverse().join('.') : '—';
-      SUPPLY.unshift({ id, order: v('order'), dir: v('dir'), st: 'req', hist: [['req', nowStamp()]], supplier: v('supplier'), inn: v('inn') || '—', contact: { name: v('cname') || '—', tel: v('ctel') || '—', mail: v('cmail') || '—' }, tc: v('tc') || '—', track: v('track') || '—', eta, comment: v('comment'), files: this.pending.splice(0), items: [] });
+      SUPPLY.unshift({ id, order: v('order'), dir: v('dir'), st: 'req', hist: [['req', nowStamp()]], supplier: v('supplier'), inn: v('inn') || '—', co: this.state.company, contact: { name: v('cname') || '—', tel: v('ctel') || '—', mail: v('cmail') || '—' }, tc: v('tc') || '—', track: v('track') || '—', eta, comment: v('comment'), files: this.pending.splice(0), items: [] });
+      const nr = SUPPLY[0];
+      if (!SUPPLIERS[nr.supplier]) SUPPLIERS[nr.supplier] = { inn: nr.inn, contacts: [{ ...nr.contact }, { name: 'Отдел продаж', tel: nr.contact.tel, mail: '—' }] };
       XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('sup-' + id);
       return;
     }
@@ -217,47 +220,89 @@ const App = {
        значит и отдаёт позже; поставщик, ТК и № отслеживания не сжимаются */
     /* 27-й круг: между № заявки и статусом, статусом и датой, по обе стороны от контакта и между № отслеживания и сроком — 8px
        (поле 4px у ячейки .gl/.gr плюс общий зазор 4px), поэтому эти столбцы шире на 4px; минимум комментария 84px — при окне 1280 всё помещается */
-    const cols = '60px 60px 128px 158px minmax(0,84px) 196px 30px 124px 104px 118px minmax(84px,1fr)';
+    const cols = this.supCols;
     const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div class="gl">статус</div><div class="r gl">изменён</div><div class="inn"><span>ИНН</span></div><div>поставщик</div><div class="gl gr"></div><div>транспортная компания</div><div>№ отслеживания</div><div class="r gl">срок доставки</div><div>комментарий</div></div></div>`;
-    const rows = list.map((r, i) => {
-      const last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
-      const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px">${stChip(st)}<span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
-      const contact = `<span class="hp"><span class="ic-btn">${ic('user', 'sm')}</span><div class="hp-pop ${up}"><div class="b">${r.contact.name}</div><div class="num" style="margin-top:3px">${r.contact.tel}</div><div class="mute small">${r.contact.mail}</div></div></span>`;
-      const headRow = `<div class="tr clickable" style="grid-template-columns:${cols}">
-          <div class="no">${r.order}</div>
-          <div class="no">${r.id}</div>
-          <div class="gl">${stChip(r.st)}</div>
-          <div class="r gl">${hist}</div>
-          <div class="inn num" title="ИНН ${esc(r.inn)}"><span>${r.inn}</span></div>
-          <div class="t ellip" title="${esc(r.supplier)}">${r.supplier}</div>
-          <div class="gl gr">${contact}</div>
-          <div class="ellip ${r.tc === '—' ? 'mute' : ''}" title="${esc(r.tc)}">${r.tc}</div>
-          <div class="ellip num ${r.track === '—' ? 'mute' : ''}" title="${esc(r.track)}">${r.track}</div>
-          <div class="r num gl">${fmtDate(r.eta)}</div>
-          <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
-        </div>`;
-      return xp({ id: 'sup-' + r.id, head: `<div class="rec-card">${headRow}</div>`, panel: this.orderCard(r), place: 'under', cls: 'rec' });
-    }).join('');
+    const rows = list.map((r, i) => xp({ id: 'sup-' + r.id, head: this.supRow(r, i >= list.length - 2 && list.length > 3), panel: this.orderCard(r), place: 'under', cls: 'rec' })).join('');
     const body = `<div class="sup-list">${head}<div class="recs">${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div></div>`;
     return mod({ span: 12, cls: 'fill', title: 'Заявки на снабжение', sub: `${list.length} из ${SUPPLY.length} · каждая запись в своём контейнере, по клику под ней раскрывается карточка заказа`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
   },
 
-  /* карточка заказа: файлы (счёт, договор, УПД и прочее) и позиции */
+  /* столбцы списка: 27-й круг — 8px между № заявки и статусом, статусом и датой, вокруг контакта, между треком и сроком (поле 4px у .gl/.gr + общий 4px);
+     сжимается сначала комментарий (до 84px), затем ИНН: дорожка minmax(0, 84px) получает место раньше гибкой и отдаёт позже */
+  supCols: '60px 60px 128px 158px minmax(0,84px) 196px 30px 124px 104px 118px minmax(84px,1fr)',
+  /* строка заявки (заголовок раскрытия); up — всплывающие подсказки последних строк открываются вверх */
+  supRow(r, up) {
+    const last = r.hist[r.hist.length - 1], u = up ? 'up' : '';
+    const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${u}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px">${stChip(st)}<span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
+    const contact = `<span class="hp"><span class="ic-btn">${ic('user', 'sm')}</span><div class="hp-pop ${u}"><div class="b">${r.contact.name}</div><div class="num" style="margin-top:3px">${r.contact.tel}</div><div class="mute small">${r.contact.mail}</div></div></span>`;
+    return `<div class="rec-card"><div class="tr clickable" style="grid-template-columns:${this.supCols}">
+        <div class="no">${r.order}</div>
+        <div class="no">${r.id}</div>
+        <div class="gl">${stChip(r.st)}</div>
+        <div class="r gl">${hist}</div>
+        <div class="inn num" title="ИНН ${esc(r.inn)}"><span>${r.inn}</span></div>
+        <div class="t ellip" title="${esc(r.supplier)}">${r.supplier}</div>
+        <div class="gl gr">${contact}</div>
+        <div class="ellip ${r.tc === '—' ? 'mute' : ''}" title="${esc(r.tc)}">${r.tc}</div>
+        <div class="ellip num ${r.track === '—' ? 'mute' : ''}" title="${esc(r.track)}">${r.track}</div>
+        <div class="r num gl">${fmtDate(r.eta)}</div>
+        <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
+      </div></div>`;
+  },
+
+  /* карточка заказа (28-й круг): в шапке только чип направления — номера, статус и поставщик видны в строке и не меняются;
+     ниже строка полей заказа (свои списки, как в форме; изменения сразу пишутся в запись и в строку — updateOrder),
+     под ней два блока поровну: документы и позиции */
   orderCard(r) {
-    const icols = '104px minmax(0,2fr) minmax(0,1fr) 112px 104px 112px';
+    const icols = '68px minmax(0,2fr) minmax(0,1fr) 72px 72px 84px';
     const total = r.items.reduce((a, it) => a + it[4] * it[5], 0);
+    const sp = SUPPLIERS[r.supplier] || { contacts: [r.contact] };
     const files = r.files.map(([name, kind, size, at]) => `<div class="file"><span class="fi">${ic('file', 'sm')}</span><span class="grow ellip">${esc(name)}</span><span class="chip ${kind === 'прочее' ? 'line' : ''}">${kind}</span><span class="mute small num">${size}</span><span class="mute small num">${fmtDate(at)}</span><button class="btn ghost sm icon" title="Скачать">${icRaw('down', 'xs')}</button></div>`).join('');
-    return `<div class="ph">${chipDir(r.dir)}<span class="t num">Заказ клиента ${r.order}</span><span class="mute small ellip">заявка ${r.id} · ${r.supplier}</span>${stChip(r.st)}<button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
-      <div class="pb">
-        <div class="row between" style="margin-bottom:6px"><div class="sec-t" style="margin:0">Файлы заказа · ${r.files.length}</div><label class="btn sm">${ic('clip', 'xs')}Загрузить файл<input type="file" multiple hidden data-upload="${r.id}"></label></div>
-        <div class="files">${files || '<div class="mute small" style="padding:4px 2px">Файлов пока нет: счёт, договор, УПД и прочее появятся здесь списком</div>'}</div>
-        <div class="sec-t" style="margin-top:12px">Позиции заказа · ${r.items.length}</div>
-        <div class="tbl items">
-          <div class="tr th" style="grid-template-columns:${icols}"><div>артикул</div><div>наименование</div><div>категория</div><div>кол-во, ед. изм.</div><div style="text-align:right">цена за ед.</div><div style="text-align:right">сумма</div></div>
-          ${r.items.map(([sku, name, cat, unit, qty, price]) => `<div class="tr" style="grid-template-columns:${icols};min-height:30px"><div class="num mute">${sku}</div><div class="ellip">${name}</div><div class="small">${cat}</div><div class="num">${fmtMoney(qty)} ${unit}</div><div class="num" style="text-align:right">${fmtMoney(price)} ₽</div><div class="num b" style="text-align:right">${fmtMoney(qty * price)} ₽</div></div>`).join('')}
-          <div class="tr" style="grid-template-columns:${icols};min-height:30px"><div></div><div class="b">Итого</div><div></div><div></div><div></div><div class="num b" style="text-align:right">${fmtMoney(total)} ₽</div></div>
+    const fields = `<div class="of-row">
+        ${fld('Компания-заказчик', sel('of-co', COMPANIES.map(c => [c.id, c.name]), r.co))}
+        ${fld('Направление', sel('of-dir', DIRS.map(d => [d.id, d.name]), r.dir))}
+        ${fld('Транспортная компания', sel('of-tc', CARRIERS.map(c => [c, c === '—' ? 'ещё не выбрана' : c]), r.tc))}
+        ${fld('№ отслеживания', inp('of-track', `value="${r.track === '—' ? '' : esc(r.track)}" placeholder="ещё нет"`))}
+        ${fld('Контакт поставщика', sel('of-contact', sp.contacts.map(c => [c.name, shortFio(c.name)]), r.contact.name))}
+        ${fld('Поставщик', sel('of-supplier', Object.keys(SUPPLIERS).sort((a, b) => a.replace(/^\S+\s«?/, '').localeCompare(b.replace(/^\S+\s«?/, ''), 'ru')).map(n => [n, n]), r.supplier))}
+        ${fld('Комментарий', inp('of-comment', `value="${esc(r.comment)}" placeholder="комментарий к заявке"`))}
+      </div>`;
+    return `<div class="ph">${dirChip(r.dir)}<button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
+      <div class="pb" data-ocard="${r.id}">
+        ${fields}
+        <div class="oc-blocks">
+          <div class="oc-block">
+            <div class="oc-h"><div class="sec-t">Документы · ${r.files.length}</div><label class="btn sm">${ic('clip', 'xs')}Загрузить файл<input type="file" multiple hidden data-upload="${r.id}"></label></div>
+            <div class="files">${files || '<div class="mute small" style="padding:4px 2px">Документов пока нет: счёт, договор, УПД и прочее появятся здесь списком</div>'}</div>
+          </div>
+          <div class="oc-block">
+            <div class="oc-h"><div class="sec-t">Позиции заказа · ${r.items.length}</div></div>
+            <div class="tbl items">
+              <div class="tr th" style="grid-template-columns:${icols}"><div>артикул</div><div>наименование</div><div>категория</div><div>кол-во</div><div style="text-align:right">цена</div><div style="text-align:right">сумма</div></div>
+              ${r.items.map(([sku, name, cat, unit, qty, price]) => `<div class="tr" style="grid-template-columns:${icols};min-height:30px"><div class="num mute ellip">${sku}</div><div class="ellip" title="${esc(name)}">${name}</div><div class="small ellip">${cat}</div><div class="num">${fmtMoney(qty)} ${unit}</div><div class="num" style="text-align:right">${fmtMoney(price)} ₽</div><div class="num b" style="text-align:right">${fmtMoney(qty * price)} ₽</div></div>`).join('')}
+              ${r.items.length ? `<div class="tr" style="grid-template-columns:${icols};min-height:30px"><div></div><div class="b">Итого</div><div></div><div></div><div></div><div class="num b" style="text-align:right">${fmtMoney(total)} ₽</div></div>` : '<div class="mute small" style="padding:4px 6px">Позиции появятся после оформления заказа поставщику</div>'}
+            </div>
+          </div>
         </div>
       </div>`;
+  },
+
+  /* изменение заказа из карточки: запись и строка списка обновляются сразу, карточка остаётся открытой;
+     после выбора в списке карточка перерисовывается (контакты зависят от поставщика, чип — от направления), после ввода текста — нет, чтобы не терять фокус */
+  updateOrder(id, f, v) {
+    const r = SUPPLY.find(x => x.id === id); if (!r) return;
+    if (f === 'co') r.co = v;
+    else if (f === 'dir') r.dir = v;
+    else if (f === 'tc') r.tc = v;
+    else if (f === 'track') r.track = v.trim() || '—';
+    else if (f === 'comment') r.comment = v.trim();
+    else if (f === 'contact') { const c = (SUPPLIERS[r.supplier] || { contacts: [] }).contacts.find(x => x.name === v); if (c) r.contact = { ...c }; }
+    else if (f === 'supplier') { const sp = SUPPLIERS[v]; if (!sp) return; r.supplier = v; r.inn = sp.inn; r.contact = { ...sp.contacts[0] }; }
+    const el = document.querySelector(`[data-xp="sup-${id}"]`); if (!el) return;
+    const head = el.querySelector(':scope > .xp-head');
+    head.innerHTML = this.supRow(r, !!head.querySelector('.hp-pop.up'));
+    if (f !== 'track' && f !== 'comment') el.querySelector(':scope > .xp-panel').innerHTML = this.orderCard(r);
+    if (XP.open) XP.focus();
   },
 
   /* ---------- Сотрудники ---------- */
@@ -372,9 +417,12 @@ const App = {
       const x = opt.closest('.csel');
       x.querySelector('input[type=hidden]').value = opt.dataset.opt;
       x.querySelector('.sel-btn .lbl').textContent = opt.querySelector('.grow').textContent;
+      x.querySelector('.sel-btn').title = opt.querySelector('.grow').textContent;   // полное значение по наведению — в узком поле оно обрезается многоточием
       x.querySelectorAll('[data-opt]').forEach(b => { b.classList.toggle('on', b === opt); const c = b.querySelector('.chk'); if (c) c.remove(); });
       opt.insertAdjacentHTML('beforeend', `<span class="chk">${icRaw('check', 'sm')}</span>`);
-      XP.close(); return;
+      XP.close();
+      const oc = x.closest('[data-ocard]'); if (oc) this.updateOrder(oc.dataset.ocard, x.querySelector('input[type=hidden]').name.replace(/^of-/, ''), opt.dataset.opt);
+      return;
     }
     // календарь: листание месяцев перерисовывает сетку внутри открытой панели; выбор дня и «очистить» пишут значение и закрывают
     const cNav = t.closest('[data-cal-nav]');
@@ -436,6 +484,8 @@ const App = {
 
   /* загрузка файлов в карточку заказа: имена добавляются в список заявки */
   onChange(e) {
+    const of = e.target.closest('[data-ocard] input.in[name^="of-"]');
+    if (of) { this.updateOrder(of.closest('[data-ocard]').dataset.ocard, of.name.replace(/^of-/, ''), of.value); return; }
     const toRow = f => [f.name.replace(/\.[^.]+$/, ''), fileKind(f.name), fmtSize(f.size), todayShort()];
     const att = e.target.closest('[data-attach]');   // файлы в форме новой заявки: копятся до создания
     if (att && att.files.length) { this.pending.push(...[...att.files].map(toRow)); const l = att.closest('.fld').querySelector('[data-attach-list]'); if (l) l.textContent = this.pending.map(f => f[0]).join(', '); return; }

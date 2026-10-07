@@ -164,6 +164,12 @@ const stChip = st => {
   return `<span class="chip st st-${st}"><svg class="stg" viewBox="0 0 124 20" aria-hidden="true"><rect class="bk" width="26" height="16" rx="5"/><rect class="sh" x="6" y="5" width="118" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="124" height="20"/><rect class="bk bl" width="26" height="16" rx="5"/>${mark('')}<rect class="tint" y="4" width="124" height="16"/>${mark(' glow')}<rect class="edge" x="6" y="4" width="118" height="16" rx="6"/></g></svg><span class="tx">${SUP_ST[st][0]}</span></span>`;
 };
 
+/* чип направления (шапка карточки заказа, 28-й круг): тот же приём, что у чипа статуса, крупнее в 1,2 раза и без цветной метки —
+   задняя фигура 31×19, плашка 169×19 со сдвигом (7, 5), текст 12px с 38px; одна ширина 176px под «полимерные изделия» (129px) */
+const dirChip = id => `<span class="chip dc"><svg class="stg" viewBox="0 0 176 24" aria-hidden="true"><rect class="bk" width="31" height="19" rx="6"/><rect class="sh" x="7" y="6" width="169" height="19" rx="7"/><g clip-path="url(#dc-clip)"><rect class="base" width="176" height="24"/><rect class="bk bl" width="31" height="19" rx="6"/><rect class="tint" y="5" width="176" height="19"/><rect class="edge" x="7" y="5" width="169" height="19" rx="7"/></g></svg><span class="tx">${DIR[id] ? DIR[id].name : ''}</span></span>`;
+/* короткая подпись контакта: «Громова И. П.», общий контакт — как есть */
+const shortFio = n => /\s/.test(n) && n !== 'Отдел продаж' ? n.split(/\s+/).map((w, i) => i ? w[0] + '.' : w).join(' ') : n;
+
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const initials = name => name.split(' ').slice(0, 2).map(w => w[0]).join('');
 const shortName = name => { const [f, n] = name.split(' '); return n ? `${f} ${n[0]}.` : f; };
@@ -226,7 +232,7 @@ const inp = (name, attrs = '') => `<input class="in" name="${name}" ${attrs}>`;
 /* выпадающий список свой, а не системный: кнопка выглядит как поле ввода, список раскрывается как меню; значение — в скрытом поле */
 const sel = (name, opts, val = '') => {
   const cur = opts.find(o => o[0] === val) || opts[0];
-  return `<div class="xp csel" data-xp="sel-${name}"><div class="xp-head" data-xp-toggle><button type="button" class="in sel-btn"><span class="lbl ellip">${cur[1]}</span>${icRaw('down', 'xs')}</button><input type="hidden" name="${name}" value="${cur[0]}"></div>
+  return `<div class="xp csel" data-xp="sel-${name}"><div class="xp-head" data-xp-toggle><button type="button" class="in sel-btn" title="${esc(cur[1])}"><span class="lbl ellip">${cur[1]}</span>${icRaw('down', 'xs')}</button><input type="hidden" name="${name}" value="${cur[0]}"></div>
     <div class="xp-panel below"><div class="menu">${opts.map(([v, t]) => `<button type="button" class="${v === cur[0] ? 'on' : ''}" data-opt="${v}"><span class="grow">${t}</span>${v === cur[0] ? `<span class="chk">${icRaw('check', 'sm')}</span>` : ''}</button>`).join('')}</div></div></div>`;   // меню внутри панели: класс .menu (display: flex) на самой панели перебивал её display: none, и список был виден всегда
 };
 

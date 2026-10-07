@@ -34,6 +34,7 @@ document.documentElement.dataset.bg = localStorage.getItem('riva.bg') || 'waves'
   <filter id="st-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
   <filter id="st-soft" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="1"/></filter>
   <clipPath id="st-clip"><rect x="6" y="4" width="118" height="16" rx="6"/></clipPath>
+  <clipPath id="dc-clip"><rect x="7" y="5" width="169" height="19" rx="7"/></clipPath>
 </defs></svg>
 <div class="frame">
   <aside class="side" id="side"></aside>
