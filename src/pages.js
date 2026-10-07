@@ -158,7 +158,7 @@ const App = {
     if (form.dataset.new === 'supply') {
       const id = nextNo(SUPPLY.map(r => r.id), 'СН');
       const eta = v('eta') ? v('eta').split('-').reverse().join('.') : '—';
-      SUPPLY.unshift({ id, order: v('order'), dir: v('dir'), st: 'req', hist: [['req', nowStamp()]], supplier: v('supplier'), inn: v('inn') || '—', co: this.state.company, contact: { name: v('cname') || '—', tel: v('ctel') || '—', mail: v('cmail') || '—' }, tc: v('tc') || '—', track: v('track') || '—', eta, comment: v('comment'), files: this.pending.splice(0), items: [] });
+      SUPPLY.unshift({ id, paid: false, order: v('order'), dir: v('dir'), st: 'req', hist: [['req', nowStamp()]], supplier: v('supplier'), inn: v('inn') || '—', co: this.state.company, contact: { name: v('cname') || '—', tel: v('ctel') || '—', mail: v('cmail') || '—' }, tc: v('tc') || '—', track: v('track') || '—', eta, comment: v('comment'), files: this.pending.splice(0), items: [] });
       const nr = SUPPLY[0];
       if (!SUPPLIERS[nr.supplier]) SUPPLIERS[nr.supplier] = { inn: nr.inn, contacts: [{ ...nr.contact }, { name: 'Отдел продаж', tel: nr.contact.tel, mail: '—' }] };
       XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('sup-' + id);
@@ -213,7 +213,7 @@ const App = {
   /* ---------- Снабжение: один список с прокруткой, карточка заказа раскрывается под строкой ---------- */
   supply() {
     const s = this.state, q = s.q.trim().toLowerCase();
-    const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.tc, r.track, r.comment, r.contact.name, SUP_ST[r.st][0]));
+    const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.tc, r.track, r.comment, r.contact.name, SUP_ST[r.st][0], r.paid ? 'оплачено' : 'не оплачено'));
     /* колонки (26-й круг): номера, статус, дата изменения (вправо), ИНН (вправо), поставщик, контакт, транспортная компания,
        № отслеживания, срок (вправо), комментарий. Постоянные — по ширине содержимого; при сужении окна сжимается сначала комментарий
        (до 100px), затем ИНН: его дорожка minmax(0, 84px) получает место раньше гибкой (алгоритм сетки: «maximize tracks» до «expand flexible»),
@@ -221,7 +221,7 @@ const App = {
     /* 27-й круг: между № заявки и статусом, статусом и датой, по обе стороны от контакта и между № отслеживания и сроком — 8px
        (поле 4px у ячейки .gl/.gr плюс общий зазор 4px), поэтому эти столбцы шире на 4px; минимум комментария 84px — при окне 1280 всё помещается */
     const cols = this.supCols;
-    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div class="gl">статус</div><div class="r gl">изменён</div><div class="inn"><span>ИНН</span></div><div>поставщик</div><div class="gl gr"></div><div>транспортная компания</div><div>№ отслеживания</div><div class="r gl">срок доставки</div><div>комментарий</div></div></div>`;
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div class="gl">статус</div><div class="r gl">изменён</div><div>оплата</div><div class="inn"><span>ИНН</span></div><div class="gl gr"></div><div>поставщик</div><div>транспортная компания</div><div>№ отслеживания</div><div class="r gl">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => xp({ id: 'sup-' + r.id, head: this.supRow(r, i >= list.length - 2 && list.length > 3), panel: this.orderCard(r), place: 'under', cls: 'rec' })).join('');
     const body = `<div class="sup-list">${head}<div class="recs">${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div></div>`;
     return mod({ span: 12, cls: 'fill', title: 'Заявки на снабжение', sub: `${list.length} из ${SUPPLY.length} · каждая запись в своём контейнере, по клику под ней раскрывается карточка заказа`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
@@ -229,7 +229,7 @@ const App = {
 
   /* столбцы списка: 27-й круг — 8px между № заявки и статусом, статусом и датой, вокруг контакта, между треком и сроком (поле 4px у .gl/.gr + общий 4px);
      сжимается сначала комментарий (до 84px), затем ИНН: дорожка minmax(0, 84px) получает место раньше гибкой и отдаёт позже */
-  supCols: '60px 60px 128px 158px minmax(0,84px) 196px 30px 124px 104px 118px minmax(84px,1fr)',
+  supCols: '60px 60px 128px 158px 124px minmax(0,84px) 30px 196px 124px 104px 118px minmax(84px,1fr)',   // 29-й круг: оплата после даты изменения, контакт между ИНН и поставщиком
   /* строка заявки (заголовок раскрытия); up — всплывающие подсказки последних строк открываются вверх */
   supRow(r, up) {
     const last = r.hist[r.hist.length - 1], u = up ? 'up' : '';
@@ -240,9 +240,10 @@ const App = {
         <div class="no">${r.id}</div>
         <div class="gl">${stChip(r.st)}</div>
         <div class="r gl">${hist}</div>
+        <div>${payChip(r.paid)}</div>
         <div class="inn num" title="ИНН ${esc(r.inn)}"><span>${r.inn}</span></div>
-        <div class="t ellip" title="${esc(r.supplier)}">${r.supplier}</div>
         <div class="gl gr">${contact}</div>
+        <div class="t ellip" title="${esc(r.supplier)}">${r.supplier}</div>
         <div class="ellip ${r.tc === '—' ? 'mute' : ''}" title="${esc(r.tc)}">${r.tc}</div>
         <div class="ellip num ${r.track === '—' ? 'mute' : ''}" title="${esc(r.track)}">${r.track}</div>
         <div class="r num gl">${fmtDate(r.eta)}</div>

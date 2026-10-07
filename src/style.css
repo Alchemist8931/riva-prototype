@@ -264,6 +264,8 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.st-ord { --stc: #CC6E19; }
 .chip.st-tr { --stc: #199948; }
 .chip.st-done { --stc: #2266CC; }
+.chip.pay-y { --stc: #1F9D6B; }   /* оплата (29-й круг): зелёная — оплачено, красная — не оплачено */
+.chip.pay-n { --stc: #C2453C; }
 .stg .cl { fill: var(--stc); }
 .stg .glow { opacity: .55; }   /* размытая метка поверх тонировки стекла — цвет проступает сквозь плашку */
 .chip.dc { position: relative; width: 176px; height: 24px; padding: 5px 8px 0 38px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-size: 12px; font-weight: 700; text-transform: lowercase; color: var(--fg); flex: none; }
@@ -342,15 +344,17 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .grid.single > .mod { flex: 1; min-height: 0; }
 .mod.fill .mod-surface { display: flex; flex-direction: column; min-height: 0; }
 /* список записей: полоса прокрутки видна всегда, тонкая (7px — на треть уже прежней), бегунок цвета тёмной заливки меню */
-.sup-list { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: scroll; scrollbar-gutter: stable; scrollbar-color: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 6px 2px 2px; scroll-behavior: smooth; }
+.sup-list { flex: 1; min-height: 0; overflow-x: auto; overflow-y: scroll; scrollbar-gutter: stable; scrollbar-color: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 6px 2px 2px; scroll-behavior: smooth; }
 /* scrollbar-color наследуется от сетки; при любом значении кроме auto Chrome игнорирует ::-webkit-scrollbar — потому auto выше */
-.sup-list::-webkit-scrollbar { width: 7px; }
+.sup-list::-webkit-scrollbar { width: 7px; height: 7px; }
 .sup-list::-webkit-scrollbar-track { background: var(--surface-3); border-radius: 4px; }
 .sup-list::-webkit-scrollbar-thumb { background: var(--frame); border-radius: 4px; }
 :root[data-theme="dark"] .sup-list::-webkit-scrollbar-thumb { background: var(--line-2); }
 @supports not selector(::-webkit-scrollbar) { .sup-list { scrollbar-width: thin; scrollbar-color: var(--frame) var(--surface-3); } }
 .sup-head { position: sticky; top: 0; z-index: 2; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; }
 .recs { display: flex; flex-direction: column; gap: 8px; }
+/* 29-й круг: когда даже сжатые комментарий и ИНН не помещаются (окно уже ~1380px), строки не обрезаются, а список прокручивается по горизонтали */
+.sup-list > .sup-head, .sup-list > .recs { min-width: min-content; }
 /* запись — один контейнер с одной рамкой (без подложки, как у модуля: двойная рамка — перебор) */
 .rec { background: transparent; border-radius: 10px; padding: 0; }
 .rec-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; transition: border-color .15s ease, box-shadow .2s ease; }
