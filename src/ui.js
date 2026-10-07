@@ -16,6 +16,7 @@ const ICONS = {
   down: '<path d="m6 9 6 6 6-6"/>',
   up: '<path d="m18 15-6-6-6 6"/>',
   right: '<path d="m9 18 6-6-6-6"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
@@ -184,15 +185,49 @@ const MONTHS_G = ['января', 'февраля', 'марта', 'апреля'
 const fmtDate = s => { const m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(s || ''); return m ? `${m[1]} ${MONTHS_G[+m[2] - 1]} ${m[3]}` : (s || ''); };
 const fmtDT = s => { const m = /^(\d{2}\.\d{2}\.\d{4}) (\d{2}:\d{2})$/.exec(s || ''); return m ? `${fmtDate(m[1])} / ${m[2]}` : fmtDate(s); };
 const nowStamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+/* номер документа (заказ клиента, заявка): две буквы, «-», четыре цифры с 0001; после 9999 меняется вторая буква
+   (после последней — первая, вторая снова с начала) и счёт идёт снова с 0001: ЗК-9999 → ЗЛ-0001 */
+const NO_ABC = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ';
+const noKey = s => { const m = /^(\S)(\S)-(\d{4})$/.exec(s || ''); return m ? (NO_ABC.indexOf(m[1]) * NO_ABC.length + NO_ABC.indexOf(m[2])) * 1e4 + +m[3] : -1; };
+const nextNo = (list, start) => {
+  const last = list.filter(s => noKey(s) >= 0).sort((a, b) => noKey(a) - noKey(b)).pop();
+  if (!last) return start + '-0001';
+  let a = last[0], b = last[1], n = +last.slice(3) + 1;
+  if (n > 9999) { n = 1; let j = NO_ABC.indexOf(b) + 1; if (j >= NO_ABC.length) { j = 0; a = NO_ABC[(NO_ABC.indexOf(a) + 1) % NO_ABC.length]; } b = NO_ABC[j]; }
+  return `${a}${b}-${String(n).padStart(4, '0')}`;
+};
+/* транспортные компании для формы заявки; «—» — ещё не выбрана */
+const CARRIERS = ['—', 'ПЭК', 'Деловые Линии', 'СДЭК', 'КИТ', 'Байкал Сервис', 'Энергия', 'самовывоз'];
+/* выпадающий календарь в стиле приложения: значение в скрытом поле (гггг-мм-дд), неделя с понедельника, всегда 6 недель — панель не меняет высоту */
+const MONTHS_N = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const isoDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const isoToRu = v => v ? v.split('-').reverse().join('.') : '';
+const calHtml = (y, m, val) => {
+  const first = new Date(y, m, 1), shift = (first.getDay() + 6) % 7, today = isoDate(new Date());
+  let days = '';
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(y, m, 1 - shift + i), v = isoDate(d), wd = d.getDay();
+    days += `<button type="button" class="${d.getMonth() !== m ? 'out ' : ''}${wd === 0 || wd === 6 ? 'we ' : ''}${v === today ? 'today ' : ''}${v === val ? 'on' : ''}" data-cal-day="${v}">${d.getDate()}</button>`;
+  }
+  return `<div class="cal-h"><button type="button" class="btn ghost sm icon" title="Предыдущий месяц" data-cal-nav="${y}:${m - 1}">${icRaw('left', 'sm')}</button><span class="t">${MONTHS_N[m]} ${y}</span><button type="button" class="btn ghost sm icon" title="Следующий месяц" data-cal-nav="${y}:${m + 1}">${icRaw('right', 'sm')}</button></div>
+    <div class="cal-g">${['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].map(w => `<span class="wd">${w}</span>`).join('')}${days}</div>
+    <div class="cal-f"><button type="button" class="btn ghost sm" data-cal-day="${today}">Сегодня</button><button type="button" class="btn ghost sm" data-cal-clear>Очистить</button></div>`;
+};
+const dsel = (name, val = '') => {
+  const d = val ? new Date(val + 'T00:00') : new Date();
+  return `<div class="xp csel cal" data-xp="cal-${name}"><div class="xp-head" data-xp-toggle><button type="button" class="in sel-btn"><span class="lbl ellip ${val ? '' : 'ph'}">${val ? fmtDate(isoToRu(val)) : 'выберите дату'}</span>${ic('cal', 'xs')}</button><input type="hidden" name="${name}" value="${val}"></div>
+    <div class="xp-panel below"><div class="cal-p">${calHtml(d.getFullYear(), d.getMonth(), val)}</div></div></div>`;
+};
 const fileKind = name => /счет|счёт|invoice/i.test(name) ? 'счёт' : /договор|contract/i.test(name) ? 'договор' : /упд/i.test(name) ? 'УПД' : 'прочее';
 /* поля форм */
-const fld = (label, inner, cls = '') => `<label class="fld ${cls}"><span class="fl">${label}</span>${inner}</label>`;
+/* свои выпадающие (список, календарь) — в div, не в label: клик по пустому месту внутри label пересылается на первую кнопку и закрывает или открывает список заново */
+const fld = (label, inner, cls = '') => { const tag = inner.includes('csel') ? 'div' : 'label'; return `<${tag} class="fld ${cls}"><span class="fl">${label}</span>${inner}</${tag}>`; };
 const inp = (name, attrs = '') => `<input class="in" name="${name}" ${attrs}>`;
 /* выпадающий список свой, а не системный: кнопка выглядит как поле ввода, список раскрывается как меню; значение — в скрытом поле */
 const sel = (name, opts, val = '') => {
   const cur = opts.find(o => o[0] === val) || opts[0];
   return `<div class="xp csel" data-xp="sel-${name}"><div class="xp-head" data-xp-toggle><button type="button" class="in sel-btn"><span class="lbl ellip">${cur[1]}</span>${icRaw('down', 'xs')}</button><input type="hidden" name="${name}" value="${cur[0]}"></div>
-    <div class="xp-panel below menu">${opts.map(([v, t]) => `<button type="button" class="${v === cur[0] ? 'on' : ''}" data-opt="${v}"><span class="grow">${t}</span>${v === cur[0] ? `<span class="chk">${icRaw('check', 'sm')}</span>` : ''}</button>`).join('')}</div></div>`;
+    <div class="xp-panel below"><div class="menu">${opts.map(([v, t]) => `<button type="button" class="${v === cur[0] ? 'on' : ''}" data-opt="${v}"><span class="grow">${t}</span>${v === cur[0] ? `<span class="chk">${icRaw('check', 'sm')}</span>` : ''}</button>`).join('')}</div></div></div>`;   // меню внутри панели: класс .menu (display: flex) на самой панели перебивал её display: none, и список был виден всегда
 };
 
 /* иконки доступа к страницам: full — чётко, view — приглушённо, нет — почти прозрачно */

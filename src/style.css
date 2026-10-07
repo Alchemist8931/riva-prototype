@@ -368,9 +368,14 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .hp:hover .hp-pop { display: block; opacity: var(--o); animation: fade-in .14s ease-out; }
 .ic-btn { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); color: var(--surface-2); display: grid; place-items: center; cursor: default; }
 /* поставщик: ИНН перед названием, по правому краю своей колонки, в одну строку */
-.sup { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0; }
-.sup .inn { text-align: right; color: var(--mute); font-size: 11px; font-variant-numeric: tabular-nums; }
-.tr.th .sup .inn { font-size: inherit; }
+/* список «Снабжения» (26-й круг): между столбцами 4px, поля у рамки записи прежние 8px; ИНН — свой столбец по правому краю, при сужении сжимается вторым и обрезается многоточием */
+.sup-list .tr { gap: 4px; }
+.tr .inn { container-type: inline-size; text-align: right; color: var(--mute); font-size: 11px; font-variant-numeric: tabular-nums; overflow: hidden; }
+.tr .inn > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container (max-width: 36px) { .tr .inn > span { visibility: hidden; } }   /* сжатый почти в ноль ИНН не оставляет обрывка цифр */
+.tr.th .inn { font-size: inherit; }
+.tr .hp.r { padding-right: 0; }   /* отступ справа уже у ячейки даты; второй у триггера истории съедал 10px и переносил дату на две строки */
+.hp-trg { white-space: nowrap; }
 .xp-panel.under { top: calc(100% + 6px); left: 0; right: 0; }
 .files { display: flex; flex-direction: column; gap: 4px; }
 .file { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: 11.5px; }
@@ -508,7 +513,22 @@ textarea.in { height: auto; min-height: 128px; padding: 6px 9px; resize: vertica
 .sel-btn { display: flex; align-items: center; gap: 6px; text-align: left; cursor: pointer; }
 .sel-btn .lbl { flex: 1; min-width: 0; }
 .csel.open .sel-btn { border-color: var(--fg); }
-.csel > .xp-panel { padding: 5px; }
+.csel > .xp-panel { padding: 0; }   /* отступы даёт .menu внутри панели */
+.sel-btn .lbl.ph { color: var(--mute); }
+/* выпадающий календарь (dsel в ui.js): неделя с понедельника, 6 недель, выходные приглушены, сегодня — обводка, выбранный — заливка */
+.csel.cal > .xp-panel { min-width: 252px; }
+.cal-p { padding: 8px; }
+.cal-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.cal-h .t { font-weight: 600; }
+.cal-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-g .wd { height: 20px; line-height: 20px; text-align: center; font-size: 10px; color: var(--mute); }
+.cal-g button { height: 28px; border: 0; border-radius: 7px; background: transparent; color: var(--fg); font: inherit; font-variant-numeric: tabular-nums; cursor: pointer; transition: background .15s ease; }
+.cal-g button:hover { background: var(--surface-2); }
+.cal-g button.we { color: var(--fg-2); }
+.cal-g button.out { color: var(--mute); opacity: .55; }
+.cal-g button.today { box-shadow: inset 0 0 0 1px var(--line-2); font-weight: 600; }
+.cal-g button.on { background: var(--primary); color: var(--primary-fg); font-weight: 600; box-shadow: none; }
+.cal-f { display: flex; justify-content: space-between; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
 input[type="date"].in { font-variant-numeric: tabular-nums; }
 :root[data-theme="dark"] input[type="date"].in { color-scheme: dark; }
 

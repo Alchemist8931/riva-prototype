@@ -111,18 +111,20 @@ const App = {
   newForm(pg) {
     const close = `<button type="button" class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button>`;
     if (pg.id === 'supply') {
-      const nextId = 'СН-' + (Math.max(...SUPPLY.map(r => +r.id.replace(/\D/g, ''))) + 1), nextOrder = 'З-' + (Math.max(...SUPPLY.map(r => +r.order.replace(/\D/g, ''))) + 1);
+      const nextId = nextNo(SUPPLY.map(r => r.id), 'СН'), nextOrder = nextNo(SUPPLY.map(r => r.order), 'ЗК');
       return `<form data-new="supply" style="width:660px">
         <div class="ph"><span class="t">Новая заявка на снабжение</span><span class="mute small">${nextId} · статус «заявка», дата и время — текущие</span>${close}</div>
         <div class="pb frm">
-          ${fld('№ заказа клиента', inp('order', `value="${nextOrder}" required`))}
+          ${fld('№ заказа клиента', inp('order', `value="${nextOrder}" required pattern="[А-ЯЁ]{2}-[0-9]{4}" title="две буквы, дефис и четыре цифры, например ${nextOrder}"`))}
           ${fld('Направление', sel('dir', DIRS.map(d => [d.id, d.name])))}
           ${fld('Поставщик', inp('supplier', 'placeholder="ООО «…»" required'))}
           ${fld('ИНН поставщика', inp('inn', 'placeholder="10 или 12 цифр" inputmode="numeric" pattern="[0-9]{10}|[0-9]{12}"'))}
           ${fld('Контактное лицо', inp('cname', 'placeholder="Фамилия Имя Отчество"'))}
           ${fld('Телефон', inp('ctel', 'type="tel" placeholder="+7 …"'))}
           ${fld('Почта', inp('cmail', 'type="email" placeholder="name@company.ru"'))}
-          ${fld('Срок доставки', inp('eta', 'type="date"'))}
+          ${fld('Срок доставки', dsel('eta'))}
+          ${fld('Транспортная компания', sel('tc', CARRIERS.map(c => [c, c === '—' ? 'ещё не выбрана' : c])))}
+          ${fld('№ отслеживания', inp('track', 'placeholder="появится после отгрузки"'))}
           ${fld('Комментарий', '<textarea class="in" name="comment" rows="6" placeholder="Что закупаем и под какой заказ клиента"></textarea>', 'full')}
           <div class="fld full"><span class="fl">Файлы</span><div class="row"><label class="btn sm">${ic('clip', 'xs')}Прикрепить<input type="file" multiple hidden data-attach></label><span class="mute small ellip" data-attach-list>счёт, договор, УПД и прочее — можно добавить и позже в карточке заказа</span></div></div>
         </div>
@@ -140,7 +142,7 @@ const App = {
           ${fld('Роль в RIVA', sel('role', Object.entries(ROLES).map(([k, r]) => [k, r.name])))}
           ${fld('Телефон', inp('tel', 'type="tel" placeholder="+7 …"'))}
           ${fld('Почта', inp('mail', 'type="email" placeholder="name@bereg.ru"'))}
-          ${fld('Дата выхода', inp('start', 'type="date"'))}
+          ${fld('Дата выхода', dsel('start'))}
           ${fld('Статус', sel('st', Object.entries(ST).map(([k, v]) => [k, v.name])))}
         </div>
         <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Добавить сотрудника</button></div>
@@ -153,9 +155,9 @@ const App = {
   createRecord(form) {
     const fd = new FormData(form), v = k => (fd.get(k) || '').toString().trim();
     if (form.dataset.new === 'supply') {
-      const id = 'СН-' + (Math.max(...SUPPLY.map(r => +r.id.replace(/\D/g, ''))) + 1);
+      const id = nextNo(SUPPLY.map(r => r.id), 'СН');
       const eta = v('eta') ? v('eta').split('-').reverse().join('.') : '—';
-      SUPPLY.unshift({ id, order: v('order'), dir: v('dir'), st: 'req', hist: [['req', nowStamp()]], supplier: v('supplier'), inn: v('inn') || '—', contact: { name: v('cname') || '—', tel: v('ctel') || '—', mail: v('cmail') || '—' }, eta, comment: v('comment'), files: this.pending.splice(0), items: [] });
+      SUPPLY.unshift({ id, order: v('order'), dir: v('dir'), st: 'req', hist: [['req', nowStamp()]], supplier: v('supplier'), inn: v('inn') || '—', contact: { name: v('cname') || '—', tel: v('ctel') || '—', mail: v('cmail') || '—' }, tc: v('tc') || '—', track: v('track') || '—', eta, comment: v('comment'), files: this.pending.splice(0), items: [] });
       XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('sup-' + id);
       return;
     }
@@ -208,10 +210,13 @@ const App = {
   /* ---------- Снабжение: один список с прокруткой, карточка заказа раскрывается под строкой ---------- */
   supply() {
     const s = this.state, q = s.q.trim().toLowerCase();
-    const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
-    /* колонки: номера, статус, дата изменения (вправо), поставщик, контакт, срок (вправо), комментарий — на 100px шире прежнего */
-    const cols = '72px 76px 136px 164px minmax(0,1fr) 34px 122px minmax(0,1.78fr)';
-    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="sup"><span class="inn">ИНН</span><span>поставщик</span></div><div></div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
+    const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.tc, r.track, r.comment, r.contact.name, SUP_ST[r.st][0]));
+    /* колонки (26-й круг): номера, статус, дата изменения (вправо), ИНН (вправо), поставщик, контакт, транспортная компания,
+       № отслеживания, срок (вправо), комментарий. Постоянные — по ширине содержимого; при сужении окна сжимается сначала комментарий
+       (до 100px), затем ИНН: его дорожка minmax(0, 84px) получает место раньше гибкой (алгоритм сетки: «maximize tracks» до «expand flexible»),
+       значит и отдаёт позже; поставщик, ТК и № отслеживания не сжимаются */
+    const cols = '60px 60px 124px 154px minmax(0,84px) 196px 26px 124px 104px 114px minmax(100px,1fr)';
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="inn"><span>ИНН</span></div><div>поставщик</div><div></div><div>транспортная компания</div><div>№ отслеживания</div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
       const last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
       const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px">${stChip(st)}<span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
@@ -221,8 +226,11 @@ const App = {
           <div class="no">${r.id}</div>
           <div>${stChip(r.st)}</div>
           <div class="r">${hist}</div>
-          <div class="sup"><span class="inn num">${r.inn}</span><span class="t ellip" title="${esc(r.supplier)}">${r.supplier}</span></div>
+          <div class="inn num" title="ИНН ${esc(r.inn)}"><span>${r.inn}</span></div>
+          <div class="t ellip" title="${esc(r.supplier)}">${r.supplier}</div>
           <div>${contact}</div>
+          <div class="ellip ${r.tc === '—' ? 'mute' : ''}" title="${esc(r.tc)}">${r.tc}</div>
+          <div class="ellip num ${r.track === '—' ? 'mute' : ''}" title="${esc(r.track)}">${r.track}</div>
           <div class="r num">${fmtDate(r.eta)}</div>
           <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
         </div>`;
@@ -364,6 +372,21 @@ const App = {
       x.querySelector('.sel-btn .lbl').textContent = opt.querySelector('.grow').textContent;
       x.querySelectorAll('[data-opt]').forEach(b => { b.classList.toggle('on', b === opt); const c = b.querySelector('.chk'); if (c) c.remove(); });
       opt.insertAdjacentHTML('beforeend', `<span class="chk">${icRaw('check', 'sm')}</span>`);
+      XP.close(); return;
+    }
+    // календарь: листание месяцев перерисовывает сетку внутри открытой панели; выбор дня и «очистить» пишут значение и закрывают
+    const cNav = t.closest('[data-cal-nav]');
+    if (cNav) {
+      const [y, m] = cNav.dataset.calNav.split(':').map(Number), d = new Date(y, m, 1), x = cNav.closest('.csel');
+      x.querySelector('.cal-p').innerHTML = calHtml(d.getFullYear(), d.getMonth(), x.querySelector('input[type=hidden]').value);
+      return;
+    }
+    const cDay = t.closest('[data-cal-day]'), cClr = t.closest('[data-cal-clear]');
+    if (cDay || cClr) {
+      const x = (cDay || cClr).closest('.csel'), v = cDay ? cDay.dataset.calDay : '', l = x.querySelector('.sel-btn .lbl'), d = v ? new Date(v + 'T00:00') : new Date();
+      x.querySelector('input[type=hidden]').value = v;
+      l.textContent = v ? fmtDate(isoToRu(v)) : 'выберите дату'; l.classList.toggle('ph', !v);
+      x.querySelector('.cal-p').innerHTML = calHtml(d.getFullYear(), d.getMonth(), v);
       XP.close(); return;
     }
     const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');

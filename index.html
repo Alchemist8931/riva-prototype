@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>RIVA · прототип интерфейса для ПК · сборка 07.10 21:59</title>
+<title>RIVA · прототип интерфейса для ПК · сборка 07.10 22:33</title>
 <meta name="viewport" content="width=1280">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23111%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial%27 font-weight=%27800%27 font-size=%2718%27 fill=%27%23fff%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
@@ -380,9 +380,14 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .hp:hover .hp-pop { display: block; opacity: var(--o); animation: fade-in .14s ease-out; }
 .ic-btn { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); color: var(--surface-2); display: grid; place-items: center; cursor: default; }
 /* поставщик: ИНН перед названием, по правому краю своей колонки, в одну строку */
-.sup { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0; }
-.sup .inn { text-align: right; color: var(--mute); font-size: 11px; font-variant-numeric: tabular-nums; }
-.tr.th .sup .inn { font-size: inherit; }
+/* список «Снабжения» (26-й круг): между столбцами 4px, поля у рамки записи прежние 8px; ИНН — свой столбец по правому краю, при сужении сжимается вторым и обрезается многоточием */
+.sup-list .tr { gap: 4px; }
+.tr .inn { container-type: inline-size; text-align: right; color: var(--mute); font-size: 11px; font-variant-numeric: tabular-nums; overflow: hidden; }
+.tr .inn > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container (max-width: 36px) { .tr .inn > span { visibility: hidden; } }   /* сжатый почти в ноль ИНН не оставляет обрывка цифр */
+.tr.th .inn { font-size: inherit; }
+.tr .hp.r { padding-right: 0; }   /* отступ справа уже у ячейки даты; второй у триггера истории съедал 10px и переносил дату на две строки */
+.hp-trg { white-space: nowrap; }
 .xp-panel.under { top: calc(100% + 6px); left: 0; right: 0; }
 .files { display: flex; flex-direction: column; gap: 4px; }
 .file { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 4px 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: 11.5px; }
@@ -520,7 +525,22 @@ textarea.in { height: auto; min-height: 128px; padding: 6px 9px; resize: vertica
 .sel-btn { display: flex; align-items: center; gap: 6px; text-align: left; cursor: pointer; }
 .sel-btn .lbl { flex: 1; min-width: 0; }
 .csel.open .sel-btn { border-color: var(--fg); }
-.csel > .xp-panel { padding: 5px; }
+.csel > .xp-panel { padding: 0; }   /* отступы даёт .menu внутри панели */
+.sel-btn .lbl.ph { color: var(--mute); }
+/* выпадающий календарь (dsel в ui.js): неделя с понедельника, 6 недель, выходные приглушены, сегодня — обводка, выбранный — заливка */
+.csel.cal > .xp-panel { min-width: 252px; }
+.cal-p { padding: 8px; }
+.cal-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.cal-h .t { font-weight: 600; }
+.cal-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-g .wd { height: 20px; line-height: 20px; text-align: center; font-size: 10px; color: var(--mute); }
+.cal-g button { height: 28px; border: 0; border-radius: 7px; background: transparent; color: var(--fg); font: inherit; font-variant-numeric: tabular-nums; cursor: pointer; transition: background .15s ease; }
+.cal-g button:hover { background: var(--surface-2); }
+.cal-g button.we { color: var(--fg-2); }
+.cal-g button.out { color: var(--mute); opacity: .55; }
+.cal-g button.today { box-shadow: inset 0 0 0 1px var(--line-2); font-weight: 600; }
+.cal-g button.on { background: var(--primary); color: var(--primary-fg); font-weight: 600; box-shadow: none; }
+.cal-f { display: flex; justify-content: space-between; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
 input[type="date"].in { font-variant-numeric: tabular-nums; }
 :root[data-theme="dark"] input[type="date"].in { color-scheme: dark; }
 
@@ -728,18 +748,18 @@ const SUP_ST = { req: ['Заявка', 'st st-req'], ord: ['Заказ созд�
 /* заявки на снабжение: заказ клиента → заявка → поставщик; hist — история статусов (код, дата);
    files — [название, вид, размер, дата]; items — [артикул, наименование, категория, ед. изм., кол-во, цена] */
 const SUPPLY = [
-  { id: 'СН-1050', order: 'З-321', dir: 'metal', st: 'req', hist: [['req', '04.10.2026 08:20']], supplier: 'ООО «Техносталь»', inn: '6315099001', contact: { name: 'Громова Ирина Павловна', tel: '+7 846 390-90-09', mail: 'gromova@technostal.example' }, eta: '14.10.2026', comment: 'Труба профильная под навес «Домострой». Запросили три КП, ждём лучшую цену.', files: [], items: [['ТП-60-3', 'Труба профильная 60×40×3, 6 м', 'Металлопрокат', 'шт', 60, 2340], ['ТП-40-2', 'Труба профильная 40×20×2, 6 м', 'Металлопрокат', 'шт', 80, 980]] },
-  { id: 'СН-1051', order: 'З-322', dir: 'poly', st: 'ord', hist: [['req', '02.10.2026 12:40'], ['ord', '03.10.2026 17:25']], supplier: 'ООО «Полимер-Трейд»', inn: '6311022334', contact: { name: 'Юсупов Марат Рашидович', tel: '+7 846 221-11-10', mail: 'yusupov@polymer-trade.example' }, eta: '12.10.2026', comment: 'Полипропилен под пресс-формы, партия на октябрь.', files: [['Счёт №8812', 'счёт', '141 КБ', '03.10.2026'], ['Договор №31-2026', 'договор', '1,1 МБ', '03.10.2026']], items: [['ПП-H030', 'Полипропилен PP H030', 'Сырьё', 'кг', 2500, 131]] },
-  { id: 'СН-1053', order: 'З-324', dir: 'metal', st: 'tr', hist: [['req', '27.09.2026 13:00'], ['ord', '29.09.2026 09:15'], ['tr', '03.10.2026 14:50']], supplier: 'АО «Самарский метизный завод»', inn: '6318001122', contact: { name: 'Тихонова Марина Сергеевна', tel: '+7 846 266-13-12', mail: 'sales@smz.example' }, eta: '07.10.2026', comment: 'Метизы для серии ферм, отгрузка со склада завода.', files: [['Счёт №2026-771', 'счёт', '126 КБ', '29.09.2026'], ['Спецификация к договору', 'спецификация', '214 КБ', '29.09.2026']], items: [['ШП-8-40', 'Шпилька М8×40', 'Крепёж', 'шт', 1000, 6], ['СМ-6-30', 'Саморез 6×30', 'Крепёж', 'шт', 5000, 2], ['ШБ-10', 'Шайба 10 усиленная', 'Крепёж', 'шт', 2000, 3]] },
-  { id: 'СН-1046', order: 'З-317', dir: 'metal', st: 'req', hist: [['req', '03.10.2026 11:10']], supplier: 'ООО «Крепёж-Волга»', inn: '6318044556', contact: { name: 'Малышева Екатерина Андреевна', tel: '+7 846 333-50-05', mail: 'order@krepezh-volga.example' }, eta: '10.10.2026', comment: 'Болты и анкеры для монтажа ферм. Счёт ещё не получен.', files: [], items: [['БМ-16-120', 'Болт М16×120 8.8 оц.', 'Крепёж', 'шт', 400, 42], ['ГМ-16', 'Гайка М16 оц.', 'Крепёж', 'шт', 400, 9], ['АН-12-150', 'Анкер клиновой 12×150', 'Крепёж', 'шт', 200, 38]] },
-  { id: 'СН-1047', order: 'З-318', dir: 'poly', st: 'ord', hist: [['req', '01.10.2026 15:30'], ['ord', '03.10.2026 10:05']], supplier: 'ООО «Красители Поволжья»', inn: '6319077889', contact: { name: 'Фёдоров Антон Ильич', tel: '+7 846 345-60-06', mail: 'fedorov@kp-color.example' }, eta: '11.10.2026', comment: 'Пигменты под партию ящиков «Агротех» на ноябрь.', files: [['Счёт №455', 'счёт', '118 КБ', '03.10.2026']], items: [['ПГ-С-7', 'Пигмент синий 7', 'Сырьё', 'кг', 25, 1340], ['ПГ-Ж-3', 'Пигмент жёлтый 3', 'Сырьё', 'кг', 15, 1210]] },
-  { id: 'СН-1042', order: 'З-311', dir: 'metal', st: 'tr', hist: [['req', '28.09.2026 10:15'], ['ord', '29.09.2026 14:02'], ['tr', '03.10.2026 09:40']], supplier: 'ООО «Металлсервис»', inn: '6316123456', contact: { name: 'Семёнов Игорь Петрович', tel: '+7 846 200-10-01', mail: 'semenov@metalservice.example' }, eta: '06.10.2026', comment: 'Лист 3 мм под фермы «Стройкомплект», вторая партия. Разгрузка краном у склада А.', files: [['Счёт №3301', 'счёт', '184 КБ', '29.09.2026'], ['Договор поставки №12-2026', 'договор', '1,2 МБ', '29.09.2026'], ['Спецификация №88', 'спецификация', '96 КБ', '29.09.2026']], items: [['МС-3-1500', 'Лист г/к 3 мм 1500×6000', 'Металлопрокат', 'шт', 12, 9800], ['ПР-40-3', 'Профиль 40×40×3, 6 м', 'Металлопрокат', 'шт', 40, 1860], ['ЭЛ-МР3-4', 'Электроды МР-3 Ø4', 'Расходные', 'кг', 20, 190]] },
-  { id: 'СН-1045', order: 'З-316', dir: 'furn', st: 'tr', hist: [['req', '26.09.2026 14:00'], ['ord', '27.09.2026 10:40'], ['tr', '03.10.2026 07:30']], supplier: 'ООО «Лесторг»', inn: '6321011223', contact: { name: 'Дмитриев Олег Сергеевич', tel: '+7 846 212-40-04', mail: 'dmitriev@lestorg.example' }, eta: '04.10.2026', comment: 'ЛДСП 16 мм дуб сонома, 48 листов. Машина вышла утром, ждём к 15:00.', files: [['Счёт №918', 'счёт', '132 КБ', '27.09.2026'], ['Договор №7/26', 'договор', '980 КБ', '15.01.2026']], items: [['ЛД-16-ДС', 'ЛДСП 16 мм 2800×2070 дуб сонома', 'Плитные материалы', 'лист', 48, 2450], ['ХД-3', 'ХДФ 3 мм 2800×2070 белый', 'Плитные материалы', 'лист', 20, 780]] },
-  { id: 'СН-1048', order: 'З-319', dir: 'furn', st: 'tr', hist: [['req', '29.09.2026 09:50'], ['ord', '30.09.2026 13:15'], ['tr', '02.10.2026 18:00']], supplier: 'ООО «Упаковка-Самара»', inn: '6312066778', contact: { name: 'Ким Светлана Олеговна', tel: '+7 846 378-70-07', mail: 'kim@upak-samara.example' }, eta: '05.10.2026', comment: 'Гофрокороба и уголки под кухни ИП Серовой.', files: [['Счёт №1203', 'счёт', '97 КБ', '30.09.2026'], ['Макет короба', 'прочее', '2,1 МБ', '29.09.2026']], items: [['ГК-1200', 'Гофрокороб 1200×600×400', 'Упаковка', 'шт', 60, 210], ['УГ-50', 'Уголок защитный 50×50×3', 'Упаковка', 'м', 500, 14], ['СТ-500', 'Стрейч-плёнка 500 мм', 'Упаковка', 'рул', 24, 560]] },
-  { id: 'СН-1043', order: 'З-314', dir: 'furn', st: 'ord', hist: [['req', '30.09.2026 11:20'], ['ord', '02.10.2026 16:45']], supplier: 'ИП Галимов Р. Ф.', inn: '163501234567', contact: { name: 'Галимов Рустам Фаритович', tel: '+7 917 300-20-02', mail: 'galimov.furnitura@example' }, eta: '09.10.2026', comment: 'Фурнитура на 10 шкафов «Уют». Отгрузка в понедельник, срок перенесён с 07.10.', files: [['Счёт №77', 'счёт', '120 КБ', '02.10.2026']], items: [['ПТ-110', 'Петля накладная 110°', 'Фурнитура', 'шт', 120, 86], ['НП-450', 'Направляющие шариковые 450 мм', 'Фурнитура', 'компл', 40, 310], ['РЧ-128', 'Ручка-скоба 128 мм', 'Фурнитура', 'шт', 60, 145]] },
-  { id: 'СН-1044', order: 'З-315', dir: 'poly', st: 'done', hist: [['req', '22.09.2026 09:05'], ['ord', '23.09.2026 12:30'], ['tr', '29.09.2026 08:10'], ['done', '02.10.2026 15:20']], supplier: 'ООО «Полипласт»', inn: '6324098765', contact: { name: 'Орехова Наталья Викторовна', tel: '+7 848 270-30-03', mail: 'sales@poliplast.example' }, eta: '01.10.2026', comment: 'Гранулят ПЭ под ящики «Агротех». Принято на склад В, УПД подписан.', files: [['Счёт №2210', 'счёт', '150 КБ', '23.09.2026'], ['УПД №2210', 'УПД', '210 КБ', '02.10.2026'], ['Паспорт качества', 'прочее', '640 КБ', '29.09.2026']], items: [['ПЭ-273', 'Гранулят ПЭНД 273-83', 'Сырьё', 'кг', 4000, 118], ['КР-ПЭ-З', 'Краситель зелёный для ПЭ', 'Сырьё', 'кг', 40, 920]] },
-  { id: 'СН-1049', order: 'З-320', dir: 'furn', st: 'done', hist: [['req', '18.09.2026 10:00'], ['ord', '19.09.2026 11:20'], ['tr', '24.09.2026 09:30'], ['done', '26.09.2026 14:45']], supplier: 'ИП Серов В. Н.', inn: '631600987654', contact: { name: 'Серов Владимир Николаевич', tel: '+7 927 400-80-08', mail: 'serov.kromka@example' }, eta: '26.09.2026', comment: 'Кромка ПВХ, закрыто без замечаний.', files: [['Счёт №61', 'счёт', '88 КБ', '19.09.2026'], ['УПД №61', 'УПД', '140 КБ', '26.09.2026']], items: [['КР-2-ДС', 'Кромка ПВХ 2×19 дуб сонома', 'Фурнитура', 'м', 600, 22], ['КР-04-Б', 'Кромка ПВХ 0,4×19 белая', 'Фурнитура', 'м', 900, 9]] },
-  { id: 'СН-1052', order: 'З-323', dir: 'metal', st: 'done', hist: [['req', '15.09.2026 09:00'], ['ord', '16.09.2026 10:30'], ['tr', '22.09.2026 07:50'], ['done', '23.09.2026 16:10']], supplier: 'ООО «ЭлектроМонтаж»', inn: '6317033445', contact: { name: 'Белов Николай Юрьевич', tel: '+7 846 255-12-11', mail: 'belov@electromontazh.example' }, eta: '23.09.2026', comment: 'Кабель и автоматы для сборки щита на объект «Стройкомплект».', files: [['Счёт №4410', 'счёт', '105 КБ', '16.09.2026'], ['УПД №4410', 'УПД', '176 КБ', '23.09.2026']], items: [['ВВГ-3-2.5', 'Кабель ВВГнг 3×2,5', 'Электрика', 'м', 300, 78], ['АВ-16', 'Автомат 16 А 1P', 'Электрика', 'шт', 12, 310]] },
+  { id: 'СН-1050', order: 'ЗК-0009', tc: '—', track: '—', dir: 'metal', st: 'req', hist: [['req', '04.10.2026 08:20']], supplier: 'ООО «Техносталь»', inn: '6315099001', contact: { name: 'Громова Ирина Павловна', tel: '+7 846 390-90-09', mail: 'gromova@technostal.example' }, eta: '14.10.2026', comment: 'Труба профильная под навес «Домострой». Запросили три КП, ждём лучшую цену.', files: [], items: [['ТП-60-3', 'Труба профильная 60×40×3, 6 м', 'Металлопрокат', 'шт', 60, 2340], ['ТП-40-2', 'Труба профильная 40×20×2, 6 м', 'Металлопрокат', 'шт', 80, 980]] },
+  { id: 'СН-1051', order: 'ЗК-0010', tc: 'Деловые Линии', track: '—', dir: 'poly', st: 'ord', hist: [['req', '02.10.2026 12:40'], ['ord', '03.10.2026 17:25']], supplier: 'ООО «Полимер-Трейд»', inn: '6311022334', contact: { name: 'Юсупов Марат Рашидович', tel: '+7 846 221-11-10', mail: 'yusupov@polymer-trade.example' }, eta: '12.10.2026', comment: 'Полипропилен под пресс-формы, партия на октябрь.', files: [['Счёт №8812', 'счёт', '141 КБ', '03.10.2026'], ['Договор №31-2026', 'договор', '1,1 МБ', '03.10.2026']], items: [['ПП-H030', 'Полипропилен PP H030', 'Сырьё', 'кг', 2500, 131]] },
+  { id: 'СН-1053', order: 'ЗК-0012', tc: 'ПЭК', track: 'СМКС-1/0310', dir: 'metal', st: 'tr', hist: [['req', '27.09.2026 13:00'], ['ord', '29.09.2026 09:15'], ['tr', '03.10.2026 14:50']], supplier: 'АО «Самарский метизный завод»', inn: '6318001122', contact: { name: 'Тихонова Марина Сергеевна', tel: '+7 846 266-13-12', mail: 'sales@smz.example' }, eta: '07.10.2026', comment: 'Метизы для серии ферм, отгрузка со склада завода.', files: [['Счёт №2026-771', 'счёт', '126 КБ', '29.09.2026'], ['Спецификация к договору', 'спецификация', '214 КБ', '29.09.2026']], items: [['ШП-8-40', 'Шпилька М8×40', 'Крепёж', 'шт', 1000, 6], ['СМ-6-30', 'Саморез 6×30', 'Крепёж', 'шт', 5000, 2], ['ШБ-10', 'Шайба 10 усиленная', 'Крепёж', 'шт', 2000, 3]] },
+  { id: 'СН-1046', order: 'ЗК-0005', tc: '—', track: '—', dir: 'metal', st: 'req', hist: [['req', '03.10.2026 11:10']], supplier: 'ООО «Крепёж-Волга»', inn: '6318044556', contact: { name: 'Малышева Екатерина Андреевна', tel: '+7 846 333-50-05', mail: 'order@krepezh-volga.example' }, eta: '10.10.2026', comment: 'Болты и анкеры для монтажа ферм. Счёт ещё не получен.', files: [], items: [['БМ-16-120', 'Болт М16×120 8.8 оц.', 'Крепёж', 'шт', 400, 42], ['ГМ-16', 'Гайка М16 оц.', 'Крепёж', 'шт', 400, 9], ['АН-12-150', 'Анкер клиновой 12×150', 'Крепёж', 'шт', 200, 38]] },
+  { id: 'СН-1047', order: 'ЗК-0006', tc: 'СДЭК', track: '—', dir: 'poly', st: 'ord', hist: [['req', '01.10.2026 15:30'], ['ord', '03.10.2026 10:05']], supplier: 'ООО «Красители Поволжья»', inn: '6319077889', contact: { name: 'Фёдоров Антон Ильич', tel: '+7 846 345-60-06', mail: 'fedorov@kp-color.example' }, eta: '11.10.2026', comment: 'Пигменты под партию ящиков «Агротех» на ноябрь.', files: [['Счёт №455', 'счёт', '118 КБ', '03.10.2026']], items: [['ПГ-С-7', 'Пигмент синий 7', 'Сырьё', 'кг', 25, 1340], ['ПГ-Ж-3', 'Пигмент жёлтый 3', 'Сырьё', 'кг', 15, 1210]] },
+  { id: 'СН-1042', order: 'ЗК-0001', tc: 'Деловые Линии', track: '26-00321089451', dir: 'metal', st: 'tr', hist: [['req', '28.09.2026 10:15'], ['ord', '29.09.2026 14:02'], ['tr', '03.10.2026 09:40']], supplier: 'ООО «Металлсервис»', inn: '6316123456', contact: { name: 'Семёнов Игорь Петрович', tel: '+7 846 200-10-01', mail: 'semenov@metalservice.example' }, eta: '06.10.2026', comment: 'Лист 3 мм под фермы «Стройкомплект», вторая партия. Разгрузка краном у склада А.', files: [['Счёт №3301', 'счёт', '184 КБ', '29.09.2026'], ['Договор поставки №12-2026', 'договор', '1,2 МБ', '29.09.2026'], ['Спецификация №88', 'спецификация', '96 КБ', '29.09.2026']], items: [['МС-3-1500', 'Лист г/к 3 мм 1500×6000', 'Металлопрокат', 'шт', 12, 9800], ['ПР-40-3', 'Профиль 40×40×3, 6 м', 'Металлопрокат', 'шт', 40, 1860], ['ЭЛ-МР3-4', 'Электроды МР-3 Ø4', 'Расходные', 'кг', 20, 190]] },
+  { id: 'СН-1045', order: 'ЗК-0004', tc: 'КИТ', track: 'SMR-0048213', dir: 'furn', st: 'tr', hist: [['req', '26.09.2026 14:00'], ['ord', '27.09.2026 10:40'], ['tr', '03.10.2026 07:30']], supplier: 'ООО «Лесторг»', inn: '6321011223', contact: { name: 'Дмитриев Олег Сергеевич', tel: '+7 846 212-40-04', mail: 'dmitriev@lestorg.example' }, eta: '04.10.2026', comment: 'ЛДСП 16 мм дуб сонома, 48 листов. Машина вышла утром, ждём к 15:00.', files: [['Счёт №918', 'счёт', '132 КБ', '27.09.2026'], ['Договор №7/26', 'договор', '980 КБ', '15.01.2026']], items: [['ЛД-16-ДС', 'ЛДСП 16 мм 2800×2070 дуб сонома', 'Плитные материалы', 'лист', 48, 2450], ['ХД-3', 'ХДФ 3 мм 2800×2070 белый', 'Плитные материалы', 'лист', 20, 780]] },
+  { id: 'СН-1048', order: 'ЗК-0007', tc: 'СДЭК', track: '1563204587', dir: 'furn', st: 'tr', hist: [['req', '29.09.2026 09:50'], ['ord', '30.09.2026 13:15'], ['tr', '02.10.2026 18:00']], supplier: 'ООО «Упаковка-Самара»', inn: '6312066778', contact: { name: 'Ким Светлана Олеговна', tel: '+7 846 378-70-07', mail: 'kim@upak-samara.example' }, eta: '05.10.2026', comment: 'Гофрокороба и уголки под кухни ИП Серовой.', files: [['Счёт №1203', 'счёт', '97 КБ', '30.09.2026'], ['Макет короба', 'прочее', '2,1 МБ', '29.09.2026']], items: [['ГК-1200', 'Гофрокороб 1200×600×400', 'Упаковка', 'шт', 60, 210], ['УГ-50', 'Уголок защитный 50×50×3', 'Упаковка', 'м', 500, 14], ['СТ-500', 'Стрейч-плёнка 500 мм', 'Упаковка', 'рул', 24, 560]] },
+  { id: 'СН-1043', order: 'ЗК-0002', tc: 'Байкал Сервис', track: '—', dir: 'furn', st: 'ord', hist: [['req', '30.09.2026 11:20'], ['ord', '02.10.2026 16:45']], supplier: 'ИП Галимов Р. Ф.', inn: '163501234567', contact: { name: 'Галимов Рустам Фаритович', tel: '+7 917 300-20-02', mail: 'galimov.furnitura@example' }, eta: '09.10.2026', comment: 'Фурнитура на 10 шкафов «Уют». Отгрузка в понедельник, срок перенесён с 07.10.', files: [['Счёт №77', 'счёт', '120 КБ', '02.10.2026']], items: [['ПТ-110', 'Петля накладная 110°', 'Фурнитура', 'шт', 120, 86], ['НП-450', 'Направляющие шариковые 450 мм', 'Фурнитура', 'компл', 40, 310], ['РЧ-128', 'Ручка-скоба 128 мм', 'Фурнитура', 'шт', 60, 145]] },
+  { id: 'СН-1044', order: 'ЗК-0003', tc: 'Энергия', track: 'СМР-0457821', dir: 'poly', st: 'done', hist: [['req', '22.09.2026 09:05'], ['ord', '23.09.2026 12:30'], ['tr', '29.09.2026 08:10'], ['done', '02.10.2026 15:20']], supplier: 'ООО «Полипласт»', inn: '6324098765', contact: { name: 'Орехова Наталья Викторовна', tel: '+7 848 270-30-03', mail: 'sales@poliplast.example' }, eta: '01.10.2026', comment: 'Гранулят ПЭ под ящики «Агротех». Принято на склад В, УПД подписан.', files: [['Счёт №2210', 'счёт', '150 КБ', '23.09.2026'], ['УПД №2210', 'УПД', '210 КБ', '02.10.2026'], ['Паспорт качества', 'прочее', '640 КБ', '29.09.2026']], items: [['ПЭ-273', 'Гранулят ПЭНД 273-83', 'Сырьё', 'кг', 4000, 118], ['КР-ПЭ-З', 'Краситель зелёный для ПЭ', 'Сырьё', 'кг', 40, 920]] },
+  { id: 'СН-1049', order: 'ЗК-0008', tc: 'самовывоз', track: '—', dir: 'furn', st: 'done', hist: [['req', '18.09.2026 10:00'], ['ord', '19.09.2026 11:20'], ['tr', '24.09.2026 09:30'], ['done', '26.09.2026 14:45']], supplier: 'ИП Серов В. Н.', inn: '631600987654', contact: { name: 'Серов Владимир Николаевич', tel: '+7 927 400-80-08', mail: 'serov.kromka@example' }, eta: '26.09.2026', comment: 'Кромка ПВХ, закрыто без замечаний.', files: [['Счёт №61', 'счёт', '88 КБ', '19.09.2026'], ['УПД №61', 'УПД', '140 КБ', '26.09.2026']], items: [['КР-2-ДС', 'Кромка ПВХ 2×19 дуб сонома', 'Фурнитура', 'м', 600, 22], ['КР-04-Б', 'Кромка ПВХ 0,4×19 белая', 'Фурнитура', 'м', 900, 9]] },
+  { id: 'СН-1052', order: 'ЗК-0011', tc: 'ПЭК', track: 'СМКС-1/2209', dir: 'metal', st: 'done', hist: [['req', '15.09.2026 09:00'], ['ord', '16.09.2026 10:30'], ['tr', '22.09.2026 07:50'], ['done', '23.09.2026 16:10']], supplier: 'ООО «ЭлектроМонтаж»', inn: '6317033445', contact: { name: 'Белов Николай Юрьевич', tel: '+7 846 255-12-11', mail: 'belov@electromontazh.example' }, eta: '23.09.2026', comment: 'Кабель и автоматы для сборки щита на объект «Стройкомплект».', files: [['Счёт №4410', 'счёт', '105 КБ', '16.09.2026'], ['УПД №4410', 'УПД', '176 КБ', '23.09.2026']], items: [['ВВГ-3-2.5', 'Кабель ВВГнг 3×2,5', 'Электрика', 'м', 300, 78], ['АВ-16', 'Автомат 16 А 1P', 'Электрика', 'шт', 12, 310]] },
 ];
 
 /* адаптация новых сотрудников */
@@ -802,6 +822,7 @@ const ICONS = {
   down: '<path d="m6 9 6 6 6-6"/>',
   up: '<path d="m18 15-6-6-6 6"/>',
   right: '<path d="m9 18 6-6-6-6"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
@@ -970,15 +991,49 @@ const MONTHS_G = ['января', 'февраля', 'марта', 'апреля'
 const fmtDate = s => { const m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(s || ''); return m ? `${m[1]} ${MONTHS_G[+m[2] - 1]} ${m[3]}` : (s || ''); };
 const fmtDT = s => { const m = /^(\d{2}\.\d{2}\.\d{4}) (\d{2}:\d{2})$/.exec(s || ''); return m ? `${fmtDate(m[1])} / ${m[2]}` : fmtDate(s); };
 const nowStamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+/* номер документа (заказ клиента, заявка): две буквы, «-», четыре цифры с 0001; после 9999 меняется вторая буква
+   (после последней — первая, вторая снова с начала) и счёт идёт снова с 0001: ЗК-9999 → ЗЛ-0001 */
+const NO_ABC = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ';
+const noKey = s => { const m = /^(\S)(\S)-(\d{4})$/.exec(s || ''); return m ? (NO_ABC.indexOf(m[1]) * NO_ABC.length + NO_ABC.indexOf(m[2])) * 1e4 + +m[3] : -1; };
+const nextNo = (list, start) => {
+  const last = list.filter(s => noKey(s) >= 0).sort((a, b) => noKey(a) - noKey(b)).pop();
+  if (!last) return start + '-0001';
+  let a = last[0], b = last[1], n = +last.slice(3) + 1;
+  if (n > 9999) { n = 1; let j = NO_ABC.indexOf(b) + 1; if (j >= NO_ABC.length) { j = 0; a = NO_ABC[(NO_ABC.indexOf(a) + 1) % NO_ABC.length]; } b = NO_ABC[j]; }
+  return `${a}${b}-${String(n).padStart(4, '0')}`;
+};
+/* транспортные компании для формы заявки; «—» — ещё не выбрана */
+const CARRIERS = ['—', 'ПЭК', 'Деловые Линии', 'СДЭК', 'КИТ', 'Байкал Сервис', 'Энергия', 'самовывоз'];
+/* выпадающий календарь в стиле приложения: значение в скрытом поле (гггг-мм-дд), неделя с понедельника, всегда 6 недель — панель не меняет высоту */
+const MONTHS_N = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const isoDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const isoToRu = v => v ? v.split('-').reverse().join('.') : '';
+const calHtml = (y, m, val) => {
+  const first = new Date(y, m, 1), shift = (first.getDay() + 6) % 7, today = isoDate(new Date());
+  let days = '';
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(y, m, 1 - shift + i), v = isoDate(d), wd = d.getDay();
+    days += `<button type="button" class="${d.getMonth() !== m ? 'out ' : ''}${wd === 0 || wd === 6 ? 'we ' : ''}${v === today ? 'today ' : ''}${v === val ? 'on' : ''}" data-cal-day="${v}">${d.getDate()}</button>`;
+  }
+  return `<div class="cal-h"><button type="button" class="btn ghost sm icon" title="Предыдущий месяц" data-cal-nav="${y}:${m - 1}">${icRaw('left', 'sm')}</button><span class="t">${MONTHS_N[m]} ${y}</span><button type="button" class="btn ghost sm icon" title="Следующий месяц" data-cal-nav="${y}:${m + 1}">${icRaw('right', 'sm')}</button></div>
+    <div class="cal-g">${['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].map(w => `<span class="wd">${w}</span>`).join('')}${days}</div>
+    <div class="cal-f"><button type="button" class="btn ghost sm" data-cal-day="${today}">Сегодня</button><button type="button" class="btn ghost sm" data-cal-clear>Очистить</button></div>`;
+};
+const dsel = (name, val = '') => {
+  const d = val ? new Date(val + 'T00:00') : new Date();
+  return `<div class="xp csel cal" data-xp="cal-${name}"><div class="xp-head" data-xp-toggle><button type="button" class="in sel-btn"><span class="lbl ellip ${val ? '' : 'ph'}">${val ? fmtDate(isoToRu(val)) : 'выберите дату'}</span>${ic('cal', 'xs')}</button><input type="hidden" name="${name}" value="${val}"></div>
+    <div class="xp-panel below"><div class="cal-p">${calHtml(d.getFullYear(), d.getMonth(), val)}</div></div></div>`;
+};
 const fileKind = name => /счет|счёт|invoice/i.test(name) ? 'счёт' : /договор|contract/i.test(name) ? 'договор' : /упд/i.test(name) ? 'УПД' : 'прочее';
 /* поля форм */
-const fld = (label, inner, cls = '') => `<label class="fld ${cls}"><span class="fl">${label}</span>${inner}</label>`;
+/* свои выпадающие (список, календарь) — в div, не в label: клик по пустому месту внутри label пересылается на первую кнопку и закрывает или открывает список заново */
+const fld = (label, inner, cls = '') => { const tag = inner.includes('csel') ? 'div' : 'label'; return `<${tag} class="fld ${cls}"><span class="fl">${label}</span>${inner}</${tag}>`; };
 const inp = (name, attrs = '') => `<input class="in" name="${name}" ${attrs}>`;
 /* выпадающий список свой, а не системный: кнопка выглядит как поле ввода, список раскрывается как меню; значение — в скрытом поле */
 const sel = (name, opts, val = '') => {
   const cur = opts.find(o => o[0] === val) || opts[0];
   return `<div class="xp csel" data-xp="sel-${name}"><div class="xp-head" data-xp-toggle><button type="button" class="in sel-btn"><span class="lbl ellip">${cur[1]}</span>${icRaw('down', 'xs')}</button><input type="hidden" name="${name}" value="${cur[0]}"></div>
-    <div class="xp-panel below menu">${opts.map(([v, t]) => `<button type="button" class="${v === cur[0] ? 'on' : ''}" data-opt="${v}"><span class="grow">${t}</span>${v === cur[0] ? `<span class="chk">${icRaw('check', 'sm')}</span>` : ''}</button>`).join('')}</div></div>`;
+    <div class="xp-panel below"><div class="menu">${opts.map(([v, t]) => `<button type="button" class="${v === cur[0] ? 'on' : ''}" data-opt="${v}"><span class="grow">${t}</span>${v === cur[0] ? `<span class="chk">${icRaw('check', 'sm')}</span>` : ''}</button>`).join('')}</div></div></div>`;   // меню внутри панели: класс .menu (display: flex) на самой панели перебивал её display: none, и список был виден всегда
 };
 
 /* иконки доступа к страницам: full — чётко, view — приглушённо, нет — почти прозрачно */
@@ -1327,18 +1382,20 @@ const App = {
   newForm(pg) {
     const close = `<button type="button" class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button>`;
     if (pg.id === 'supply') {
-      const nextId = 'СН-' + (Math.max(...SUPPLY.map(r => +r.id.replace(/\D/g, ''))) + 1), nextOrder = 'З-' + (Math.max(...SUPPLY.map(r => +r.order.replace(/\D/g, ''))) + 1);
+      const nextId = nextNo(SUPPLY.map(r => r.id), 'СН'), nextOrder = nextNo(SUPPLY.map(r => r.order), 'ЗК');
       return `<form data-new="supply" style="width:660px">
         <div class="ph"><span class="t">Новая заявка на снабжение</span><span class="mute small">${nextId} · статус «заявка», дата и время — текущие</span>${close}</div>
         <div class="pb frm">
-          ${fld('№ заказа клиента', inp('order', `value="${nextOrder}" required`))}
+          ${fld('№ заказа клиента', inp('order', `value="${nextOrder}" required pattern="[А-ЯЁ]{2}-[0-9]{4}" title="две буквы, дефис и четыре цифры, например ${nextOrder}"`))}
           ${fld('Направление', sel('dir', DIRS.map(d => [d.id, d.name])))}
           ${fld('Поставщик', inp('supplier', 'placeholder="ООО «…»" required'))}
           ${fld('ИНН поставщика', inp('inn', 'placeholder="10 или 12 цифр" inputmode="numeric" pattern="[0-9]{10}|[0-9]{12}"'))}
           ${fld('Контактное лицо', inp('cname', 'placeholder="Фамилия Имя Отчество"'))}
           ${fld('Телефон', inp('ctel', 'type="tel" placeholder="+7 …"'))}
           ${fld('Почта', inp('cmail', 'type="email" placeholder="name@company.ru"'))}
-          ${fld('Срок доставки', inp('eta', 'type="date"'))}
+          ${fld('Срок доставки', dsel('eta'))}
+          ${fld('Транспортная компания', sel('tc', CARRIERS.map(c => [c, c === '—' ? 'ещё не выбрана' : c])))}
+          ${fld('№ отслеживания', inp('track', 'placeholder="появится после отгрузки"'))}
           ${fld('Комментарий', '<textarea class="in" name="comment" rows="6" placeholder="Что закупаем и под какой заказ клиента"></textarea>', 'full')}
           <div class="fld full"><span class="fl">Файлы</span><div class="row"><label class="btn sm">${ic('clip', 'xs')}Прикрепить<input type="file" multiple hidden data-attach></label><span class="mute small ellip" data-attach-list>счёт, договор, УПД и прочее — можно добавить и позже в карточке заказа</span></div></div>
         </div>
@@ -1356,7 +1413,7 @@ const App = {
           ${fld('Роль в RIVA', sel('role', Object.entries(ROLES).map(([k, r]) => [k, r.name])))}
           ${fld('Телефон', inp('tel', 'type="tel" placeholder="+7 …"'))}
           ${fld('Почта', inp('mail', 'type="email" placeholder="name@bereg.ru"'))}
-          ${fld('Дата выхода', inp('start', 'type="date"'))}
+          ${fld('Дата выхода', dsel('start'))}
           ${fld('Статус', sel('st', Object.entries(ST).map(([k, v]) => [k, v.name])))}
         </div>
         <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Добавить сотрудника</button></div>
@@ -1369,9 +1426,9 @@ const App = {
   createRecord(form) {
     const fd = new FormData(form), v = k => (fd.get(k) || '').toString().trim();
     if (form.dataset.new === 'supply') {
-      const id = 'СН-' + (Math.max(...SUPPLY.map(r => +r.id.replace(/\D/g, ''))) + 1);
+      const id = nextNo(SUPPLY.map(r => r.id), 'СН');
       const eta = v('eta') ? v('eta').split('-').reverse().join('.') : '—';
-      SUPPLY.unshift({ id, order: v('order'), dir: v('dir'), st: 'req', hist: [['req', nowStamp()]], supplier: v('supplier'), inn: v('inn') || '—', contact: { name: v('cname') || '—', tel: v('ctel') || '—', mail: v('cmail') || '—' }, eta, comment: v('comment'), files: this.pending.splice(0), items: [] });
+      SUPPLY.unshift({ id, order: v('order'), dir: v('dir'), st: 'req', hist: [['req', nowStamp()]], supplier: v('supplier'), inn: v('inn') || '—', contact: { name: v('cname') || '—', tel: v('ctel') || '—', mail: v('cmail') || '—' }, tc: v('tc') || '—', track: v('track') || '—', eta, comment: v('comment'), files: this.pending.splice(0), items: [] });
       XP.closeAll(); this.renderTopbar(); this.renderGrid(); this.reopen('sup-' + id);
       return;
     }
@@ -1424,10 +1481,13 @@ const App = {
   /* ---------- Снабжение: один список с прокруткой, карточка заказа раскрывается под строкой ---------- */
   supply() {
     const s = this.state, q = s.q.trim().toLowerCase();
-    const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.comment, r.contact.name, SUP_ST[r.st][0]));
-    /* колонки: номера, статус, дата изменения (вправо), поставщик, контакт, срок (вправо), комментарий — на 100px шире прежнего */
-    const cols = '72px 76px 136px 164px minmax(0,1fr) 34px 122px minmax(0,1.78fr)';
-    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="sup"><span class="inn">ИНН</span><span>поставщик</span></div><div></div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
+    const list = SUPPLY.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.order, r.supplier, r.inn, r.tc, r.track, r.comment, r.contact.name, SUP_ST[r.st][0]));
+    /* колонки (26-й круг): номера, статус, дата изменения (вправо), ИНН (вправо), поставщик, контакт, транспортная компания,
+       № отслеживания, срок (вправо), комментарий. Постоянные — по ширине содержимого; при сужении окна сжимается сначала комментарий
+       (до 100px), затем ИНН: его дорожка minmax(0, 84px) получает место раньше гибкой (алгоритм сетки: «maximize tracks» до «expand flexible»),
+       значит и отдаёт позже; поставщик, ТК и № отслеживания не сжимаются */
+    const cols = '60px 60px 124px 154px minmax(0,84px) 196px 26px 124px 104px 114px minmax(100px,1fr)';
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${cols}"><div>№ заказа</div><div>№ заявки</div><div>статус</div><div class="r">изменён</div><div class="inn"><span>ИНН</span></div><div>поставщик</div><div></div><div>транспортная компания</div><div>№ отслеживания</div><div class="r">срок доставки</div><div>комментарий</div></div></div>`;
     const rows = list.map((r, i) => {
       const last = r.hist[r.hist.length - 1], up = i >= list.length - 2 && list.length > 3 ? 'up' : '';
       const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${up}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px">${stChip(st)}<span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
@@ -1437,8 +1497,11 @@ const App = {
           <div class="no">${r.id}</div>
           <div>${stChip(r.st)}</div>
           <div class="r">${hist}</div>
-          <div class="sup"><span class="inn num">${r.inn}</span><span class="t ellip" title="${esc(r.supplier)}">${r.supplier}</span></div>
+          <div class="inn num" title="ИНН ${esc(r.inn)}"><span>${r.inn}</span></div>
+          <div class="t ellip" title="${esc(r.supplier)}">${r.supplier}</div>
           <div>${contact}</div>
+          <div class="ellip ${r.tc === '—' ? 'mute' : ''}" title="${esc(r.tc)}">${r.tc}</div>
+          <div class="ellip num ${r.track === '—' ? 'mute' : ''}" title="${esc(r.track)}">${r.track}</div>
           <div class="r num">${fmtDate(r.eta)}</div>
           <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
         </div>`;
@@ -1580,6 +1643,21 @@ const App = {
       x.querySelector('.sel-btn .lbl').textContent = opt.querySelector('.grow').textContent;
       x.querySelectorAll('[data-opt]').forEach(b => { b.classList.toggle('on', b === opt); const c = b.querySelector('.chk'); if (c) c.remove(); });
       opt.insertAdjacentHTML('beforeend', `<span class="chk">${icRaw('check', 'sm')}</span>`);
+      XP.close(); return;
+    }
+    // календарь: листание месяцев перерисовывает сетку внутри открытой панели; выбор дня и «очистить» пишут значение и закрывают
+    const cNav = t.closest('[data-cal-nav]');
+    if (cNav) {
+      const [y, m] = cNav.dataset.calNav.split(':').map(Number), d = new Date(y, m, 1), x = cNav.closest('.csel');
+      x.querySelector('.cal-p').innerHTML = calHtml(d.getFullYear(), d.getMonth(), x.querySelector('input[type=hidden]').value);
+      return;
+    }
+    const cDay = t.closest('[data-cal-day]'), cClr = t.closest('[data-cal-clear]');
+    if (cDay || cClr) {
+      const x = (cDay || cClr).closest('.csel'), v = cDay ? cDay.dataset.calDay : '', l = x.querySelector('.sel-btn .lbl'), d = v ? new Date(v + 'T00:00') : new Date();
+      x.querySelector('input[type=hidden]').value = v;
+      l.textContent = v ? fmtDate(isoToRu(v)) : 'выберите дату'; l.classList.toggle('ph', !v);
+      x.querySelector('.cal-p').innerHTML = calHtml(d.getFullYear(), d.getMonth(), v);
       XP.close(); return;
     }
     const themeBtn = t.closest('[data-theme-set],[data-theme-toggle]');
