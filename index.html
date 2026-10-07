@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>RIVA · прототип интерфейса для ПК · сборка 07.10 21:33</title>
+<title>RIVA · прототип интерфейса для ПК · сборка 07.10 21:43</title>
 <meta name="viewport" content="width=1280">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23111%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial%27 font-weight=%27800%27 font-size=%2718%27 fill=%27%23fff%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
@@ -272,11 +272,12 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.st { position: relative; width: 124px; height: 20px; padding: 4px 6px 0 48px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-weight: 700; text-transform: lowercase; color: var(--fg); }
 .chip.st .stg { position: absolute; left: 0; top: 0; width: 124px; height: 20px; overflow: visible; pointer-events: none; }
 .chip.st .tx { position: relative; line-height: 16px; }
-.chip.st-req { --stc: #F1F1F1; }    /* цвета меток — владелец, 22-й круг; в обеих темах одинаковые */
-.chip.st-ord { --stc: #B28F6F; }
-.chip.st-tr { --stc: #556E58; }
-.chip.st-done { --stc: #536878; }
+.chip.st-req { --stc: #9AA3AF; }    /* метки статуса, 23-й круг: оттенки владельца (22-й круг: #F1F1F1, #B28F6F, #556E58, #536878) ярче и отличимее; в обеих темах одинаковые */
+.chip.st-ord { --stc: #FF8A1F; }
+.chip.st-tr { --stc: #1FBF5A; }
+.chip.st-done { --stc: #2B7FFF; }
 .stg .cl { fill: var(--stc); }
+.stg .glow { opacity: .55; }   /* размытая метка поверх тонировки стекла — цвет проступает сквозь плашку */
 .stg .bk { fill: url(#gi-back); }
 .stg .bl { filter: url(#st-blur); }
 .stg .sh { fill: rgba(0, 0, 0, .22); filter: url(#st-soft); }
@@ -921,11 +922,11 @@ const glassIcon = (name, variant = 'n', size = '', cls = '') => {
 
 /* чип статуса заявки в приёме стеклянных иконок: задняя тёмная фигура 26×16 слева сверху и через 6px цветная метка статуса 10×16
    (цвет --stc по классу st-<статус>), стеклянная плашка 118×16 со сдвигом вправо-вниз (6, 4) — внутри плашки основа, размытые копии
-   обеих фигур, тонировка и блик; тень под плашкой; текст с 48px, правее размытых фигур. Обрезка и фильтры — общие #st-clip,
+   обеих фигур, тонировка, свечение метки поверх тонировки (.glow, иначе белое стекло гасит цвет) и блик; тень под плашкой; текст с 48px, правее размытых фигур. Обрезка и фильтры — общие #st-clip,
    #st-blur, #st-soft в build.mjs (координаты в пространстве каждого чипа), цвета и тема — в style.css */
 const stChip = st => {
   const figs = cls => `<rect class="bk${cls}" width="26" height="16" rx="5"/><rect class="cl${cls}" x="32" width="10" height="16" rx="5"/>`;
-  return `<span class="chip st st-${st}"><svg class="stg" viewBox="0 0 124 20" aria-hidden="true">${figs('')}<rect class="sh" x="6" y="5" width="118" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="124" height="20"/>${figs(' bl')}<rect class="tint" y="4" width="124" height="16"/><rect class="edge" x="6" y="4" width="118" height="16" rx="6"/></g></svg><span class="tx">${SUP_ST[st][0]}</span></span>`;
+  return `<span class="chip st st-${st}"><svg class="stg" viewBox="0 0 124 20" aria-hidden="true">${figs('')}<rect class="sh" x="6" y="5" width="118" height="16" rx="6"/><g clip-path="url(#st-clip)"><rect class="base" width="124" height="20"/>${figs(' bl')}<rect class="tint" y="4" width="124" height="16"/><rect class="cl bl glow" x="32" width="10" height="16" rx="5"/><rect class="edge" x="6" y="4" width="118" height="16" rx="6"/></g></svg><span class="tx">${SUP_ST[st][0]}</span></span>`;
 };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
