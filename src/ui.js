@@ -170,6 +170,12 @@ const payChip = paid => markChip(paid ? 'pay-y' : 'pay-n', paid ? 'оплаче�
 /* производство (31-й круг): тип рецепта — широкий чип; статус заказа на производство — обычный */
 const kindChip = k => markChip(REC_KIND[k][1], REC_KIND[k][0], 136);
 const pzChip = st => markChip(PROD_ST[st][1], PROD_ST[st][0]);
+/* продажи (32-й круг): тип реализации — широкий чип («интернет-заказ» не входит в 124), статус — обычный;
+   оплата в три состояния по сумме: получено не меньше суммы — оплачено, что-то получено — частично, иначе — не оплачено */
+const skChip = t => markChip(SALE_TYPE[t][1], SALE_TYPE[t][0], 136);
+const slChip = st => markChip(SALE_ST[st][1], SALE_ST[st][0]);
+const payState = (total, paid) => total > 0 && paid >= total - .5 ? 'y' : paid > 0 ? 'p' : 'n';
+const payChipOf = (total, paid) => { const s = payState(total, paid); return markChip('pay-' + s, { y: 'оплачено', p: 'частично', n: 'не оплачено' }[s]); };
 
 /* чип направления (шапка карточки заказа, 28-й круг): тот же приём, что у чипа статуса, крупнее в 1,2 раза и без цветной метки —
    задняя фигура 31×19, плашка 169×19 со сдвигом (7, 5), текст 12px с 38px; одна ширина 176px под «полимерные изделия» (129px) */
@@ -234,7 +240,7 @@ const dsel = (name, val = '') => {
 const fileKind = name => /счет|счёт|invoice/i.test(name) ? 'счёт' : /договор|contract/i.test(name) ? 'договор' : /упд/i.test(name) ? 'УПД' : 'прочее';
 /* поля форм */
 /* свои выпадающие (список, календарь) — в div, не в label: клик по пустому месту внутри label пересылается на первую кнопку и закрывает или открывает список заново */
-const fld = (label, inner, cls = '') => { const tag = inner.includes('csel') ? 'div' : 'label'; return `<${tag} class="fld ${cls}"><span class="fl">${label}</span>${inner}</${tag}>`; };
+const fld = (label, inner, cls = '', attrs = '') => { const tag = inner.includes('csel') ? 'div' : 'label'; return `<${tag} class="fld ${cls}" ${attrs}><span class="fl">${label}</span>${inner}</${tag}>`; };   // attrs — например data-for="inv contract": поле формы реализации показывается только для этих типов
 const inp = (name, attrs = '') => `<input class="in" name="${name}" ${attrs}>`;
 /* выпадающий список свой, а не системный: кнопка выглядит как поле ввода, список раскрывается как меню; значение — в скрытом поле */
 const sel = (name, opts, val = '') => {

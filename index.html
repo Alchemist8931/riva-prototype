@@ -2,7 +2,7 @@
 <html lang="ru" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>RIVA · прототип интерфейса для ПК · сборка 08.10 01:13</title>
+<title>RIVA · прототип интерфейса для ПК · сборка 11.10 02:02</title>
 <meta name="viewport" content="width=1280">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23111%27/%3E%3Ctext x=%2716%27 y=%2722%27 font-family=%27Arial%27 font-weight=%27800%27 font-size=%2718%27 fill=%27%23fff%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
@@ -284,6 +284,15 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.pz-plan { --stc: #7B828C; }   /* заказ на производство: в плане — серая, в работе — оранжевая, готово — зелёная */
 .chip.pz-work { --stc: #CC6E19; }
 .chip.pz-done { --stc: #199948; }
+.chip.pay-p { --stc: #D9A21B; }   /* продажи (32-й круг): оплата частично — янтарная */
+.chip.sk-inv { --stc: #2266CC; }   /* тип реализации: по счёту — синяя, по договору — фиолетовая, розница — зелёная, интернет-заказ — оранжевая */
+.chip.sk-con { --stc: #8A63D2; }
+.chip.sk-ret { --stc: #199948; }
+.chip.sk-web { --stc: #CC6E19; }
+.chip.sl-new { --stc: #7B828C; }   /* статус реализации: оформляется — серая, подтверждена — оранжевая, отгружена — бирюзовая, закрыта — синяя */
+.chip.sl-ok { --stc: #CC6E19; }
+.chip.sl-ship { --stc: #0E9AA7; }
+.chip.sl-done { --stc: #2266CC; }
 .stg .cl { fill: var(--stc); }
 .stg .glow { opacity: .55; }   /* размытая метка поверх тонировки стекла — цвет проступает сквозь плашку */
 .chip.dc { position: relative; width: 176px; height: 24px; padding: 5px 8px 0 38px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-size: 12px; font-weight: 700; text-transform: lowercase; color: var(--fg); flex: none; }
@@ -665,6 +674,22 @@ html.ruler-off .ruler { display: none; }
 .cost-sum .tot { background: var(--surface-2); }
 .of-row.pz { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr); }
 
+/* продажи (32-й круг): карточка реализации — строка общих полей и строка полей по типу (число колонок задаётся на месте);
+   поля формы, не относящиеся к выбранному типу, скрыты; добавление позиции — строка под таблицей; связанные документы — чипы-ссылки */
+.of-row.sl { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(0, 1.35fr) minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.6fr); }
+.of-row.sl2 { grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); }
+.frm .fld.off { display: none; }
+.tr .shr { container-type: inline-size; overflow: hidden; }   /* основание в списке реализаций: сжимается вторым после комментария; уже 36px — прячется целиком, как ИНН */
+.tr .shr > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container (max-width: 36px) { .tr .shr > span { visibility: hidden; } }
+.item-add { display: grid; grid-template-columns: minmax(0, 1fr) 76px 96px auto; gap: 6px; align-items: end; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.item-add .fl { white-space: nowrap; }
+.tbl.items .rm { width: 20px; height: 20px; color: var(--mute); }
+.tbl.items .rm:hover { color: var(--bad); }
+.lnks { display: flex; flex-wrap: wrap; gap: 6px; }
+.lnks .chip { cursor: pointer; }
+.lnks .chip:hover { border-color: var(--fg); color: var(--fg); }
+
 </style>
 </head>
 <body>
@@ -719,6 +744,7 @@ const NOTIFS = [
   { id: 1, day: 'today',     t: '09:41', kind: 'file',   page: 'supply', who: 'Кузнецова Марина', text: 'Счёт №8812 по заявке СН-1051 загружен в карточку заказа', unread: true },
   { id: 2, day: 'today',     t: '09:12', kind: 'box',    page: 'supply', who: 'Мельникова Ольга', text: 'Груз по СН-1045 («Лесторг») прибыл, разгрузка на складе Б', unread: true },
   { id: 3, day: 'today',     t: '08:50', kind: 'chat',   page: 'supply', who: 'Воронцова Анна',   text: 'В чате: «Заказ «Стройкомплект» ждёт крепёж по СН-1046»', unread: true },
+  { id: 7, day: 'today',     t: '08:35', kind: 'money',  page: 'sales',  who: 'Романова Светлана', text: 'Оплата по счёту №1036 от «Офис-Плюс» поступила: 248 000 ₽, реализация ЗК-0004', unread: true },
   { id: 4, day: 'yesterday', t: '17:30', kind: 'cal',    page: 'supply', who: 'Кузнецова Марина', text: 'Срок доставки по СН-1043 перенесён на 09 октября 2026', unread: false },
   { id: 5, day: 'yesterday', t: '16:05', kind: 'idcard', page: 'staff',  who: 'Данилова Ксения',  text: 'Галкин Михаил на больничном с 1 октября, цех №3 без начальника', unread: false },
   { id: 6, day: 'yesterday', t: '11:20', kind: 'shield', page: 'staff',  who: 'Царёв Николай',    text: 'Ковалёву Станиславу открыт доступ к складу В', unread: false },
@@ -735,7 +761,7 @@ const PAGES = [
   { id: 'supply',     name: 'Снабжение',    icon: 'box',     sub: 'общая служба · все направления', ready: true,  unread: 3 },
   { id: 'warehouse',  name: 'Склад',        icon: 'wh',      sub: 'по каждому направлению отдельно', ready: true , unread: 0 },
   { id: 'production', name: 'Производство', icon: 'factory', sub: 'по каждому направлению отдельно', ready: true , unread: 1 },
-  { id: 'sales',      name: 'Продажи',      icon: 'tag',     sub: 'по каждому направлению отдельно', ready: false, unread: 0 },
+  { id: 'sales',      name: 'Продажи',      icon: 'tag',     sub: 'по каждому направлению отдельно', ready: true,  unread: 1 },
   { id: 'clients',    name: 'Клиенты',      icon: 'users',   sub: 'общая база',                     ready: false, unread: 0 },
   { id: 'finance',    name: 'Финансы',      icon: 'money',   sub: 'общая служба · учёт по направлениям', ready: false, unread: 0 },
   { id: 'staff',      name: 'Сотрудники',   icon: 'idcard',  sub: 'все подразделения',             ready: true,  unread: 2 },
@@ -888,6 +914,50 @@ SUPPLY.forEach(r => {
 });
 Object.values(SUPPLIERS).forEach(sp => { const m = sp.contacts[0].mail; sp.contacts.push({ name: 'Отдел продаж', tel: sp.contacts[0].tel, mail: m.includes('@') ? 'sales@' + m.split('@')[1] : '—' }); });
 
+/* ---------- продажи (32-й круг) ----------
+   реализация = заказ клиента ЗК-xxxx: на этот же номер ссылаются заявки снабжения (SUPPLY.order) и заказы на производство (PROD_ORDERS.order).
+   Четыре типа: поставка по счёту (inv), по договору поставки (contract), розничная продажа (retail), интернет-заказ (web);
+   статус — ход сделки, оплата — отдельно (paid — получено ₽, чип оплачено / частично / не оплачено); doc — номер основания по типу
+   (счёт, договор + спецификация, чек, заказ на сайте); items — [код, наименование, ед. изм., кол-во, цена]; mgr — менеджер (STAFF) */
+const SALE_TYPE = { inv: ['по счёту', 'sk-inv'], contract: ['по договору', 'sk-con'], retail: ['розница', 'sk-ret'], web: ['интернет-заказ', 'sk-web'] };
+const SALE_DOC = { inv: 'счёт', contract: 'договор', retail: 'чек', web: 'заказ' };
+const SALE_ST = { new: ['оформляется', 'sl-new'], ok: ['подтверждена', 'sl-ok'], ship: ['отгружена', 'sl-ship'], done: ['закрыта', 'sl-done'] };
+const DLV = ['самовывоз', 'наш транспорт', 'ПЭК', 'Деловые Линии', 'СДЭК', 'Байкал Сервис', 'Почта России', 'курьер'];
+const POS = ['Салон на Московском', 'Выдача со склада А', 'Выдача со склада Б', 'Выдача со склада В'];
+const PAY_WAYS = ['безналичный расчёт', 'наличные', 'карта', 'СБП', 'онлайн на сайте', 'при получении'];
+/* товары и услуги не по рецептам — для позиций реализации (изделия по рецептам добавляются к ним автоматически): [код, наименование, ед., цена, направление] */
+const GOODS_EXTRA = [
+  ['ФР-12', 'Ферма сварная Ф-12', 'шт', 46000, 'metal'], ['КМ-Ф12', 'Комплект монтажный для ферм Ф-12', 'компл', 3900, 'metal'], ['МОН-Н6', 'Монтаж навеса на объекте', 'усл', 64000, 'metal'], ['ЩР-СБ-24', 'Щит распределительный ЩР-24 в сборе', 'шт', 28000, 'metal'],
+  ['ШК-У-2', 'Шкаф распашной «Уют» 2-дверный', 'шт', 28500, 'furn'], ['КХ-ЛАЙН-32', 'Кухонный гарнитур «Лайн» 3,2 м', 'компл', 148000, 'furn'], ['МОН-КХ', 'Монтаж кухонного гарнитура', 'усл', 12000, 'furn'],
+  ['ДСТ-САМ', 'Доставка по Самаре', 'усл', 1500, 'poly'],
+];
+const SALES = [
+  { id: 'ЗК-0016', type: 'contract', st: 'new', dir: 'furn', co: 'bereg-m', client: 'ООО «Школа-Сервис»', inn: '6316077001', contact: { name: 'Ларина Ольга Викторовна', tel: '+7 846 310-22-01', mail: 'larina@school-service.example' }, mgr: 20, doc: '18-2026', spec: '1', due: '—', ship: '30.11.2026', dlv: 'наш транспорт', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 0, hist: [['new', '04.10.2026 10:15']], comment: 'Тумбы для кабинетов школы №12, договор на согласовании у заказчика.', files: [], items: [['РЦ-0007', 'Тумба офисная Т-3', 'шт', 60, 9800]] },
+  { id: 'ЗК-0009', type: 'contract', st: 'ok', dir: 'metal', co: 'bereg', client: 'ООО «Домострой»', inn: '6318055667', contact: { name: 'Кравцов Пётр Алексеевич', tel: '+7 846 277-14-14', mail: 'kravtsov@domostroy.example' }, mgr: 19, doc: '17-2026', spec: '1', due: '—', ship: '20.11.2026', dlv: 'наш транспорт', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 0, hist: [['new', '01.10.2026 09:30'], ['ok', '03.10.2026 12:00']], comment: 'Два навеса Н-6 с монтажом на базе «Домострой»; аванс 40 % по счёту №1040 ждём, труба — СН-1050.', files: [['Договор поставки №17-2026', 'договор', '1,3 МБ', '03.10.2026'], ['Счёт №1040 (аванс)', 'счёт', '121 КБ', '03.10.2026']], items: [['РЦ-0004', 'Навес для ферм Н-6', 'шт', 2, 486000], ['МОН-Н6', 'Монтаж навеса на объекте', 'усл', 2, 64000]] },
+  { id: 'ЗК-0014', type: 'retail', st: 'done', dir: 'poly', co: 'orlov', client: 'Розничный покупатель', inn: '—', contact: { name: '—', tel: '—', mail: '—' }, mgr: 21, doc: '000418', spec: '—', due: '—', ship: '03.10.2026', dlv: 'самовывоз', pos: 'Выдача со склада В', pay: 'карта', track: '—', addr: '—', paid: 16000, hist: [['new', '03.10.2026 12:10'], ['done', '03.10.2026 12:25']], comment: 'Продажа со склада В, оплата картой на месте.', files: [['Чек №000418', 'прочее', '38 КБ', '03.10.2026']], items: [['РЦ-0010', 'Ящик овощной белый 600×400', 'шт', 50, 320]] },
+  { id: 'ЗК-0010', type: 'web', st: 'ok', dir: 'poly', co: 'bereg', client: 'ИП Фролов А. Н.', inn: '631900112233', contact: { name: 'Фролов Алексей Николаевич', tel: '+7 927 555-10-10', mail: 'frolov.farm@example' }, mgr: 21, doc: 'W-20481', spec: '—', due: '—', ship: '09.10.2026', dlv: 'СДЭК', pos: '—', pay: 'онлайн на сайте', track: '—', addr: 'Самарская обл., с. Кинель-Черкассы, ул. Садовая, 14', paid: 59000, hist: [['new', '02.10.2026 20:15'], ['ok', '03.10.2026 09:05']], comment: 'Заказ с сайта, оплачен картой; собираем со склада В, трек появится после передачи в СДЭК.', files: [['Чек онлайн-оплаты', 'прочее', '42 КБ', '02.10.2026']], items: [['РЦ-0010', 'Ящик овощной белый 600×400', 'шт', 200, 295]] },
+  { id: 'ЗК-0007', type: 'inv', st: 'ship', dir: 'furn', co: 'bereg-m', client: 'ИП Серова Е. В.', inn: '631500334455', contact: { name: 'Серова Елена Викторовна', tel: '+7 927 600-20-20', mail: 'serova.kitchen@example' }, mgr: 20, doc: '1034', spec: '—', due: '25.09.2026', ship: '03.10.2026', dlv: 'наш транспорт', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 296000, hist: [['new', '15.09.2026 12:00'], ['ok', '19.09.2026 16:20'], ['ship', '03.10.2026 14:10']], comment: 'Два гарнитура «Лайн», отгружены 03.10, монтаж у заказчицы 06.10; упаковка — СН-1048.', files: [['Счёт №1034', 'счёт', '124 КБ', '16.09.2026'], ['УПД №1034', 'УПД', '210 КБ', '03.10.2026']], items: [['КХ-ЛАЙН-32', 'Кухонный гарнитур «Лайн» 3,2 м', 'компл', 2, 148000]] },
+  { id: 'ЗК-0015', type: 'retail', st: 'done', dir: 'metal', co: 'orlov', client: 'Гусев Максим Валерьевич', inn: '—', contact: { name: 'Гусев Максим Валерьевич', tel: '+7 927 777-00-11', mail: '—' }, mgr: 19, doc: '000417', spec: '—', due: '—', ship: '02.10.2026', dlv: 'самовывоз', pos: 'Выдача со склада А', pay: 'наличные', track: '—', addr: '—', paid: 27600, hist: [['new', '02.10.2026 16:00'], ['done', '02.10.2026 16:20']], comment: 'Опоры под стеллажи заказчика, выдано со склада А.', files: [['Чек №000417', 'прочее', '37 КБ', '02.10.2026']], items: [['РЦ-0001', 'Опора регулируемая М16', 'шт', 40, 690]] },
+  { id: 'ЗК-0013', type: 'web', st: 'ship', dir: 'furn', co: 'bereg-m', client: 'Петрова Анна Сергеевна', inn: '—', contact: { name: 'Петрова Анна Сергеевна', tel: '+7 917 222-33-44', mail: 'petrova.as@example' }, mgr: 20, doc: 'W-20476', spec: '—', due: '—', ship: '04.10.2026', dlv: 'курьер', pos: '—', pay: 'онлайн на сайте', track: 'КУР-7781', addr: 'Самара, ул. Ново-Садовая, 160, кв. 48', paid: 12900, hist: [['new', '30.09.2026 21:05'], ['ok', '01.10.2026 09:20'], ['ship', '04.10.2026 11:30']], comment: 'Доставка курьером в субботу, подъём на 5 этаж включён.', files: [['Чек онлайн-оплаты', 'прочее', '41 КБ', '30.09.2026']], items: [['РЦ-0007', 'Тумба офисная Т-3', 'шт', 1, 12900]] },
+  { id: 'ЗК-0006', type: 'contract', st: 'new', dir: 'poly', co: 'bereg', client: 'ООО «Агротех»', inn: '6324011122', contact: { name: 'Мухин Сергей Владимирович', tel: '+7 848 260-40-40', mail: 'muhin@agrotech.example' }, mgr: 21, doc: '15-2026', spec: '4', due: '—', ship: '20.11.2026', dlv: 'самовывоз', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 0, hist: [['new', '01.10.2026 11:45']], comment: 'Четвёртая спецификация на ноябрь, пигменты — СН-1047; спецификация на подписи у заказчика.', files: [], items: [['РЦ-0009', 'Ящик овощной Агротех 600×400', 'шт', 2000, 305]] },
+  { id: 'ЗК-0005', type: 'inv', st: 'ok', dir: 'metal', co: 'bereg', client: 'ООО «Стройкомплект»', inn: '6316543210', contact: { name: 'Руднев Андрей Михайлович', tel: '+7 846 270-10-10', mail: 'rudnev@stroykomplekt.example' }, mgr: 18, doc: '1035', spec: '—', due: '03.10.2026', ship: '15.10.2026', dlv: 'самовывоз', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 0, hist: [['new', '29.09.2026 09:10'], ['ok', '01.10.2026 10:00']], comment: 'Монтажные комплекты к фермам по спецификации №4; крепёж заказан — СН-1046.', files: [['Счёт №1035', 'счёт', '112 КБ', '29.09.2026']], items: [['КМ-Ф12', 'Комплект монтажный для ферм Ф-12', 'компл', 24, 3900]] },
+  { id: 'ЗК-0004', type: 'inv', st: 'ok', dir: 'furn', co: 'bereg-m', client: 'ООО «Офис-Плюс»', inn: '6312088990', contact: { name: 'Карпова Елена Игоревна', tel: '+7 846 302-11-22', mail: 'karpova@office-plus.example' }, mgr: 20, doc: '1036', spec: '—', due: '05.10.2026', ship: '20.10.2026', dlv: 'наш транспорт', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 248000, hist: [['new', '25.09.2026 15:40'], ['ok', '29.09.2026 10:10']], comment: 'Тумбы Т-3 дуб сонома для офиса на Ленинской; оплачено, в производстве — ПЗ-0004, ЛДСП — СН-1045.', files: [['Счёт №1036', 'счёт', '117 КБ', '26.09.2026'], ['Платёжное поручение №412', 'прочее', '88 КБ', '29.09.2026']], items: [['РЦ-0007', 'Тумба офисная Т-3', 'шт', 20, 12400]] },
+  { id: 'ЗК-0012', type: 'inv', st: 'ok', dir: 'metal', co: 'bereg', client: 'ООО «Логистик-Центр»', inn: '6319012345', contact: { name: 'Осипова Татьяна Юрьевна', tel: '+7 846 245-30-30', mail: 'osipova@logcenter.example' }, mgr: 18, doc: '1039', spec: '—', due: '10.10.2026', ship: '20.10.2026', dlv: 'Деловые Линии', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 0, hist: [['new', '27.09.2026 11:20'], ['ok', '28.09.2026 09:40']], comment: 'Стеллажи для нового склада, отгрузка после оплаты; метизы — СН-1053, производство — ПЗ-0003.', files: [['Счёт №1039', 'счёт', '118 КБ', '28.09.2026']], items: [['РЦ-0003', 'Стеллаж складской СТ-1500', 'шт', 6, 28900]] },
+  { id: 'ЗК-0008', type: 'retail', st: 'done', dir: 'furn', co: 'bereg-m', client: 'Розничный покупатель', inn: '—', contact: { name: '—', tel: '—', mail: '—' }, mgr: 20, doc: '000409', spec: '—', due: '—', ship: '26.09.2026', dlv: 'самовывоз', pos: 'Салон на Московском', pay: 'СБП', track: '—', addr: '—', paid: 25800, hist: [['new', '26.09.2026 13:40'], ['done', '26.09.2026 13:55']], comment: 'Две тумбы из салона, самовывоз.', files: [['Чек №000409', 'прочее', '36 КБ', '26.09.2026']], items: [['РЦ-0007', 'Тумба офисная Т-3', 'шт', 2, 12900]] },
+  { id: 'ЗК-0002', type: 'inv', st: 'ok', dir: 'furn', co: 'bereg-m', client: 'ООО «Уют-Интерьер»', inn: '6311099887', contact: { name: 'Белова Наталья Сергеевна', tel: '+7 846 333-77-07', mail: 'belova@uyut-int.example' }, mgr: 20, doc: '1033', spec: '—', due: '30.09.2026', ship: '17.10.2026', dlv: 'Байкал Сервис', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 285000, hist: [['new', '20.09.2026 13:30'], ['ok', '26.09.2026 09:00']], comment: 'Шкафы «Уют» для гостиницы, фурнитура — СН-1043.', files: [['Счёт №1033', 'счёт', '119 КБ', '22.09.2026']], items: [['ШК-У-2', 'Шкаф распашной «Уют» 2-дверный', 'шт', 10, 28500]] },
+  { id: 'ЗК-0011', type: 'inv', st: 'done', dir: 'metal', co: 'bereg', client: 'ООО «Стройкомплект»', inn: '6316543210', contact: { name: 'Руднев Андрей Михайлович', tel: '+7 846 270-10-10', mail: 'rudnev@stroykomplekt.example' }, mgr: 18, doc: '1032', spec: '—', due: '20.09.2026', ship: '25.09.2026', dlv: 'наш транспорт', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 56000, hist: [['new', '14.09.2026 10:30'], ['ok', '16.09.2026 12:00'], ['ship', '25.09.2026 15:00'], ['done', '26.09.2026 10:00']], comment: 'Щиты на объект «Стройкомплект», УПД подписан; кабель и автоматы — СН-1052.', files: [['Счёт №1032', 'счёт', '110 КБ', '15.09.2026'], ['УПД №1032', 'УПД', '205 КБ', '25.09.2026']], items: [['ЩР-СБ-24', 'Щит распределительный ЩР-24 в сборе', 'шт', 2, 28000]] },
+  { id: 'ЗК-0003', type: 'contract', st: 'ok', dir: 'poly', co: 'bereg', client: 'ООО «Агротех»', inn: '6324011122', contact: { name: 'Мухин Сергей Владимирович', tel: '+7 848 260-40-40', mail: 'muhin@agrotech.example' }, mgr: 21, doc: '15-2026', spec: '3', due: '—', ship: '16.10.2026', dlv: 'самовывоз', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 155000, hist: [['new', '18.09.2026 14:00'], ['ok', '22.09.2026 10:30']], comment: 'Ящики зелёные, третья спецификация; аванс 50 % получен, отгрузка после ПЗ-0005, гранулят — СН-1044.', files: [['Договор поставки №15-2026', 'договор', '1,2 МБ', '12.03.2026'], ['Спецификация №3', 'спецификация', '98 КБ', '22.09.2026'], ['Счёт №1031 (аванс)', 'счёт', '115 КБ', '22.09.2026']], items: [['РЦ-0009', 'Ящик овощной Агротех 600×400', 'шт', 1000, 310]] },
+  { id: 'ЗК-0001', type: 'contract', st: 'ok', dir: 'metal', co: 'bereg', client: 'ООО «Стройкомплект»', inn: '6316543210', contact: { name: 'Руднев Андрей Михайлович', tel: '+7 846 270-10-10', mail: 'rudnev@stroykomplekt.example' }, mgr: 18, doc: '12-2026', spec: '4', due: '—', ship: '31.10.2026', dlv: 'наш транспорт', pos: '—', pay: 'безналичный расчёт', track: '—', addr: '—', paid: 795000, hist: [['new', '10.09.2026 10:00'], ['ok', '12.09.2026 11:30']], comment: 'Фермы и навес на объект «Стройкомплект», аванс 50 %; лист — СН-1042, навес — ПЗ-0002.', files: [['Договор поставки №12-2026', 'договор', '1,4 МБ', '20.02.2026'], ['Спецификация №4', 'спецификация', '102 КБ', '12.09.2026'], ['Счёт №1030 (аванс)', 'счёт', '116 КБ', '12.09.2026']], items: [['ФР-12', 'Ферма сварная Ф-12', 'шт', 24, 46000], ['РЦ-0004', 'Навес для ферм Н-6', 'шт', 1, 486000]] },
+];
+/* справочник клиентов (задел для страницы «Клиенты»): вид, ИНН и контакты — из реализаций */
+const CLIENTS = {};
+const clientKind = n => n === 'Розничный покупатель' ? 'розница' : /^ИП\s/.test(n) ? 'ИП' : /«|ООО|АО\b|ПАО|ЗАО/.test(n) ? 'юрлицо' : 'физлицо';
+SALES.forEach(r => {
+  const c = CLIENTS[r.client] || (CLIENTS[r.client] = { inn: r.inn, kind: clientKind(r.client), contacts: [] });
+  if (r.contact.name !== '—' && !c.contacts.some(x => x.name === r.contact.name)) c.contacts.push({ ...r.contact });
+});
+Object.values(CLIENTS).forEach(c => { if (!c.contacts.length) c.contacts.push({ name: '—', tel: '—', mail: '—' }); });
+
 /* адаптация новых сотрудников */
 const ONBOARDING = [
   { who: 19, steps: ['Документы и договор', 'Доступы в RIVA', 'Инструктаж по ТБ', 'Наставник и план', 'Испытательный срок'], done: 3, cur: 3 },
@@ -903,6 +973,13 @@ const CHATS = {
     { who: 13, t: '09:40', text: 'Гранулят по СН-1044 закрыт: УПД подписан, паспорт качества в файлах заявки.' },
     { who: 3,  t: '10:12', text: 'Фурнитуру по СН-1043 Галимов отгрузит в понедельник, перенесла срок на 09.10.' },
   ],
+  sales: [
+    { who: 22, t: '08:35', text: 'Оплата от «Офис-Плюс» по счёту №1036 поступила полностью, ЗК-0004 закрыт по деньгам.' },
+    { who: 20, t: '08:41', text: 'Спасибо! Передаю в цех №2 — тумбы по ПЗ-0004 уже в работе, отгрузка 20.10.' },
+    { who: 18, t: '09:02', text: '«Логистик-Центр» обещает оплатить счёт №1039 до пятницы, стеллажи держим в плане.' },
+    { who: 21, t: '09:30', text: 'Интернет-заказ W-20481 собран на складе В, завтра передаём в СДЭК и внесу трек.' },
+    { who: 1,  t: '09:48', text: 'По «Домострою» аванс не пришёл — Денис, напомни Кравцову про счёт №1040.' },
+  ],
   staff: [
     { who: 25, t: '09:15', text: 'Степанов и Ковалёв: инструктаж по ТБ в пятницу прошли, отметила в адаптации.' },
     { who: 1,  t: '09:20', text: 'Хорошо. Ковалёву нужен доступ в Склад В — Царёв, подтверди.' },
@@ -917,6 +994,7 @@ const CHATS = {
 /* автоответы для демонстрации онлайн-переписки */
 const REPLIES = {
   supply:  { who: 18, text: 'Воронцова: счёт от «Крепёж-Волга» пришёл, прикрепила к заявке СН-1046.' },
+  sales:   { who: 19, text: 'Степанов: позвонил Кравцову, аванс по счёту №1040 обещают завтра.' },
   staff:   { who: 25, text: 'Данилова: приняла, внесу в карточку сотрудника.' },
   generic: { who: 1,  text: 'Орлов: принято.' },
 };
@@ -925,7 +1003,6 @@ const REPLIES = {
 const STUBS = {
   warehouse:  { text: 'Остатки и движения по каждому складу отдельно: склад А (металл), склад Б (мебель), склад В (полимеры). Переключатель склада — в верхней полосе, как переключатель направления на этой странице.', mods: ['Остатки по номенклатуре', 'Приход и расход за день', 'Инвентаризация', 'Заявки на отгрузку', 'Чат склада'] },
   production: { text: 'Планы и выпуск по каждому цеху отдельно. Наряды, загрузка участков, потребность в материалах со склада своего направления.', mods: ['План выпуска на неделю', 'Наряды и исполнители', 'Потребность в материалах', 'Брак и переделки', 'Чат цеха'] },
-  sales:      { text: 'Воронка и сделки по каждому отделу продаж отдельно, с заявками на закупку, которые уходят в общее снабжение.', mods: ['Воронка сделок', 'Счета и оплаты', 'Заявки на доставку', 'План и факт по менеджерам', 'Чат отдела'] },
   clients:    { text: 'Общая база клиентов по всем направлениям: один клиент может покупать и металл, и мебель.', mods: ['Карточки клиентов', 'История заказов по направлениям', 'Обращения и претензии', 'Чат клиентского сервиса'] },
   finance:    { text: 'Общая финансовая служба с учётом по направлениям: выручка, затраты и маржа каждого направления отдельно, общие расходы распределяются.', mods: ['ДДС по направлениям', 'Дебиторка и кредиторка', 'Платёжный календарь', 'Распределение общих затрат', 'Чат финансов'] },
 };
@@ -1102,6 +1179,12 @@ const payChip = paid => markChip(paid ? 'pay-y' : 'pay-n', paid ? 'оплаче�
 /* производство (31-й круг): тип рецепта — широкий чип; статус заказа на производство — обычный */
 const kindChip = k => markChip(REC_KIND[k][1], REC_KIND[k][0], 136);
 const pzChip = st => markChip(PROD_ST[st][1], PROD_ST[st][0]);
+/* продажи (32-й круг): тип реализации — широкий чип («интернет-заказ» не входит в 124), статус — обычный;
+   оплата в три состояния по сумме: получено не меньше суммы — оплачено, что-то получено — частично, иначе — не оплачено */
+const skChip = t => markChip(SALE_TYPE[t][1], SALE_TYPE[t][0], 136);
+const slChip = st => markChip(SALE_ST[st][1], SALE_ST[st][0]);
+const payState = (total, paid) => total > 0 && paid >= total - .5 ? 'y' : paid > 0 ? 'p' : 'n';
+const payChipOf = (total, paid) => { const s = payState(total, paid); return markChip('pay-' + s, { y: 'оплачено', p: 'частично', n: 'не оплачено' }[s]); };
 
 /* чип направления (шапка карточки заказа, 28-й круг): тот же приём, что у чипа статуса, крупнее в 1,2 раза и без цветной метки —
    задняя фигура 31×19, плашка 169×19 со сдвигом (7, 5), текст 12px с 38px; одна ширина 176px под «полимерные изделия» (129px) */
@@ -1166,7 +1249,7 @@ const dsel = (name, val = '') => {
 const fileKind = name => /счет|счёт|invoice/i.test(name) ? 'счёт' : /договор|contract/i.test(name) ? 'договор' : /упд/i.test(name) ? 'УПД' : 'прочее';
 /* поля форм */
 /* свои выпадающие (список, календарь) — в div, не в label: клик по пустому месту внутри label пересылается на первую кнопку и закрывает или открывает список заново */
-const fld = (label, inner, cls = '') => { const tag = inner.includes('csel') ? 'div' : 'label'; return `<${tag} class="fld ${cls}"><span class="fl">${label}</span>${inner}</${tag}>`; };
+const fld = (label, inner, cls = '', attrs = '') => { const tag = inner.includes('csel') ? 'div' : 'label'; return `<${tag} class="fld ${cls}" ${attrs}><span class="fl">${label}</span>${inner}</${tag}>`; };   // attrs — например data-for="inv contract": поле формы реализации показывается только для этих типов
 const inp = (name, attrs = '') => `<input class="in" name="${name}" ${attrs}>`;
 /* выпадающий список свой, а не системный: кнопка выглядит как поле ввода, список раскрывается как меню; значение — в скрытом поле */
 const sel = (name, opts, val = '') => {
@@ -1437,7 +1520,8 @@ const App = {
     window.addEventListener('hashchange', () => this.route());
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));
-    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-ocard] input.in, [data-pcard] input.in')) e.target.blur(); });   // Enter в поле карточки заказа применяет значение
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-ocard] input.in, [data-pcard] input.in, [data-scard] input.in[name^="sf-"]')) e.target.blur(); });   // Enter в поле карточки заказа применяет значение
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-scard] input.in[name^="si-"]')) { e.preventDefault(); this.saleItemAdd(e.target.closest('[data-scard]')); } });   // Enter в строке добавления позиции — добавить
     document.addEventListener('input', e => this.onInput(e));
     document.addEventListener('change', e => this.onChange(e));
     document.addEventListener('keydown', e => {
@@ -1504,8 +1588,8 @@ const App = {
       <div class="sep"></div>
       <div class="mute small" style="padding:4px 9px 6px">Общие службы (снабжение, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
     </div>`;
-    const primary = { supply: 'Заявка', production: 'Заказ', staff: 'Сотрудник' }[pg.id] || 'Запись';
-    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', warehouse: 'Артикул, наименование, поставщик…', production: 'Рецепт, изделие, материал, заказ…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
+    const primary = { supply: 'Заявка', production: 'Заказ', sales: 'Реализация', staff: 'Сотрудник' }[pg.id] || 'Запись';
+    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', warehouse: 'Артикул, наименование, поставщик…', production: 'Рецепт, изделие, материал, заказ…', sales: 'Заказ, клиент, счёт, договор, товар…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
     const unread = NOTIFS.filter(n => n.unread).length;
     this.el.topbar.innerHTML = `
       <div class="tb-ic">${glassIcon(pg.icon, themeVar())}</div>
@@ -1524,7 +1608,7 @@ const App = {
   newForm(pg) {
     const close = `<button type="button" class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button>`;
     if (pg.id === 'supply') {
-      const nextId = nextNo(SUPPLY.map(r => r.id), 'СН'), nextOrder = nextNo(SUPPLY.map(r => r.order), 'ЗК');
+      const nextId = nextNo(SUPPLY.map(r => r.id), 'СН'), nextOrder = nextNo([...SUPPLY.map(r => r.order), ...SALES.map(r => r.id)], 'ЗК');   // номера заказов клиента общие с «Продажами»
       return `<form data-new="supply" style="width:660px">
         <div class="ph"><span class="t">Новая заявка на снабжение</span><span class="mute small">${nextId} · статус «заявка», дата и время — текущие</span>${close}</div>
         <div class="pb frm">
@@ -1554,6 +1638,44 @@ const App = {
           ${fld('№ заказа клиента', inp('order', 'placeholder="ЗК-0000 — если под заказ" pattern="[А-ЯЁ]{2}-[0-9]{4}"'), 'full')}
         </div>
         <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать заказ</button></div>
+      </form>`;
+    }
+    if (pg.id === 'sales') {
+      /* форма реализации: общие поля и поля по типу (data-for — для каких типов поле видно; остальные скрыты классом off, при смене типа переключаются) */
+      const type = 'inv', nextId = nextNo([...SALES.map(r => r.id), ...SUPPLY.map(r => r.order)], 'ЗК');
+      const show = (types, label, inner, cls = '') => fld(label, inner, cls + (types.split(' ').includes(type) ? '' : ' off'), `data-for="${types}"`);
+      const sellers = STAFF.filter(p => p.role === 'seller');
+      return `<form data-new="sale" style="width:720px">
+        <div class="ph"><span class="t">Новая реализация</span><span class="mute small">${nextId} · статус «оформляется», оплата — не оплачено</span>${close}</div>
+        <div class="pb frm">
+          ${fld('Тип реализации', sel('type', Object.entries(SALE_TYPE).map(([k, v]) => [k, { inv: 'поставка по счёту', contract: 'поставка по договору поставки', retail: 'розничная продажа', web: 'интернет-заказ' }[k]])))}
+          ${fld('Направление', sel('dir', DIRS.map(d => [d.id, d.name])))}
+          ${fld('Клиент', inp('client', 'required placeholder="ООО «…», ИП или покупатель"'))}
+          ${show('inv contract web', 'ИНН клиента', inp('inn', 'placeholder="10 или 12 цифр" inputmode="numeric" pattern="[0-9]{10}|[0-9]{12}"'))}
+          ${fld('Контактное лицо', inp('cname', 'placeholder="Фамилия Имя Отчество"'))}
+          ${fld('Телефон', inp('ctel', 'type="tel" placeholder="+7 …"'))}
+          ${fld('Почта', inp('cmail', 'type="email" placeholder="name@company.ru"'))}
+          ${fld('Менеджер', sel('mgr', sellers.map(p => [p.id, `${shortFio(p.name)} · ${DIR[p.dirs[0]].short.toLowerCase()}`]), ME.role === 'seller' ? ME.id : sellers[0].id))}
+          ${show('inv', '№ счёта', inp('doc-inv', `value="${this.nextSaleDoc('inv')}" placeholder="номер счёта"`))}
+          ${show('inv', 'Срок оплаты', dsel('due-inv'))}
+          ${show('inv', 'Дата отгрузки', dsel('ship-inv'))}
+          ${show('inv', 'Доставка', sel('dlv-inv', DLV.map(d => [d, d])))}
+          ${show('contract', '№ договора поставки', inp('doc-contract', 'placeholder="например 19-2026"'))}
+          ${show('contract', '№ спецификации', inp('spec-contract', 'value="1" placeholder="1"'))}
+          ${show('contract', 'Срок поставки', dsel('ship-contract'))}
+          ${show('contract', 'Доставка', sel('dlv-contract', DLV.map(d => [d, d])))}
+          ${show('retail', '№ чека', inp('doc-retail', `value="${this.nextSaleDoc('retail')}" placeholder="номер чека"`))}
+          ${show('retail', 'Точка продаж', sel('pos-retail', POS.map(p => [p, p])))}
+          ${show('retail', 'Способ оплаты', sel('pay-retail', ['наличные', 'карта', 'СБП'].map(p => [p, p])))}
+          ${show('retail', 'Дата продажи', dsel('ship-retail', isoDate(new Date())))}
+          ${show('web', '№ заказа на сайте', inp('doc-web', `value="${this.nextSaleDoc('web')}" placeholder="номер с сайта"`))}
+          ${show('web', 'Доставка', sel('dlv-web', ['СДЭК', 'Почта России', 'курьер', 'самовывоз'].map(d => [d, d])))}
+          ${show('web', 'Оплата', sel('pay-web', ['онлайн на сайте', 'при получении'].map(p => [p, p])))}
+          ${show('web', 'Адрес доставки', inp('addr-web', 'placeholder="город, улица, дом, квартира"'))}
+          ${fld('Комментарий', '<textarea class="in" name="comment" rows="4" placeholder="Что продаём и условия сделки"></textarea>', 'full')}
+          <div class="fld full"><span class="fl">Файлы</span><div class="row"><label class="btn sm">${ic('clip', 'xs')}Прикрепить<input type="file" multiple hidden data-attach></label><span class="mute small ellip" data-attach-list>счёт, договор, спецификация, чек — можно добавить и позже в карточке; позиции добавляются в карточке реализации</span></div></div>
+        </div>
+        <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать реализацию</button></div>
       </form>`;
     }
     if (pg.id === 'staff') {
@@ -1594,6 +1716,21 @@ const App = {
       XP.closeAll(); this.state.prodTab = 'orders'; this.renderTopbar(); this.renderGrid(); this.reopen('pz-' + id);
       return;
     }
+    if (form.dataset.new === 'sale') {
+      const type = v('type') || 'inv', id = nextNo([...SALES.map(r => r.id), ...SUPPLY.map(r => r.order)], 'ЗК'), t = k => v(k + '-' + type);
+      const ru = k => t(k) ? isoToRu(t(k)) : '—';
+      const client = v('client') || 'Розничный покупатель', c = CLIENTS[client];
+      const contact = { name: v('cname') || (c ? c.contacts[0].name : '—'), tel: v('ctel') || '—', mail: v('cmail') || '—' };
+      SALES.unshift({ id, type, st: 'new', dir: v('dir'), co: this.state.company, client, inn: v('inn') || (c ? c.inn : '—'), contact, mgr: +v('mgr') || STAFF.find(p => p.role === 'seller').id,
+        doc: t('doc') || '—', spec: type === 'contract' ? t('spec') || '1' : '—', due: type === 'inv' ? ru('due') : '—', ship: ru('ship'),
+        dlv: type === 'retail' ? 'самовывоз' : t('dlv') || DLV[0], pos: type === 'retail' ? t('pos') || POS[0] : '—', pay: type === 'retail' || type === 'web' ? t('pay') || PAY_WAYS[0] : 'безналичный расчёт',
+        track: '—', addr: type === 'web' ? t('addr') || '—' : '—', paid: 0, hist: [['new', nowStamp()]], comment: v('comment'), files: this.pending.splice(0), items: [] });
+      const nr = SALES[0];
+      if (!CLIENTS[client]) CLIENTS[client] = { inn: nr.inn, kind: clientKind(client), contacts: [{ ...contact }] };
+      else if (contact.name !== '—' && !c.contacts.some(x => x.name === contact.name)) c.contacts.push({ ...contact });
+      XP.closeAll(); this.state.saleType = 'all'; this.renderTopbar(); this.renderGrid(); this.reopen('sl-' + id);
+      return;
+    }
     if (form.dataset.new === 'staff') {
       const id = Math.max(...STAFF.map(p => p.id)) + 1, dirs = v('dirs');
       const p = { id, name: v('name'), pos: v('pos'), dept: v('dept'), dirs: dirs === 'all' ? 'all' : [dirs], role: v('role'), st: v('st') || 'office', on: false, tel: v('tel') || '—', mail: v('mail'), newbie: true };
@@ -1620,9 +1757,10 @@ const App = {
 
   renderGrid(animate = false) {
     const pg = this.page();
-    this.el.grid.classList.toggle('single', pg.id === 'supply' || pg.id === 'warehouse' || pg.id === 'production');
-    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'warehouse' ? this.warehouse() : pg.id === 'production' ? this.production() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+    this.el.grid.classList.toggle('single', ['supply', 'warehouse', 'production', 'sales'].includes(pg.id));
+    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'warehouse' ? this.warehouse() : pg.id === 'production' ? this.production() : pg.id === 'sales' ? this.sales() : pg.id === 'staff' ? this.staff() : this.stub(pg);
     if (animate) this.animateIn();
+    if (this.pendingOpen) { const id = this.pendingOpen; this.pendingOpen = null; this.reopen(id); }   // переход к связанному документу с другой страницы: карточка раскрывается после перерисовки
   },
 
   /* каскад появления: модули — по порядку, строки внутри — следом */
@@ -1930,6 +2068,156 @@ const App = {
     if (XP.open) XP.focus();
   },
 
+  /* ---------- Продажи (32-й круг): реализации четырёх типов — поставка по счёту, по договору поставки, розничная продажа, интернет-заказ.
+     Реализация = заказ клиента ЗК-xxxx: на него ссылаются заявки снабжения и заказы на производство — они показаны в карточке связанными документами.
+     Список как на «Снабжении» (сегменты по типу сверху), под строкой карточка: общие поля, поля по типу, документы, позиции с добавлением, оплата ---------- */
+  slCols: '60px 140px 128px 158px 124px 196px 30px minmax(0,150px) 96px 118px minmax(84px,1fr)',   // № заказа, тип (136 + 4), статус (124 + 4), изменён, оплата, клиент, контакт, основание (сжимается вторым, как ИНН на «Снабжении»), сумма, отгрузка, комментарий (сжимается первым)
+  saleTotal(r) { return r.items.reduce((a, it) => a + it[3] * it[4], 0); },
+  saleDoc(r) { return r.doc === '—' ? '—' : `${SALE_DOC[r.type]} №${r.doc}${r.type === 'contract' && r.spec !== '—' ? ` · сп. ${r.spec}` : ''}`; },
+  /* следующий номер основания своего вида: счёт — сквозной, чек — шесть цифр, заказ с сайта — W-; договор вводится вручную */
+  nextSaleDoc(type) {
+    const nums = SALES.filter(r => r.type === type).map(r => parseInt(String(r.doc).replace(/\D/g, ''), 10)).filter(n => n > 0);
+    const n = (nums.length ? Math.max(...nums) : 0) + 1;
+    return type === 'inv' ? String(n) : type === 'retail' ? String(n).padStart(6, '0') : type === 'web' ? 'W-' + n : '';
+  },
+  /* что можно продать по направлению: изделия и полуфабрикаты по рецептам (цена — себестоимость с наценкой 40 %, до десятков) и товары с услугами из GOODS_EXTRA */
+  goods(dir) {
+    const rec = RECIPES.filter(r => r.dir === dir).map(r => ({ code: r.id, name: r.name, unit: r.unit, price: Math.ceil(this.recCost(r.id).unit * 1.4 / 10) * 10 }));
+    const extra = GOODS_EXTRA.filter(g => g[4] === dir).map(([code, name, unit, price]) => ({ code, name, unit, price }));
+    return [...rec, ...extra];
+  },
+  sales() {
+    const s = this.state, q = s.q.trim().toLowerCase(), tp = s.saleType || 'all';
+    const base = SALES.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.client, r.inn, r.doc, r.comment, SALE_TYPE[r.type][0], SALE_ST[r.st][0], BY_ID[r.mgr].name, r.dlv, r.pos, r.addr, ...r.items.map(it => it[1])));
+    const list = base.filter(r => tp === 'all' || r.type === tp);
+    const segs = [['all', 'Все'], ...Object.entries(SALE_TYPE).map(([k, v]) => [k, v[0]])].map(([k, name]) => `<button type="button" class="${tp === k ? 'on' : ''}" data-stype="${k}">${name} <span class="n">${k === 'all' ? base.length : base.filter(r => r.type === k).length}</span></button>`).join('');
+    const tabs = `<div class="seg-row"><div class="seg">${segs}</div><span class="mute small">реализация — заказ клиента ЗК; на её номер ссылаются заявки снабжения и заказы на производство</span></div>`;
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${this.slCols}"><div>№ заказа</div><div class="gl">тип</div><div class="gl">статус</div><div class="r gl">изменён</div><div>оплата</div><div class="gl">клиент</div><div class="gl gr"></div><div class="shr"><span>основание</span></div><div>сумма</div><div class="r gl">отгрузка</div><div>комментарий</div></div></div>`;
+    const rows = list.map((r, i) => xp({ id: 'sl-' + r.id, head: this.saleRow(r, i >= list.length - 2 && list.length > 3), panel: this.saleCard(r), place: 'under', cls: 'rec' })).join('');
+    const sum = list.reduce((a, r) => a + this.saleTotal(r), 0), paid = list.reduce((a, r) => a + r.paid, 0);
+    const where = s.dir === 'all' ? 'все отделы продаж' : DEPTS.find(d => d.id === 'sales').names[s.dir].toLowerCase();
+    const body = `${tabs}<div class="sup-list">${head}<div class="recs">${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div></div>`;
+    return mod({ span: 12, cls: 'fill', title: 'Реализации', sub: `${list.length} из ${SALES.length} · ${where} · сумма ${rub(sum)} · получено ${rub(paid)} · к оплате ${rub(Math.max(0, sum - paid))}`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
+  },
+  saleRow(r, up) {
+    const last = r.hist[r.hist.length - 1], u = up ? 'up' : '', total = this.saleTotal(r);
+    const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${u}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px">${slChip(st)}<span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
+    const c = r.contact, contact = c.name === '—' ? `<span class="ic-btn" style="opacity:.35" title="без контакта">${ic('user', 'sm')}</span>` : `<span class="hp"><span class="ic-btn">${ic('user', 'sm')}</span><div class="hp-pop ${u}"><div class="b">${esc(c.name)}</div><div class="num" style="margin-top:3px">${c.tel}</div><div class="mute small">${c.mail}</div>${r.inn !== '—' ? `<div class="mute small num" style="margin-top:3px">ИНН ${r.inn}</div>` : ''}</div></span>`;
+    return `<div class="rec-card"><div class="tr clickable" style="grid-template-columns:${this.slCols}">
+        <div class="no">${r.id}</div>
+        <div class="gl">${skChip(r.type)}</div>
+        <div class="gl">${slChip(r.st)}</div>
+        <div class="r gl">${hist}</div>
+        <div>${payChipOf(total, r.paid)}</div>
+        <div class="t ellip gl" title="${esc(r.client)}">${r.client}</div>
+        <div class="gl gr">${contact}</div>
+        <div class="shr small ${r.doc === '—' ? 'mute' : ''}" title="${esc(this.saleDoc(r))}"><span>${this.saleDoc(r)}</span></div>
+        <div class="num rn b ${total ? '' : 'mute'}">${rub(total)}</div>
+        <div class="r num gl">${fmtDate(r.ship)}</div>
+        <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
+      </div></div>`;
+  },
+  /* связанные документы: заявки снабжения и заказы на производство с этим номером заказа клиента; клик — переход на страницу и раскрытие карточки */
+  saleLinks(r) {
+    const sup = SUPPLY.filter(x => x.order === r.id).map(x => `<button type="button" class="chip line" data-go="supply::sup-${x.id}" title="Открыть заявку на «Снабжении»">${ic('box', 'xs')}${x.id} · ${SUP_ST[x.st][0].toLowerCase()}</button>`);
+    const pz = PROD_ORDERS.filter(o => o.order === r.id).map(o => `<button type="button" class="chip line" data-go="production:orders:pz-${o.id}" title="Открыть заказ на «Производстве»">${ic('factory', 'xs')}${o.id} · ${PROD_ST[o.st][0]}</button>`);
+    return [...sup, ...pz].join('') || '<span class="mute small">заявок на снабжение и заказов на производство по этой реализации пока нет</span>';
+  },
+  saleSum(r) {
+    const total = this.saleTotal(r);
+    return `<div class="cost-sum three"><div><span>сумма реализации</span><b>${rub(total)}</b></div><div><span>получено</span><b class="${r.paid ? '' : 'mute'}">${rub(r.paid)}</b></div><div class="tot"><span>к оплате</span><b class="${total - r.paid > .5 ? 'bad-t' : ''}">${rub(Math.max(0, total - r.paid))}</b></div></div>`;
+  },
+  saleCard(r) {
+    const mgr = BY_ID[r.mgr], cl = CLIENTS[r.client] || { contacts: [r.contact] }, icols = '76px minmax(0,1fr) 84px 92px 100px 24px';
+    const iso = d => /^\d{2}\.\d{2}\.\d{4}$/.test(d) ? d.split('.').reverse().join('-') : '';
+    const files = r.files.map(([name, kind, size, at]) => `<div class="file"><span class="fi">${ic('file', 'sm')}</span><span class="grow ellip">${esc(name)}</span><span class="chip ${kind === 'прочее' ? 'line' : ''}">${kind}</span><span class="mute small num">${size}</span><span class="mute small num">${fmtDate(at)}</span><button class="btn ghost sm icon" title="Скачать">${icRaw('down', 'xs')}</button></div>`).join('');
+    const common = `<div class="of-row sl">
+        ${fld('Статус', sel('sf-st', Object.entries(SALE_ST).map(([k, v]) => [k, v[0]]), r.st))}
+        ${fld('Компания-продавец', sel('sf-co', COMPANIES.map(c => [c.id, c.name]), r.co))}
+        ${fld('Направление', sel('sf-dir', DIRS.map(d => [d.id, d.name]), r.dir))}
+        ${fld('Клиент', sel('sf-client', Object.keys(CLIENTS).sort((a, b) => a.replace(/^\S+\s«?/, '').localeCompare(b.replace(/^\S+\s«?/, ''), 'ru')).map(n => [n, n]), r.client))}
+        ${fld('Контакт клиента', sel('sf-contact', cl.contacts.map(c => [c.name, shortFio(c.name)]), r.contact.name))}
+        ${fld('Менеджер', sel('sf-mgr', STAFF.filter(p => p.role === 'seller').map(p => [p.id, shortFio(p.name)]), r.mgr))}
+        ${fld('Комментарий', inp('sf-comment', `value="${esc(r.comment)}" placeholder="комментарий к реализации"`))}
+      </div>`;
+    const paidF = fld('Получено, ₽', inp('sf-paid', `type="number" min="0" step="any" value="${r.paid}"`));
+    const byType = {
+      inv: [fld('№ счёта', inp('sf-doc', `value="${r.doc === '—' ? '' : esc(r.doc)}" placeholder="номер счёта"`)), fld('Срок оплаты', dsel('sf-due', iso(r.due))), fld('Дата отгрузки', dsel('sf-ship', iso(r.ship))), fld('Доставка', sel('sf-dlv', DLV.map(d => [d, d]), r.dlv)), paidF],
+      contract: [fld('№ договора поставки', inp('sf-doc', `value="${r.doc === '—' ? '' : esc(r.doc)}" placeholder="номер договора"`)), fld('№ спецификации', inp('sf-spec', `value="${r.spec === '—' ? '' : esc(r.spec)}" placeholder="1"`)), fld('Срок поставки', dsel('sf-ship', iso(r.ship))), fld('Доставка', sel('sf-dlv', DLV.map(d => [d, d]), r.dlv)), paidF],
+      retail: [fld('№ чека', inp('sf-doc', `value="${r.doc === '—' ? '' : esc(r.doc)}" placeholder="номер чека"`)), fld('Точка продаж', sel('sf-pos', POS.map(p => [p, p]), r.pos)), fld('Способ оплаты', sel('sf-pay', ['наличные', 'карта', 'СБП'].map(p => [p, p]), r.pay)), fld('Дата продажи', dsel('sf-ship', iso(r.ship))), paidF],
+      web: [fld('№ заказа на сайте', inp('sf-doc', `value="${r.doc === '—' ? '' : esc(r.doc)}" placeholder="номер с сайта"`)), fld('Доставка', sel('sf-dlv', ['СДЭК', 'Почта России', 'курьер', 'самовывоз'].map(d => [d, d]), r.dlv)), fld('№ отслеживания', inp('sf-track', `value="${r.track === '—' ? '' : esc(r.track)}" placeholder="после передачи в доставку"`)), fld('Адрес доставки', inp('sf-addr', `value="${r.addr === '—' ? '' : esc(r.addr)}" placeholder="город, улица, дом"`)), fld('Оплата', sel('sf-pay', ['онлайн на сайте', 'при получении'].map(p => [p, p]), r.pay)), paidF],
+    }[r.type];
+    const typed = `<div class="of-row sl2" style="--n:${byType.length}">${byType.join('')}</div>`;
+    const goods = this.goods(r.dir), g0 = goods[0];
+    const items = r.items.map(([code, name, unit, qty, price], i) => `<div class="tr" style="grid-template-columns:${icols};min-height:30px"><div class="num mute small ellip">${code}</div><div class="ellip" title="${esc(name)}">${name}</div><div class="num rn">${fmtQty(qty)} <span class="mute small">${unit}</span></div><div class="num rn">${rub(price)}</div><div class="num rn b">${rub(qty * price)}</div><button type="button" class="btn ghost sm icon rm" data-item-rm="${i}" title="Убрать позицию">${icRaw('x', 'xs')}</button></div>`).join('');
+    const add = `<div class="item-add">
+        ${fld('Добавить позицию', sel('si-code', goods.map(g => [g.code, `${g.name} · ${rub(g.price)}`])))}
+        ${fld('Кол-во' + (g0 ? ', ' + g0.unit : ''), inp('si-qty', 'type="number" min="0.01" step="any" value="1"'))}
+        ${fld('Цена, ₽', inp('si-price', `type="number" min="0" step="any" value="${g0 ? g0.price : 0}"`))}
+        <button type="button" class="btn sm" data-item-add>${ic('plus', 'xs')}Добавить</button>
+      </div>`;
+    return `<div class="ph">${dirChip(r.dir)}${skChip(r.type)}<span class="mute small">менеджер ${shortFio(mgr.name)} · создана ${fmtDT(r.hist[0][1])}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
+      <div class="pb" data-scard="${r.id}">
+        ${common}${typed}
+        <div class="oc-blocks">
+          <div class="oc-block">
+            <div class="oc-h"><div class="sec-t">Документы · ${r.files.length}</div><label class="btn sm">${ic('clip', 'xs')}Загрузить файл<input type="file" multiple hidden data-upload-sale="${r.id}"></label></div>
+            <div class="files">${files || '<div class="mute small" style="padding:4px 2px">Документов пока нет: счёт, договор, спецификация, УПД или чек появятся здесь списком</div>'}</div>
+            <div class="oc-h" style="margin-top:10px"><div class="sec-t">Связанные заявки и заказы</div><span class="mute small">по номеру ${r.id}</span></div>
+            <div class="lnks">${this.saleLinks(r)}</div>
+          </div>
+          <div class="oc-block">
+            <div class="oc-h"><div class="sec-t">Позиции реализации · ${r.items.length}</div><span class="mute small">изделия по рецептам и товары направления</span></div>
+            <div class="tbl items">
+              <div class="tr th" style="grid-template-columns:${icols}"><div>код</div><div>наименование</div><div>кол-во</div><div style="text-align:right">цена</div><div style="text-align:right">сумма</div><div></div></div>
+              ${items || '<div class="mute small" style="padding:4px 6px">Позиций пока нет — добавьте ниже</div>'}
+            </div>
+            ${add}
+            ${this.saleSum(r)}
+          </div>
+        </div>
+      </div>`;
+  },
+  /* изменение реализации из карточки: запись и строка обновляются сразу; после выбора в списке или календаре карточка перерисовывается
+     (контакты зависят от клиента, поля — от типа), после ввода текста — нет, чтобы не терять фокус; «получено» обновляет только итоги */
+  updateSale(id, f, v) {
+    const r = SALES.find(x => x.id === id); if (!r) return;
+    if (f === 'st') { if (r.st !== v) { r.st = v; r.hist.push([v, nowStamp()]); } }
+    else if (f === 'co' || f === 'dir' || f === 'dlv' || f === 'pos' || f === 'pay') r[f] = v;
+    else if (f === 'client') { const c = CLIENTS[v]; if (!c) return; r.client = v; r.inn = c.inn; r.contact = { ...c.contacts[0] }; }
+    else if (f === 'contact') { const c = (CLIENTS[r.client] || { contacts: [] }).contacts.find(x => x.name === v); if (c) r.contact = { ...c }; }
+    else if (f === 'mgr') r.mgr = +v;
+    else if (f === 'comment') r.comment = v.trim();
+    else if (f === 'doc' || f === 'spec' || f === 'track' || f === 'addr') r[f] = v.trim() || '—';
+    else if (f === 'due' || f === 'ship') r[f] = v ? isoToRu(v) : '—';
+    else if (f === 'paid') { const n = parseFloat(String(v).replace(/\s/g, '').replace(',', '.')); r.paid = n >= 0 ? n : 0; }
+    this.refreshSale(r, ['comment', 'doc', 'spec', 'track', 'addr', 'paid'].includes(f) ? (f === 'paid' ? 'sum' : 'row') : 'card');
+  },
+  refreshSale(r, what = 'card') {
+    const el = document.querySelector(`[data-xp="sl-${r.id}"]`); if (!el) return;
+    const head = el.querySelector(':scope > .xp-head'); head.innerHTML = this.saleRow(r, !!head.querySelector('.hp-pop.up'));
+    if (what === 'card') el.querySelector(':scope > .xp-panel').innerHTML = this.saleCard(r);
+    else if (what === 'sum') { const cs = el.querySelector('.cost-sum'); if (cs) cs.outerHTML = this.saleSum(r); }
+    if (XP.open) XP.focus();
+  },
+  /* позиции: товар из списка направления, количество и цена (подставляется из списка, можно поправить); одинаковые код и цена складываются */
+  saleItemAdd(card) {
+    const r = SALES.find(x => x.id === card.dataset.scard); if (!r) return;
+    const code = card.querySelector('input[name="si-code"]').value, g = this.goods(r.dir).find(x => x.code === code);
+    const qty = parseFloat(card.querySelector('input[name="si-qty"]').value.replace(',', '.')), price = parseFloat(card.querySelector('input[name="si-price"]').value.replace(',', '.'));
+    if (!g || !(qty > 0)) { card.querySelector('input[name="si-qty"]').focus(); return; }
+    const p = price >= 0 ? price : g.price, ex = r.items.find(it => it[0] === code && it[4] === p);
+    if (ex) ex[3] += qty; else r.items.push([g.code, g.name, g.unit, qty, p]);
+    this.refreshSale(r);
+  },
+  /* переход к связанному документу: страница, вкладка (для производства) и раскрываемая запись; на той же странице — перерисовка, иначе — смена адреса */
+  goTo(spec) {
+    const [page, tab, xpId] = spec.split(':');
+    if (tab) this.state.prodTab = tab;
+    this.pendingOpen = xpId; XP.closeAll();
+    if (this.state.page === page) { this.renderTopbar(); this.renderGrid(); } else location.hash = '#' + page;
+  },
+
   /* ---------- Сотрудники ---------- */
   staff() {
     const s = this.state, q = s.q.trim().toLowerCase();
@@ -2046,8 +2334,18 @@ const App = {
       x.querySelectorAll('[data-opt]').forEach(b => { b.classList.toggle('on', b === opt); const c = b.querySelector('.chk'); if (c) c.remove(); });
       opt.insertAdjacentHTML('beforeend', `<span class="chk">${icRaw('check', 'sm')}</span>`);
       XP.close();
-      const oc = x.closest('[data-ocard]'); if (oc) this.updateOrder(oc.dataset.ocard, x.querySelector('input[type=hidden]').name.replace(/^of-/, ''), opt.dataset.opt);
-      const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, x.querySelector('input[type=hidden]').name.replace(/^pf-/, ''), opt.dataset.opt);
+      const nm = x.querySelector('input[type=hidden]').name;
+      const oc = x.closest('[data-ocard]'); if (oc) this.updateOrder(oc.dataset.ocard, nm.replace(/^of-/, ''), opt.dataset.opt);
+      const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, nm.replace(/^pf-/, ''), opt.dataset.opt);
+      const sc = x.closest('[data-scard]');
+      if (sc) {
+        if (nm === 'si-code') {   // выбор товара в строке добавления: подставить цену и единицу
+          const r = SALES.find(y => y.id === sc.dataset.scard), g = r && this.goods(r.dir).find(y => y.code === opt.dataset.opt);
+          if (g) { sc.querySelector('input[name="si-price"]').value = g.price; sc.querySelector('input[name="si-qty"]').closest('.fld').querySelector('.fl').textContent = 'Кол-во, ' + g.unit; }
+        } else this.updateSale(sc.dataset.scard, nm.replace(/^sf-/, ''), opt.dataset.opt);
+      }
+      const sf = x.closest('form[data-new="sale"]');   // смена типа реализации в форме: показать поля этого типа
+      if (sf && nm === 'type') sf.querySelectorAll('.fld[data-for]').forEach(f => f.classList.toggle('off', !f.dataset.for.split(' ').includes(opt.dataset.opt)));
       return;
     }
     // календарь: листание месяцев перерисовывает сетку внутри открытой панели; выбор дня и «очистить» пишут значение и закрывают
@@ -2065,10 +2363,19 @@ const App = {
       x.querySelector('.cal-p').innerHTML = calHtml(d.getFullYear(), d.getMonth(), v);
       XP.close();
       const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, 'due', v);
+      const sc = x.closest('[data-scard]'); if (sc) this.updateSale(sc.dataset.scard, x.querySelector('input[type=hidden]').name.replace(/^sf-/, ''), v);
       return;
     }
     const ptab = t.closest('[data-ptab]');
     if (ptab) { this.state.prodTab = ptab.dataset.ptab; XP.closeAll(); this.renderTopbar(); this.renderGrid(); return; }
+    const stype = t.closest('[data-stype]');
+    if (stype) { this.state.saleType = stype.dataset.stype; XP.closeAll(); this.renderGrid(); return; }
+    const iadd = t.closest('[data-item-add]');
+    if (iadd) { this.saleItemAdd(iadd.closest('[data-scard]')); return; }
+    const irm = t.closest('[data-item-rm]');
+    if (irm) { const r = SALES.find(x => x.id === irm.closest('[data-scard]').dataset.scard); if (r) { r.items.splice(+irm.dataset.itemRm, 1); this.refreshSale(r); } return; }
+    const go = t.closest('[data-go]');
+    if (go) { this.goTo(go.dataset.go); return; }
     const ttg = t.closest('[data-tree-tg]');
     if (ttg) { ttg.closest('.tgroup').classList.toggle('closed'); XP.focus(); return; }
     const recOpen = t.closest('[data-rec-open]');
@@ -2129,7 +2436,11 @@ const App = {
     if (pf) { this.updateProd(pf.closest('[data-pcard]').dataset.pcard, pf.name.replace(/^pf-/, ''), pf.value); return; }
     const of = e.target.closest('[data-ocard] input.in[name^="of-"]');
     if (of) { this.updateOrder(of.closest('[data-ocard]').dataset.ocard, of.name.replace(/^of-/, ''), of.value); return; }
+    const sf = e.target.closest('[data-scard] input.in[name^="sf-"]');
+    if (sf) { this.updateSale(sf.closest('[data-scard]').dataset.scard, sf.name.replace(/^sf-/, ''), sf.value); return; }
     const toRow = f => [f.name.replace(/\.[^.]+$/, ''), fileKind(f.name), fmtSize(f.size), todayShort()];
+    const us = e.target.closest('[data-upload-sale]');   // файлы в карточку реализации
+    if (us && us.files.length) { const r = SALES.find(x => x.id === us.dataset.uploadSale); [...us.files].forEach(f => r.files.push(toRow(f))); this.refreshSale(r); return; }
     const att = e.target.closest('[data-attach]');   // файлы в форме новой заявки: копятся до создания
     if (att && att.files.length) { this.pending.push(...[...att.files].map(toRow)); const l = att.closest('.fld').querySelector('[data-attach-list]'); if (l) l.textContent = this.pending.map(f => f[0]).join(', '); return; }
     const inp = e.target.closest('[data-upload]'); if (!inp || !inp.files.length) return;

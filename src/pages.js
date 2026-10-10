@@ -27,7 +27,8 @@ const App = {
     window.addEventListener('hashchange', () => this.route());
     document.addEventListener('click', e => this.onClick(e));
     document.addEventListener('submit', e => this.onSubmit(e));
-    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-ocard] input.in, [data-pcard] input.in')) e.target.blur(); });   // Enter в поле карточки заказа применяет значение
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-ocard] input.in, [data-pcard] input.in, [data-scard] input.in[name^="sf-"]')) e.target.blur(); });   // Enter в поле карточки заказа применяет значение
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-scard] input.in[name^="si-"]')) { e.preventDefault(); this.saleItemAdd(e.target.closest('[data-scard]')); } });   // Enter в строке добавления позиции — добавить
     document.addEventListener('input', e => this.onInput(e));
     document.addEventListener('change', e => this.onChange(e));
     document.addEventListener('keydown', e => {
@@ -94,8 +95,8 @@ const App = {
       <div class="sep"></div>
       <div class="mute small" style="padding:4px 9px 6px">Общие службы (снабжение, финансы, кадры) видят все направления сразу. Склад, производство и продажи ведут учёт по каждому направлению отдельно.</div>
     </div>`;
-    const primary = { supply: 'Заявка', production: 'Заказ', staff: 'Сотрудник' }[pg.id] || 'Запись';
-    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', warehouse: 'Артикул, наименование, поставщик…', production: 'Рецепт, изделие, материал, заказ…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
+    const primary = { supply: 'Заявка', production: 'Заказ', sales: 'Реализация', staff: 'Сотрудник' }[pg.id] || 'Запись';
+    const ph = { supply: 'Заказ, заявка, поставщик, ИНН…', warehouse: 'Артикул, наименование, поставщик…', production: 'Рецепт, изделие, материал, заказ…', sales: 'Заказ, клиент, счёт, договор, товар…', staff: 'Сотрудники, должности…' }[pg.id] || 'Поиск…';
     const unread = NOTIFS.filter(n => n.unread).length;
     this.el.topbar.innerHTML = `
       <div class="tb-ic">${glassIcon(pg.icon, themeVar())}</div>
@@ -114,7 +115,7 @@ const App = {
   newForm(pg) {
     const close = `<button type="button" class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button>`;
     if (pg.id === 'supply') {
-      const nextId = nextNo(SUPPLY.map(r => r.id), 'СН'), nextOrder = nextNo(SUPPLY.map(r => r.order), 'ЗК');
+      const nextId = nextNo(SUPPLY.map(r => r.id), 'СН'), nextOrder = nextNo([...SUPPLY.map(r => r.order), ...SALES.map(r => r.id)], 'ЗК');   // номера заказов клиента общие с «Продажами»
       return `<form data-new="supply" style="width:660px">
         <div class="ph"><span class="t">Новая заявка на снабжение</span><span class="mute small">${nextId} · статус «заявка», дата и время — текущие</span>${close}</div>
         <div class="pb frm">
@@ -144,6 +145,44 @@ const App = {
           ${fld('№ заказа клиента', inp('order', 'placeholder="ЗК-0000 — если под заказ" pattern="[А-ЯЁ]{2}-[0-9]{4}"'), 'full')}
         </div>
         <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать заказ</button></div>
+      </form>`;
+    }
+    if (pg.id === 'sales') {
+      /* форма реализации: общие поля и поля по типу (data-for — для каких типов поле видно; остальные скрыты классом off, при смене типа переключаются) */
+      const type = 'inv', nextId = nextNo([...SALES.map(r => r.id), ...SUPPLY.map(r => r.order)], 'ЗК');
+      const show = (types, label, inner, cls = '') => fld(label, inner, cls + (types.split(' ').includes(type) ? '' : ' off'), `data-for="${types}"`);
+      const sellers = STAFF.filter(p => p.role === 'seller');
+      return `<form data-new="sale" style="width:720px">
+        <div class="ph"><span class="t">Новая реализация</span><span class="mute small">${nextId} · статус «оформляется», оплата — не оплачено</span>${close}</div>
+        <div class="pb frm">
+          ${fld('Тип реализации', sel('type', Object.entries(SALE_TYPE).map(([k, v]) => [k, { inv: 'поставка по счёту', contract: 'поставка по договору поставки', retail: 'розничная продажа', web: 'интернет-заказ' }[k]])))}
+          ${fld('Направление', sel('dir', DIRS.map(d => [d.id, d.name])))}
+          ${fld('Клиент', inp('client', 'required placeholder="ООО «…», ИП или покупатель"'))}
+          ${show('inv contract web', 'ИНН клиента', inp('inn', 'placeholder="10 или 12 цифр" inputmode="numeric" pattern="[0-9]{10}|[0-9]{12}"'))}
+          ${fld('Контактное лицо', inp('cname', 'placeholder="Фамилия Имя Отчество"'))}
+          ${fld('Телефон', inp('ctel', 'type="tel" placeholder="+7 …"'))}
+          ${fld('Почта', inp('cmail', 'type="email" placeholder="name@company.ru"'))}
+          ${fld('Менеджер', sel('mgr', sellers.map(p => [p.id, `${shortFio(p.name)} · ${DIR[p.dirs[0]].short.toLowerCase()}`]), ME.role === 'seller' ? ME.id : sellers[0].id))}
+          ${show('inv', '№ счёта', inp('doc-inv', `value="${this.nextSaleDoc('inv')}" placeholder="номер счёта"`))}
+          ${show('inv', 'Срок оплаты', dsel('due-inv'))}
+          ${show('inv', 'Дата отгрузки', dsel('ship-inv'))}
+          ${show('inv', 'Доставка', sel('dlv-inv', DLV.map(d => [d, d])))}
+          ${show('contract', '№ договора поставки', inp('doc-contract', 'placeholder="например 19-2026"'))}
+          ${show('contract', '№ спецификации', inp('spec-contract', 'value="1" placeholder="1"'))}
+          ${show('contract', 'Срок поставки', dsel('ship-contract'))}
+          ${show('contract', 'Доставка', sel('dlv-contract', DLV.map(d => [d, d])))}
+          ${show('retail', '№ чека', inp('doc-retail', `value="${this.nextSaleDoc('retail')}" placeholder="номер чека"`))}
+          ${show('retail', 'Точка продаж', sel('pos-retail', POS.map(p => [p, p])))}
+          ${show('retail', 'Способ оплаты', sel('pay-retail', ['наличные', 'карта', 'СБП'].map(p => [p, p])))}
+          ${show('retail', 'Дата продажи', dsel('ship-retail', isoDate(new Date())))}
+          ${show('web', '№ заказа на сайте', inp('doc-web', `value="${this.nextSaleDoc('web')}" placeholder="номер с сайта"`))}
+          ${show('web', 'Доставка', sel('dlv-web', ['СДЭК', 'Почта России', 'курьер', 'самовывоз'].map(d => [d, d])))}
+          ${show('web', 'Оплата', sel('pay-web', ['онлайн на сайте', 'при получении'].map(p => [p, p])))}
+          ${show('web', 'Адрес доставки', inp('addr-web', 'placeholder="город, улица, дом, квартира"'))}
+          ${fld('Комментарий', '<textarea class="in" name="comment" rows="4" placeholder="Что продаём и условия сделки"></textarea>', 'full')}
+          <div class="fld full"><span class="fl">Файлы</span><div class="row"><label class="btn sm">${ic('clip', 'xs')}Прикрепить<input type="file" multiple hidden data-attach></label><span class="mute small ellip" data-attach-list>счёт, договор, спецификация, чек — можно добавить и позже в карточке; позиции добавляются в карточке реализации</span></div></div>
+        </div>
+        <div class="pf"><button type="button" class="btn sm ghost" data-xp-close>Отмена</button><span class="grow"></span><button type="submit" class="btn sm primary">${glassIcon('plus', themeInv(), 'xs')}Создать реализацию</button></div>
       </form>`;
     }
     if (pg.id === 'staff') {
@@ -184,6 +223,21 @@ const App = {
       XP.closeAll(); this.state.prodTab = 'orders'; this.renderTopbar(); this.renderGrid(); this.reopen('pz-' + id);
       return;
     }
+    if (form.dataset.new === 'sale') {
+      const type = v('type') || 'inv', id = nextNo([...SALES.map(r => r.id), ...SUPPLY.map(r => r.order)], 'ЗК'), t = k => v(k + '-' + type);
+      const ru = k => t(k) ? isoToRu(t(k)) : '—';
+      const client = v('client') || 'Розничный покупатель', c = CLIENTS[client];
+      const contact = { name: v('cname') || (c ? c.contacts[0].name : '—'), tel: v('ctel') || '—', mail: v('cmail') || '—' };
+      SALES.unshift({ id, type, st: 'new', dir: v('dir'), co: this.state.company, client, inn: v('inn') || (c ? c.inn : '—'), contact, mgr: +v('mgr') || STAFF.find(p => p.role === 'seller').id,
+        doc: t('doc') || '—', spec: type === 'contract' ? t('spec') || '1' : '—', due: type === 'inv' ? ru('due') : '—', ship: ru('ship'),
+        dlv: type === 'retail' ? 'самовывоз' : t('dlv') || DLV[0], pos: type === 'retail' ? t('pos') || POS[0] : '—', pay: type === 'retail' || type === 'web' ? t('pay') || PAY_WAYS[0] : 'безналичный расчёт',
+        track: '—', addr: type === 'web' ? t('addr') || '—' : '—', paid: 0, hist: [['new', nowStamp()]], comment: v('comment'), files: this.pending.splice(0), items: [] });
+      const nr = SALES[0];
+      if (!CLIENTS[client]) CLIENTS[client] = { inn: nr.inn, kind: clientKind(client), contacts: [{ ...contact }] };
+      else if (contact.name !== '—' && !c.contacts.some(x => x.name === contact.name)) c.contacts.push({ ...contact });
+      XP.closeAll(); this.state.saleType = 'all'; this.renderTopbar(); this.renderGrid(); this.reopen('sl-' + id);
+      return;
+    }
     if (form.dataset.new === 'staff') {
       const id = Math.max(...STAFF.map(p => p.id)) + 1, dirs = v('dirs');
       const p = { id, name: v('name'), pos: v('pos'), dept: v('dept'), dirs: dirs === 'all' ? 'all' : [dirs], role: v('role'), st: v('st') || 'office', on: false, tel: v('tel') || '—', mail: v('mail'), newbie: true };
@@ -210,9 +264,10 @@ const App = {
 
   renderGrid(animate = false) {
     const pg = this.page();
-    this.el.grid.classList.toggle('single', pg.id === 'supply' || pg.id === 'warehouse' || pg.id === 'production');
-    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'warehouse' ? this.warehouse() : pg.id === 'production' ? this.production() : pg.id === 'staff' ? this.staff() : this.stub(pg);
+    this.el.grid.classList.toggle('single', ['supply', 'warehouse', 'production', 'sales'].includes(pg.id));
+    this.el.grid.innerHTML = pg.id === 'supply' ? this.supply() : pg.id === 'warehouse' ? this.warehouse() : pg.id === 'production' ? this.production() : pg.id === 'sales' ? this.sales() : pg.id === 'staff' ? this.staff() : this.stub(pg);
     if (animate) this.animateIn();
+    if (this.pendingOpen) { const id = this.pendingOpen; this.pendingOpen = null; this.reopen(id); }   // переход к связанному документу с другой страницы: карточка раскрывается после перерисовки
   },
 
   /* каскад появления: модули — по порядку, строки внутри — следом */
@@ -520,6 +575,156 @@ const App = {
     if (XP.open) XP.focus();
   },
 
+  /* ---------- Продажи (32-й круг): реализации четырёх типов — поставка по счёту, по договору поставки, розничная продажа, интернет-заказ.
+     Реализация = заказ клиента ЗК-xxxx: на него ссылаются заявки снабжения и заказы на производство — они показаны в карточке связанными документами.
+     Список как на «Снабжении» (сегменты по типу сверху), под строкой карточка: общие поля, поля по типу, документы, позиции с добавлением, оплата ---------- */
+  slCols: '60px 140px 128px 158px 124px 196px 30px minmax(0,150px) 96px 118px minmax(84px,1fr)',   // № заказа, тип (136 + 4), статус (124 + 4), изменён, оплата, клиент, контакт, основание (сжимается вторым, как ИНН на «Снабжении»), сумма, отгрузка, комментарий (сжимается первым)
+  saleTotal(r) { return r.items.reduce((a, it) => a + it[3] * it[4], 0); },
+  saleDoc(r) { return r.doc === '—' ? '—' : `${SALE_DOC[r.type]} №${r.doc}${r.type === 'contract' && r.spec !== '—' ? ` · сп. ${r.spec}` : ''}`; },
+  /* следующий номер основания своего вида: счёт — сквозной, чек — шесть цифр, заказ с сайта — W-; договор вводится вручную */
+  nextSaleDoc(type) {
+    const nums = SALES.filter(r => r.type === type).map(r => parseInt(String(r.doc).replace(/\D/g, ''), 10)).filter(n => n > 0);
+    const n = (nums.length ? Math.max(...nums) : 0) + 1;
+    return type === 'inv' ? String(n) : type === 'retail' ? String(n).padStart(6, '0') : type === 'web' ? 'W-' + n : '';
+  },
+  /* что можно продать по направлению: изделия и полуфабрикаты по рецептам (цена — себестоимость с наценкой 40 %, до десятков) и товары с услугами из GOODS_EXTRA */
+  goods(dir) {
+    const rec = RECIPES.filter(r => r.dir === dir).map(r => ({ code: r.id, name: r.name, unit: r.unit, price: Math.ceil(this.recCost(r.id).unit * 1.4 / 10) * 10 }));
+    const extra = GOODS_EXTRA.filter(g => g[4] === dir).map(([code, name, unit, price]) => ({ code, name, unit, price }));
+    return [...rec, ...extra];
+  },
+  sales() {
+    const s = this.state, q = s.q.trim().toLowerCase(), tp = s.saleType || 'all';
+    const base = SALES.filter(r => (s.dir === 'all' || r.dir === s.dir) && hit(q, r.id, r.client, r.inn, r.doc, r.comment, SALE_TYPE[r.type][0], SALE_ST[r.st][0], BY_ID[r.mgr].name, r.dlv, r.pos, r.addr, ...r.items.map(it => it[1])));
+    const list = base.filter(r => tp === 'all' || r.type === tp);
+    const segs = [['all', 'Все'], ...Object.entries(SALE_TYPE).map(([k, v]) => [k, v[0]])].map(([k, name]) => `<button type="button" class="${tp === k ? 'on' : ''}" data-stype="${k}">${name} <span class="n">${k === 'all' ? base.length : base.filter(r => r.type === k).length}</span></button>`).join('');
+    const tabs = `<div class="seg-row"><div class="seg">${segs}</div><span class="mute small">реализация — заказ клиента ЗК; на её номер ссылаются заявки снабжения и заказы на производство</span></div>`;
+    const head = `<div class="sup-head"><div class="tr th" style="grid-template-columns:${this.slCols}"><div>№ заказа</div><div class="gl">тип</div><div class="gl">статус</div><div class="r gl">изменён</div><div>оплата</div><div class="gl">клиент</div><div class="gl gr"></div><div class="shr"><span>основание</span></div><div>сумма</div><div class="r gl">отгрузка</div><div>комментарий</div></div></div>`;
+    const rows = list.map((r, i) => xp({ id: 'sl-' + r.id, head: this.saleRow(r, i >= list.length - 2 && list.length > 3), panel: this.saleCard(r), place: 'under', cls: 'rec' })).join('');
+    const sum = list.reduce((a, r) => a + this.saleTotal(r), 0), paid = list.reduce((a, r) => a + r.paid, 0);
+    const where = s.dir === 'all' ? 'все отделы продаж' : DEPTS.find(d => d.id === 'sales').names[s.dir].toLowerCase();
+    const body = `${tabs}<div class="sup-list">${head}<div class="recs">${rows || '<div class="mute small" style="padding:14px 10px">Ничего не найдено</div>'}</div></div>`;
+    return mod({ span: 12, cls: 'fill', title: 'Реализации', sub: `${list.length} из ${SALES.length} · ${where} · сумма ${rub(sum)} · получено ${rub(paid)} · к оплате ${rub(Math.max(0, sum - paid))}`, body, tight: true, acts: `<button class="btn ghost sm">${ic('filter', 'sm')}Фильтр</button><button class="btn ghost sm icon">${icRaw('more', 'sm')}</button>` });
+  },
+  saleRow(r, up) {
+    const last = r.hist[r.hist.length - 1], u = up ? 'up' : '', total = this.saleTotal(r);
+    const hist = `<span class="hp r"><span class="num hp-trg">${fmtDT(last[1])}</span><div class="hp-pop ${u}"><div class="sec-t">История статусов</div>${[...r.hist].reverse().map(([st, at]) => `<div class="row" style="gap:8px;min-height:24px">${slChip(st)}<span class="num mute small">${fmtDT(at)}</span></div>`).join('')}</div></span>`;
+    const c = r.contact, contact = c.name === '—' ? `<span class="ic-btn" style="opacity:.35" title="без контакта">${ic('user', 'sm')}</span>` : `<span class="hp"><span class="ic-btn">${ic('user', 'sm')}</span><div class="hp-pop ${u}"><div class="b">${esc(c.name)}</div><div class="num" style="margin-top:3px">${c.tel}</div><div class="mute small">${c.mail}</div>${r.inn !== '—' ? `<div class="mute small num" style="margin-top:3px">ИНН ${r.inn}</div>` : ''}</div></span>`;
+    return `<div class="rec-card"><div class="tr clickable" style="grid-template-columns:${this.slCols}">
+        <div class="no">${r.id}</div>
+        <div class="gl">${skChip(r.type)}</div>
+        <div class="gl">${slChip(r.st)}</div>
+        <div class="r gl">${hist}</div>
+        <div>${payChipOf(total, r.paid)}</div>
+        <div class="t ellip gl" title="${esc(r.client)}">${r.client}</div>
+        <div class="gl gr">${contact}</div>
+        <div class="shr small ${r.doc === '—' ? 'mute' : ''}" title="${esc(this.saleDoc(r))}"><span>${this.saleDoc(r)}</span></div>
+        <div class="num rn b ${total ? '' : 'mute'}">${rub(total)}</div>
+        <div class="r num gl">${fmtDate(r.ship)}</div>
+        <div class="ellip small" title="${esc(r.comment)}">${r.comment}</div>
+      </div></div>`;
+  },
+  /* связанные документы: заявки снабжения и заказы на производство с этим номером заказа клиента; клик — переход на страницу и раскрытие карточки */
+  saleLinks(r) {
+    const sup = SUPPLY.filter(x => x.order === r.id).map(x => `<button type="button" class="chip line" data-go="supply::sup-${x.id}" title="Открыть заявку на «Снабжении»">${ic('box', 'xs')}${x.id} · ${SUP_ST[x.st][0].toLowerCase()}</button>`);
+    const pz = PROD_ORDERS.filter(o => o.order === r.id).map(o => `<button type="button" class="chip line" data-go="production:orders:pz-${o.id}" title="Открыть заказ на «Производстве»">${ic('factory', 'xs')}${o.id} · ${PROD_ST[o.st][0]}</button>`);
+    return [...sup, ...pz].join('') || '<span class="mute small">заявок на снабжение и заказов на производство по этой реализации пока нет</span>';
+  },
+  saleSum(r) {
+    const total = this.saleTotal(r);
+    return `<div class="cost-sum three"><div><span>сумма реализации</span><b>${rub(total)}</b></div><div><span>получено</span><b class="${r.paid ? '' : 'mute'}">${rub(r.paid)}</b></div><div class="tot"><span>к оплате</span><b class="${total - r.paid > .5 ? 'bad-t' : ''}">${rub(Math.max(0, total - r.paid))}</b></div></div>`;
+  },
+  saleCard(r) {
+    const mgr = BY_ID[r.mgr], cl = CLIENTS[r.client] || { contacts: [r.contact] }, icols = '76px minmax(0,1fr) 84px 92px 100px 24px';
+    const iso = d => /^\d{2}\.\d{2}\.\d{4}$/.test(d) ? d.split('.').reverse().join('-') : '';
+    const files = r.files.map(([name, kind, size, at]) => `<div class="file"><span class="fi">${ic('file', 'sm')}</span><span class="grow ellip">${esc(name)}</span><span class="chip ${kind === 'прочее' ? 'line' : ''}">${kind}</span><span class="mute small num">${size}</span><span class="mute small num">${fmtDate(at)}</span><button class="btn ghost sm icon" title="Скачать">${icRaw('down', 'xs')}</button></div>`).join('');
+    const common = `<div class="of-row sl">
+        ${fld('Статус', sel('sf-st', Object.entries(SALE_ST).map(([k, v]) => [k, v[0]]), r.st))}
+        ${fld('Компания-продавец', sel('sf-co', COMPANIES.map(c => [c.id, c.name]), r.co))}
+        ${fld('Направление', sel('sf-dir', DIRS.map(d => [d.id, d.name]), r.dir))}
+        ${fld('Клиент', sel('sf-client', Object.keys(CLIENTS).sort((a, b) => a.replace(/^\S+\s«?/, '').localeCompare(b.replace(/^\S+\s«?/, ''), 'ru')).map(n => [n, n]), r.client))}
+        ${fld('Контакт клиента', sel('sf-contact', cl.contacts.map(c => [c.name, shortFio(c.name)]), r.contact.name))}
+        ${fld('Менеджер', sel('sf-mgr', STAFF.filter(p => p.role === 'seller').map(p => [p.id, shortFio(p.name)]), r.mgr))}
+        ${fld('Комментарий', inp('sf-comment', `value="${esc(r.comment)}" placeholder="комментарий к реализации"`))}
+      </div>`;
+    const paidF = fld('Получено, ₽', inp('sf-paid', `type="number" min="0" step="any" value="${r.paid}"`));
+    const byType = {
+      inv: [fld('№ счёта', inp('sf-doc', `value="${r.doc === '—' ? '' : esc(r.doc)}" placeholder="номер счёта"`)), fld('Срок оплаты', dsel('sf-due', iso(r.due))), fld('Дата отгрузки', dsel('sf-ship', iso(r.ship))), fld('Доставка', sel('sf-dlv', DLV.map(d => [d, d]), r.dlv)), paidF],
+      contract: [fld('№ договора поставки', inp('sf-doc', `value="${r.doc === '—' ? '' : esc(r.doc)}" placeholder="номер договора"`)), fld('№ спецификации', inp('sf-spec', `value="${r.spec === '—' ? '' : esc(r.spec)}" placeholder="1"`)), fld('Срок поставки', dsel('sf-ship', iso(r.ship))), fld('Доставка', sel('sf-dlv', DLV.map(d => [d, d]), r.dlv)), paidF],
+      retail: [fld('№ чека', inp('sf-doc', `value="${r.doc === '—' ? '' : esc(r.doc)}" placeholder="номер чека"`)), fld('Точка продаж', sel('sf-pos', POS.map(p => [p, p]), r.pos)), fld('Способ оплаты', sel('sf-pay', ['наличные', 'карта', 'СБП'].map(p => [p, p]), r.pay)), fld('Дата продажи', dsel('sf-ship', iso(r.ship))), paidF],
+      web: [fld('№ заказа на сайте', inp('sf-doc', `value="${r.doc === '—' ? '' : esc(r.doc)}" placeholder="номер с сайта"`)), fld('Доставка', sel('sf-dlv', ['СДЭК', 'Почта России', 'курьер', 'самовывоз'].map(d => [d, d]), r.dlv)), fld('№ отслеживания', inp('sf-track', `value="${r.track === '—' ? '' : esc(r.track)}" placeholder="после передачи в доставку"`)), fld('Адрес доставки', inp('sf-addr', `value="${r.addr === '—' ? '' : esc(r.addr)}" placeholder="город, улица, дом"`)), fld('Оплата', sel('sf-pay', ['онлайн на сайте', 'при получении'].map(p => [p, p]), r.pay)), paidF],
+    }[r.type];
+    const typed = `<div class="of-row sl2" style="--n:${byType.length}">${byType.join('')}</div>`;
+    const goods = this.goods(r.dir), g0 = goods[0];
+    const items = r.items.map(([code, name, unit, qty, price], i) => `<div class="tr" style="grid-template-columns:${icols};min-height:30px"><div class="num mute small ellip">${code}</div><div class="ellip" title="${esc(name)}">${name}</div><div class="num rn">${fmtQty(qty)} <span class="mute small">${unit}</span></div><div class="num rn">${rub(price)}</div><div class="num rn b">${rub(qty * price)}</div><button type="button" class="btn ghost sm icon rm" data-item-rm="${i}" title="Убрать позицию">${icRaw('x', 'xs')}</button></div>`).join('');
+    const add = `<div class="item-add">
+        ${fld('Добавить позицию', sel('si-code', goods.map(g => [g.code, `${g.name} · ${rub(g.price)}`])))}
+        ${fld('Кол-во' + (g0 ? ', ' + g0.unit : ''), inp('si-qty', 'type="number" min="0.01" step="any" value="1"'))}
+        ${fld('Цена, ₽', inp('si-price', `type="number" min="0" step="any" value="${g0 ? g0.price : 0}"`))}
+        <button type="button" class="btn sm" data-item-add>${ic('plus', 'xs')}Добавить</button>
+      </div>`;
+    return `<div class="ph">${dirChip(r.dir)}${skChip(r.type)}<span class="mute small">менеджер ${shortFio(mgr.name)} · создана ${fmtDT(r.hist[0][1])}</span><button class="btn ghost sm icon" data-xp-close style="margin-left:auto">${icRaw('x', 'sm')}</button></div>
+      <div class="pb" data-scard="${r.id}">
+        ${common}${typed}
+        <div class="oc-blocks">
+          <div class="oc-block">
+            <div class="oc-h"><div class="sec-t">Документы · ${r.files.length}</div><label class="btn sm">${ic('clip', 'xs')}Загрузить файл<input type="file" multiple hidden data-upload-sale="${r.id}"></label></div>
+            <div class="files">${files || '<div class="mute small" style="padding:4px 2px">Документов пока нет: счёт, договор, спецификация, УПД или чек появятся здесь списком</div>'}</div>
+            <div class="oc-h" style="margin-top:10px"><div class="sec-t">Связанные заявки и заказы</div><span class="mute small">по номеру ${r.id}</span></div>
+            <div class="lnks">${this.saleLinks(r)}</div>
+          </div>
+          <div class="oc-block">
+            <div class="oc-h"><div class="sec-t">Позиции реализации · ${r.items.length}</div><span class="mute small">изделия по рецептам и товары направления</span></div>
+            <div class="tbl items">
+              <div class="tr th" style="grid-template-columns:${icols}"><div>код</div><div>наименование</div><div>кол-во</div><div style="text-align:right">цена</div><div style="text-align:right">сумма</div><div></div></div>
+              ${items || '<div class="mute small" style="padding:4px 6px">Позиций пока нет — добавьте ниже</div>'}
+            </div>
+            ${add}
+            ${this.saleSum(r)}
+          </div>
+        </div>
+      </div>`;
+  },
+  /* изменение реализации из карточки: запись и строка обновляются сразу; после выбора в списке или календаре карточка перерисовывается
+     (контакты зависят от клиента, поля — от типа), после ввода текста — нет, чтобы не терять фокус; «получено» обновляет только итоги */
+  updateSale(id, f, v) {
+    const r = SALES.find(x => x.id === id); if (!r) return;
+    if (f === 'st') { if (r.st !== v) { r.st = v; r.hist.push([v, nowStamp()]); } }
+    else if (f === 'co' || f === 'dir' || f === 'dlv' || f === 'pos' || f === 'pay') r[f] = v;
+    else if (f === 'client') { const c = CLIENTS[v]; if (!c) return; r.client = v; r.inn = c.inn; r.contact = { ...c.contacts[0] }; }
+    else if (f === 'contact') { const c = (CLIENTS[r.client] || { contacts: [] }).contacts.find(x => x.name === v); if (c) r.contact = { ...c }; }
+    else if (f === 'mgr') r.mgr = +v;
+    else if (f === 'comment') r.comment = v.trim();
+    else if (f === 'doc' || f === 'spec' || f === 'track' || f === 'addr') r[f] = v.trim() || '—';
+    else if (f === 'due' || f === 'ship') r[f] = v ? isoToRu(v) : '—';
+    else if (f === 'paid') { const n = parseFloat(String(v).replace(/\s/g, '').replace(',', '.')); r.paid = n >= 0 ? n : 0; }
+    this.refreshSale(r, ['comment', 'doc', 'spec', 'track', 'addr', 'paid'].includes(f) ? (f === 'paid' ? 'sum' : 'row') : 'card');
+  },
+  refreshSale(r, what = 'card') {
+    const el = document.querySelector(`[data-xp="sl-${r.id}"]`); if (!el) return;
+    const head = el.querySelector(':scope > .xp-head'); head.innerHTML = this.saleRow(r, !!head.querySelector('.hp-pop.up'));
+    if (what === 'card') el.querySelector(':scope > .xp-panel').innerHTML = this.saleCard(r);
+    else if (what === 'sum') { const cs = el.querySelector('.cost-sum'); if (cs) cs.outerHTML = this.saleSum(r); }
+    if (XP.open) XP.focus();
+  },
+  /* позиции: товар из списка направления, количество и цена (подставляется из списка, можно поправить); одинаковые код и цена складываются */
+  saleItemAdd(card) {
+    const r = SALES.find(x => x.id === card.dataset.scard); if (!r) return;
+    const code = card.querySelector('input[name="si-code"]').value, g = this.goods(r.dir).find(x => x.code === code);
+    const qty = parseFloat(card.querySelector('input[name="si-qty"]').value.replace(',', '.')), price = parseFloat(card.querySelector('input[name="si-price"]').value.replace(',', '.'));
+    if (!g || !(qty > 0)) { card.querySelector('input[name="si-qty"]').focus(); return; }
+    const p = price >= 0 ? price : g.price, ex = r.items.find(it => it[0] === code && it[4] === p);
+    if (ex) ex[3] += qty; else r.items.push([g.code, g.name, g.unit, qty, p]);
+    this.refreshSale(r);
+  },
+  /* переход к связанному документу: страница, вкладка (для производства) и раскрываемая запись; на той же странице — перерисовка, иначе — смена адреса */
+  goTo(spec) {
+    const [page, tab, xpId] = spec.split(':');
+    if (tab) this.state.prodTab = tab;
+    this.pendingOpen = xpId; XP.closeAll();
+    if (this.state.page === page) { this.renderTopbar(); this.renderGrid(); } else location.hash = '#' + page;
+  },
+
   /* ---------- Сотрудники ---------- */
   staff() {
     const s = this.state, q = s.q.trim().toLowerCase();
@@ -636,8 +841,18 @@ const App = {
       x.querySelectorAll('[data-opt]').forEach(b => { b.classList.toggle('on', b === opt); const c = b.querySelector('.chk'); if (c) c.remove(); });
       opt.insertAdjacentHTML('beforeend', `<span class="chk">${icRaw('check', 'sm')}</span>`);
       XP.close();
-      const oc = x.closest('[data-ocard]'); if (oc) this.updateOrder(oc.dataset.ocard, x.querySelector('input[type=hidden]').name.replace(/^of-/, ''), opt.dataset.opt);
-      const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, x.querySelector('input[type=hidden]').name.replace(/^pf-/, ''), opt.dataset.opt);
+      const nm = x.querySelector('input[type=hidden]').name;
+      const oc = x.closest('[data-ocard]'); if (oc) this.updateOrder(oc.dataset.ocard, nm.replace(/^of-/, ''), opt.dataset.opt);
+      const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, nm.replace(/^pf-/, ''), opt.dataset.opt);
+      const sc = x.closest('[data-scard]');
+      if (sc) {
+        if (nm === 'si-code') {   // выбор товара в строке добавления: подставить цену и единицу
+          const r = SALES.find(y => y.id === sc.dataset.scard), g = r && this.goods(r.dir).find(y => y.code === opt.dataset.opt);
+          if (g) { sc.querySelector('input[name="si-price"]').value = g.price; sc.querySelector('input[name="si-qty"]').closest('.fld').querySelector('.fl').textContent = 'Кол-во, ' + g.unit; }
+        } else this.updateSale(sc.dataset.scard, nm.replace(/^sf-/, ''), opt.dataset.opt);
+      }
+      const sf = x.closest('form[data-new="sale"]');   // смена типа реализации в форме: показать поля этого типа
+      if (sf && nm === 'type') sf.querySelectorAll('.fld[data-for]').forEach(f => f.classList.toggle('off', !f.dataset.for.split(' ').includes(opt.dataset.opt)));
       return;
     }
     // календарь: листание месяцев перерисовывает сетку внутри открытой панели; выбор дня и «очистить» пишут значение и закрывают
@@ -655,10 +870,19 @@ const App = {
       x.querySelector('.cal-p').innerHTML = calHtml(d.getFullYear(), d.getMonth(), v);
       XP.close();
       const pc = x.closest('[data-pcard]'); if (pc) this.updateProd(pc.dataset.pcard, 'due', v);
+      const sc = x.closest('[data-scard]'); if (sc) this.updateSale(sc.dataset.scard, x.querySelector('input[type=hidden]').name.replace(/^sf-/, ''), v);
       return;
     }
     const ptab = t.closest('[data-ptab]');
     if (ptab) { this.state.prodTab = ptab.dataset.ptab; XP.closeAll(); this.renderTopbar(); this.renderGrid(); return; }
+    const stype = t.closest('[data-stype]');
+    if (stype) { this.state.saleType = stype.dataset.stype; XP.closeAll(); this.renderGrid(); return; }
+    const iadd = t.closest('[data-item-add]');
+    if (iadd) { this.saleItemAdd(iadd.closest('[data-scard]')); return; }
+    const irm = t.closest('[data-item-rm]');
+    if (irm) { const r = SALES.find(x => x.id === irm.closest('[data-scard]').dataset.scard); if (r) { r.items.splice(+irm.dataset.itemRm, 1); this.refreshSale(r); } return; }
+    const go = t.closest('[data-go]');
+    if (go) { this.goTo(go.dataset.go); return; }
     const ttg = t.closest('[data-tree-tg]');
     if (ttg) { ttg.closest('.tgroup').classList.toggle('closed'); XP.focus(); return; }
     const recOpen = t.closest('[data-rec-open]');
@@ -719,7 +943,11 @@ const App = {
     if (pf) { this.updateProd(pf.closest('[data-pcard]').dataset.pcard, pf.name.replace(/^pf-/, ''), pf.value); return; }
     const of = e.target.closest('[data-ocard] input.in[name^="of-"]');
     if (of) { this.updateOrder(of.closest('[data-ocard]').dataset.ocard, of.name.replace(/^of-/, ''), of.value); return; }
+    const sf = e.target.closest('[data-scard] input.in[name^="sf-"]');
+    if (sf) { this.updateSale(sf.closest('[data-scard]').dataset.scard, sf.name.replace(/^sf-/, ''), sf.value); return; }
     const toRow = f => [f.name.replace(/\.[^.]+$/, ''), fileKind(f.name), fmtSize(f.size), todayShort()];
+    const us = e.target.closest('[data-upload-sale]');   // файлы в карточку реализации
+    if (us && us.files.length) { const r = SALES.find(x => x.id === us.dataset.uploadSale); [...us.files].forEach(f => r.files.push(toRow(f))); this.refreshSale(r); return; }
     const att = e.target.closest('[data-attach]');   // файлы в форме новой заявки: копятся до создания
     if (att && att.files.length) { this.pending.push(...[...att.files].map(toRow)); const l = att.closest('.fld').querySelector('[data-attach-list]'); if (l) l.textContent = this.pending.map(f => f[0]).join(', '); return; }
     const inp = e.target.closest('[data-upload]'); if (!inp || !inp.files.length) return;

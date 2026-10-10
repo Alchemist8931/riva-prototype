@@ -272,6 +272,15 @@ html[data-bg="hatch"] .bg-hatch, html[data-bg="waves"] #bg-wave { opacity: 1; }
 .chip.pz-plan { --stc: #7B828C; }   /* заказ на производство: в плане — серая, в работе — оранжевая, готово — зелёная */
 .chip.pz-work { --stc: #CC6E19; }
 .chip.pz-done { --stc: #199948; }
+.chip.pay-p { --stc: #D9A21B; }   /* продажи (32-й круг): оплата частично — янтарная */
+.chip.sk-inv { --stc: #2266CC; }   /* тип реализации: по счёту — синяя, по договору — фиолетовая, розница — зелёная, интернет-заказ — оранжевая */
+.chip.sk-con { --stc: #8A63D2; }
+.chip.sk-ret { --stc: #199948; }
+.chip.sk-web { --stc: #CC6E19; }
+.chip.sl-new { --stc: #7B828C; }   /* статус реализации: оформляется — серая, подтверждена — оранжевая, отгружена — бирюзовая, закрыта — синяя */
+.chip.sl-ok { --stc: #CC6E19; }
+.chip.sl-ship { --stc: #0E9AA7; }
+.chip.sl-done { --stc: #2266CC; }
 .stg .cl { fill: var(--stc); }
 .stg .glow { opacity: .55; }   /* размытая метка поверх тонировки стекла — цвет проступает сквозь плашку */
 .chip.dc { position: relative; width: 176px; height: 24px; padding: 5px 8px 0 38px; border: 0; border-radius: 0; background: none; justify-content: flex-start; font-size: 12px; font-weight: 700; text-transform: lowercase; color: var(--fg); flex: none; }
@@ -652,3 +661,19 @@ html.ruler-off .ruler { display: none; }
 .cost-sum b { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cost-sum .tot { background: var(--surface-2); }
 .of-row.pz { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr); }
+
+/* продажи (32-й круг): карточка реализации — строка общих полей и строка полей по типу (число колонок задаётся на месте);
+   поля формы, не относящиеся к выбранному типу, скрыты; добавление позиции — строка под таблицей; связанные документы — чипы-ссылки */
+.of-row.sl { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(0, 1.35fr) minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1.6fr); }
+.of-row.sl2 { grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); }
+.frm .fld.off { display: none; }
+.tr .shr { container-type: inline-size; overflow: hidden; }   /* основание в списке реализаций: сжимается вторым после комментария; уже 36px — прячется целиком, как ИНН */
+.tr .shr > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container (max-width: 36px) { .tr .shr > span { visibility: hidden; } }
+.item-add { display: grid; grid-template-columns: minmax(0, 1fr) 76px 96px auto; gap: 6px; align-items: end; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.item-add .fl { white-space: nowrap; }
+.tbl.items .rm { width: 20px; height: 20px; color: var(--mute); }
+.tbl.items .rm:hover { color: var(--bad); }
+.lnks { display: flex; flex-wrap: wrap; gap: 6px; }
+.lnks .chip { cursor: pointer; }
+.lnks .chip:hover { border-color: var(--fg); color: var(--fg); }
