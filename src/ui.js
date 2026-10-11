@@ -127,7 +127,10 @@ Object.assign(GLASS, {
   alert: { back: '<path d="M21.4 6.5a3 3 0 0 1 5.2 0l16.4 28A3 3 0 0 1 40.4 39H7.6A3 3 0 0 1 5 34.5z"/>', front: '<rect x="20.5" y="14" width="7" height="13" rx="3.5"/><circle cx="24" cy="33" r="3.5"/>' },
   user: { back: '<circle cx="24" cy="14" r="9"/><path d="M6 42a18 18 0 0 1 36 0 3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z"/>', front: '<path d="M14 45a10 10 0 0 1 20 0z"/><circle cx="33" cy="20" r="6"/>' },
   wave: { back: '<rect x="4" y="7" width="40" height="34" rx="8"/>', front: '<path d="M8 31c5-9 9-9 14 0s9 9 14 0c2-4 4-5 8-4v10a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z"/>', extra: '<circle cx="33" cy="17" r="4" fill="var(--ico-edge)" opacity=".7"/>' },
+  home: { back: '<rect x="4" y="4" width="18" height="18" rx="5"/><rect x="26" y="4" width="18" height="18" rx="5"/><rect x="4" y="26" width="18" height="18" rx="5"/><rect x="26" y="26" width="18" height="18" rx="5"/>', front: '<rect x="13" y="13" width="22" height="22" rx="7"/>' },   // «Обзор»: четыре плитки и стекло поверх
 });
+ICONS.home = '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>';
+ICONS.gear = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>';
 GLASS.wrench = GLASS.gear;
 const GLYPHS = new Set(['down', 'up', 'right', 'check', 'x', 'more', 'loader', 'arrow', 'panel']);
 const themeVar = () => document.documentElement.dataset.theme === 'dark' ? 'i' : 'n';
@@ -176,6 +179,12 @@ const skChip = t => markChip(SALE_TYPE[t][1], SALE_TYPE[t][0], 136);
 const slChip = st => markChip(SALE_ST[st][1], SALE_ST[st][0]);
 const payState = (total, paid) => total > 0 && paid >= total - .5 ? 'y' : paid > 0 ? 'p' : 'n';
 const payChipOf = (total, paid) => { const s = payState(total, paid); return markChip('pay-' + s, { y: 'оплачено', p: 'частично', n: 'не оплачено' }[s]); };
+/* 34-й круг: статусы клиента, поставщика, обращения, оплаты (план/факт) и вид оплаты (поступление/выплата) */
+const clChip = st => markChip(CLIENT_ST[st][1], CLIENT_ST[st][0]);
+const spChip = st => markChip(SPL_ST[st][1], SPL_ST[st][0], 136);
+const obChip = st => markChip(ISSUE_ST[st][1], ISSUE_ST[st][0]);
+const plChip = st => markChip(PAY_ST[st][1], PAY_ST[st][0]);
+const pkChip = k => markChip(k === 'in' ? 'pk-in' : 'pk-out', k === 'in' ? 'поступление' : 'выплата');
 
 /* чип направления (шапка карточки заказа, 28-й круг): тот же приём, что у чипа статуса, крупнее в 1,2 раза и без цветной метки —
    задняя фигура 31×19, плашка 169×19 со сдвигом (7, 5), текст 12px с 38px; одна ширина 176px под «полимерные изделия» (129px) */
